@@ -54,7 +54,6 @@ export default function Home() {
               <th className="border border-gray-300 p-2">Адміністративний поділ (на час складання)</th>
               <th className="border border-gray-300 p-2">Адміністративний поділ (сучасний)</th>
               <th className="border border-gray-300 p-2">Див. на карті</th>
-              <th className="border border-gray-300 p-2">Тип позначки</th>
               <th className="border border-gray-300 p-2">Сигнатура справи</th>
               <th className="border border-gray-300 p-2">Сигнатура додаткової справи</th>
               <th className="border border-gray-300 p-2">Назва справи</th>
@@ -105,14 +104,11 @@ export default function Home() {
                     '-'
                   )}
                 </td>
-
-                <td className="border border-gray-300 p-1 text-xs">{record.mark_type || '-'}</td>
+                
                 <td className="border border-gray-300 p-1 text-xs">{record.case_signature || '-'}</td>
                 <td className="border border-gray-300 p-1 text-xs">{record.additional_case_signature || '-'}</td>
                 <td className="border border-gray-300 p-1 text-xs">{record.case_title || '-'}</td>
-                <td className="border border-gray-300 p-1 text-xs">
-                  {record.case_date ? new Date(record.case_date).toLocaleDateString() : '-'}
-                </td>
+                <td className="border border-gray-300 p-1 text-xs">{record.case_date || '-'}</td>              
                 <td className="border border-gray-300 p-1 text-xs">{record.pages_count ?? '-'}</td>
                 <td className="border border-gray-300 p-1 text-xs">{record.inventory_start_page ?? '-'}</td>
                 <td className="border border-gray-300 p-1 text-xs">{record.inventory_year ?? '-'}</td>

@@ -62,6 +62,11 @@ export default function Header() {
                                 Про проєкт
                             </Link>
                         </li>
+                          <li>
+                            <Link href="/feedback" className="hover:underline">
+                                Відгуки і пропозиції
+                            </Link>
+                        </li>
                     </ul>
                 </nav>
 

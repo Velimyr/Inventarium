@@ -57,48 +57,49 @@ export default function RecordPage() {
         <>
             <Header />
             <main className="p-4 w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
-                <h1 className="text-2xl font-bold mb-6">{record.case_title || 'Інвентарний опис'}</h1>
-                <div className="overflow-auto max-w-full">
-                    <table className="min-w-[1000px] border border-gray-300 table-auto mx-auto">
-                        <tbody>
-                            {formatRow('Сигнатура справи', record.case_signature)}
-                            {formatRow('Додаткова сигнатура', record.additional_case_signature)}
-                            {formatRow('Назва справи', record.case_title)}
-                            {formatRow('Дата справи', record.case_date ? new Date(record.case_date).toLocaleDateString() : '-')}
-                            {formatRow('Адмінподіл на час створення', fullLocationOld)}
-                            {formatRow('Сучасний адмінподіл', fullLocationCurrent)}
-                            {formatRow('Широта', record.latitude)}
-                            {formatRow('Довгота', record.longitude)}
-                            {formatRow('Тип позначки', record.mark_type)}
-                            {formatRow('Кількість сторінок', record.pages_count)}
-                            {formatRow('Початкова сторінка інвентаря', record.inventory_start_page)}
-                            {formatRow('Рік складання інвентаря', record.inventory_year)}
-                            {formatRow('Примітки', record.notes)}
-                            {formatRow('Статус', record.status)}
-                            {formatRow('Дата створення', new Date(record.created_at).toLocaleString())}
-                            {formatRow(
-                                'Посилання на скани',
-                                record.scans_url ? (
-                                    <a href={record.scans_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">
-                                        Переглянути
-                                    </a>
-                                ) : '-'
-                            )}
-                            {formatRow(
-                                'Карта',
-                                record.latitude && record.longitude ? (
-                                    <a
-                                        href={`https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=16/${record.latitude}/${record.longitude}`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-blue-600 underline"
-                                    >
-                                        Відкрити на мапі
-                                    </a>
-                                ) : '-'
-                            )}
-                        </tbody>
-                    </table>
+                <div className="flex flex-col items-center px-4">
+                    <h1 className="text-2xl font-bold mb-6 text-center">
+                        {record.case_title || 'Інвентарний опис'}
+                    </h1>
+                    <div className="overflow-auto max-w-full">
+                        <table className="min-w-[1000px] border border-gray-300 table-auto mx-auto">
+                            <tbody>
+                                {formatRow('Адмінподіл на час створення', fullLocationOld)}
+                                {formatRow('Сучасний адмінподіл', fullLocationCurrent)}
+
+                                {formatRow('Рік складання інвентаря', record.inventory_year)}
+                                {formatRow('Сигнатура справи', record.case_signature)}
+                                {formatRow('Назва справи', record.case_title)}
+                                {formatRow('Дата справи', record.case_date)}
+                                {formatRow('Кількість сторінок', record.pages_count)}
+                                {formatRow('Початкова сторінка інвентаря', record.inventory_start_page)}
+                                {formatRow('Додаткова сигнатура', record.additional_case_signature)}
+                                {formatRow('Примітки', record.notes)}
+                                {formatRow('Дата створення', new Date(record.created_at).toLocaleString())}
+                                {formatRow(
+                                    'Посилання на скани',
+                                    record.scans_url ? (
+                                        <a href={record.scans_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">
+                                            Переглянути
+                                        </a>
+                                    ) : '-'
+                                )}
+                                {formatRow(
+                                    'Карта',
+                                    record.latitude && record.longitude ? (
+                                        <a
+                                            href={`https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=16/${record.latitude}/${record.longitude}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-blue-600 underline"
+                                        >
+                                            Відкрити на мапі
+                                        </a>
+                                    ) : '-'
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <div className="mt-6">

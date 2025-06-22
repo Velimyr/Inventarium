@@ -48,19 +48,23 @@ export default function Header() {
                 <nav>
                     <ul className="flex space-x-8 text-lg text-gray-700 dark:text-gray-300">
                         <li>
-                            <Link href="/">
-                                <a className="text-gray-700 dark:text-gray-300 hover:underline">Головна</a>
+                            <Link href="/" className="hover:underline">
+                                Головна
                             </Link>
                         </li>
                         <li>
-                            <Link href="/about">
-                                <a className="text-gray-700 dark:text-gray-300 hover:underline">Про проєкт</a>
+                            <Link href="/map" className="hover:underline">
+                                Карта
                             </Link>
                         </li>
-                        {/* Тут можна додати інші пункти меню */}
+                        <li>
+                            <Link href="/about" className="hover:underline">
+                                Про проєкт
+                            </Link>
+                        </li>
                     </ul>
-
                 </nav>
+
             </div>
 
             {/* Правий блок: кнопка перемикання теми, по центру по вертикалі */}

@@ -94,7 +94,7 @@ export default function Home() {
                 <td className="border border-gray-300 p-1 text-xs">
                   {record.latitude && record.longitude ? (
                     <a
-                      href={`https://www.google.com/maps?q=${record.latitude},${record.longitude}`}
+                      href={`https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=16/${record.latitude}/${record.longitude}`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-blue-600 underline"

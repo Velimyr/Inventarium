@@ -24,6 +24,9 @@ interface Record {
     longitude: number | null;
     mark_type: number | null;
     current_settlement_name: string | null;
+    current_region: string | null;
+    current_district: string | null;
+    current_community: string | null;
 }
 
 export default function MapPageComponent() {
@@ -34,7 +37,7 @@ export default function MapPageComponent() {
         const fetchData = async () => {
             const { data, error } = await supabase
                 .from('records')
-                .select('id, latitude, longitude, mark_type, current_settlement_name')
+                .select('id, latitude, longitude, mark_type, current_settlement_name,current_region,current_district,current_community')
                 .eq('approved', true)
                 .not('latitude', 'is', null)
                 .not('longitude', 'is', null);
@@ -75,9 +78,19 @@ export default function MapPageComponent() {
                                                     <br />
                                                     <button
                                                         className="text-blue-600 underline"
-                                                        onClick={() => router.push(`/record/${record.id}`)}
+                                                        onClick={() =>
+                                                            router.push({
+                                                                pathname: '/settlement',
+                                                                query: {
+                                                                    current_region: record.current_region,
+                                                                    current_district: record.current_district,
+                                                                    current_community: record.current_community,
+                                                                    current_settlement_name: record.current_settlement_name
+                                                                }
+                                                            })
+                                                        }
                                                     >
-                                                        Переглянути запис
+                                                        Переглянути всі записи населеного пункту
                                                     </button>
                                                 </div>
                                             </Popup>

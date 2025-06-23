@@ -36,7 +36,7 @@ export default function Header() {
             </div>
 
             {/* Центральний блок: назва сайту, пояснення та меню */}
-            <div className="flex flex-col flex-grow mx-6 min-w-0">
+            <div className="flex flex-col flex-grow mx-4 sm:mx-6 min-w-0 max-w-full">
                 <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mb-1 truncate">
                     Інвентаріум
                 </h1>
@@ -46,7 +46,7 @@ export default function Header() {
                 </p>
 
                 <nav>
-                    <ul className="flex space-x-8 text-lg text-gray-700 dark:text-gray-300">
+                    <ul className="flex flex-wrap overflow-x-auto space-x-4 sm:space-x-8 text-lg text-gray-700 dark:text-gray-300">
                         <li>
                             <Link href="/" className="hover:underline">
                                 Головна
@@ -62,19 +62,18 @@ export default function Header() {
                                 Про проєкт
                             </Link>
                         </li>
-                         <li>
+                        <li>
                             <Link href="/volunteer" className="hover:underline">
                                 Долучитися до проєкту
                             </Link>
                         </li>
-                          <li>
+                        <li>
                             <Link href="/feedback" className="hover:underline">
                                 Відгуки і пропозиції
                             </Link>
                         </li>
                     </ul>
                 </nav>
-
             </div>
 
             {/* Правий блок: кнопка перемикання теми, по центру по вертикалі */}

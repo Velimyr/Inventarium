@@ -410,6 +410,7 @@ export default function AddInventoryPage() {
             <main className="p-6 w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex justify-center">
                 <div className="max-w-2xl w-full">
                     <h1 className="text-2xl font-bold mb-6">Додати до реєстру новий інвентар інвентар</h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Зверніть увагу, доданий вами інвентар буде опубліковано в реєстрі лише після перевірки адміністратором!</p>
 
                     {duplicateUrl && (
                         <p className="text-yellow-600 mb-4">

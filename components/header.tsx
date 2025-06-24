@@ -63,6 +63,11 @@ export default function Header() {
                             </Link>
                         </li>
                         <li>
+                            <Link href="/add_inventory" className="hover:underline">
+                                Додати інвентар
+                            </Link>
+                        </li>
+                        <li>
                             <Link href="/volunteer" className="hover:underline">
                                 Долучитися до проєкту
                             </Link>

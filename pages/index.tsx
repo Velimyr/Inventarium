@@ -100,10 +100,6 @@ useEffect(() => {
               <th className="border border-gray-300 p-2">Сигнатура справи</th>
               <th className="border border-gray-300 p-2">Назва справи</th>
               <th className="border border-gray-300 p-2">Дата справи</th>
-              <th className="border border-gray-300 p-2">Кількість сторінок</th>
-              <th className="border border-gray-300 p-2">Сторінка поч. інвентаря</th>
-              <th className="border border-gray-300 p-2">Сигнатура додаткової справи</th>
-              <th className="border border-gray-300 p-2">Посилання на скани</th>
               <th className="border border-gray-300 p-2">Примітки</th>
             </tr>
           </thead>
@@ -150,14 +146,6 @@ useEffect(() => {
                 <td className="border border-gray-300 p-1 text-xs">{record.case_signature || '-'}</td>
                 <td className="border border-gray-300 p-1 text-xs">{record.case_title || '-'}</td>
                 <td className="border border-gray-300 p-1 text-xs">{record.case_date || '-'}</td>
-                <td className="border border-gray-300 p-1 text-xs">{record.pages_count ?? '-'}</td>
-                <td className="border border-gray-300 p-1 text-xs">{record.inventory_start_page ?? '-'}</td>
-                <td className="border border-gray-300 p-1 text-xs">{record.additional_case_signature || '-'}</td>
-                <td className="border border-gray-300 p-1 text-xs">
-                  {record.scans_url ? (
-                    <a href={record.scans_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Посилання</a>
-                  ) : '-'}
-                </td>
                 <td className="border border-gray-300 p-1 text-xs">{record.notes || '-'}</td>
               </tr>
             ))}

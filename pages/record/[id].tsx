@@ -175,7 +175,20 @@ export default function RecordPage() {
                         >
                             🚫 Повідомити про помилку в інвентарі
                         </button>
+                        <button
+                            onClick={() => {
+                                const query = [record.archive, record.fonds, record.series, record.record]
+                                    .filter(Boolean)
+                                    .join('-');
+                                const url = `https://inspector.duckarchive.com/search?q=${encodeURIComponent(query)}`;
+                                window.open(url, '_blank');
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                            🦆 Перевірити в Качиному Інспекторі
+                        </button>
                     </div>
+
                 </div>
                 <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} as={Fragment}>
                     <div className="fixed inset-0 bg-black bg-opacity-30 z-40 flex items-center justify-center">

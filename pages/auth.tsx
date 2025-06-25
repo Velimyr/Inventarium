@@ -1,27 +1,59 @@
-import { supabase } from '../lib/supabaseClient';
 import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import Header from '../components/header';
 
 export default function AuthPage() {
-  const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
-  const signOut = () => {
-    supabase.auth.signOut();
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+  }, []);
+
+  const signInWithGoogle = async () => {
+    await supabase.auth.signInWithOAuth({ provider: 'google' });
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
     location.reload();
   };
 
-  const sendMagicLink = async () => {
-    await supabase.auth.signInWithOtp({ email });
-    setSent(true);
-  };
-
   return (
-    <main className="p-4 max-w-xl mx-auto">
-      <h1 className="text-xl font-bold mb-4">Увійти</h1>
-      <input className="border p-2 mb-2 w-full" placeholder="Email" onChange={e => setEmail(e.target.value)} />
-      <button onClick={sendMagicLink} className="bg-blue-600 text-white px-4 py-2 rounded">Надіслати лінк</button>
-      <button onClick={signOut} className="ml-4 text-red-600 underline">Вийти</button>
-      {sent && <p className="mt-2">Перевірте пошту</p>}
-    </main>
+    <>
+      <Header />
+      <main className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen px-4 py-6">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl font-bold mb-6">🔐 Вхід до системи</h1>
+
+          {user ? (
+            <div className="border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded p-6">
+              <p className="mb-4">
+                Ви увійшли як: <span className="font-medium">{user.email}</span>
+              </p>
+              <button
+                onClick={signOut}
+                className="px-4 py-2 rounded bg-gray-700 text-white hover:bg-gray-600 transition"
+              >
+                Вийти
+              </button>
+            </div>
+          ) : (
+            <div className="border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded p-6">
+              <p className="mb-4">Увійдіть через обліковий запис Google для доступу до адміністративної частини сайту.</p>
+              <button
+                onClick={signInWithGoogle}
+                className="px-4 py-2 rounded bg-gray-700 text-white hover:bg-gray-600 transition"
+              >
+                Увійти через Google
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+    </>
   );
 }

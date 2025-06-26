@@ -1,29 +1,41 @@
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import L from 'leaflet';
 
 interface MapSelectorProps {
   latitude: string;
   longitude: string;
-  onChange: (lat: string, lng: string) => void;
+  //onChange: (lat: string, lng: string) => void;
+  onPositionChange: (lat: string, lng: string) => void;
 }
 
-const LocationMarker = ({ onSelect }: { onSelect: (lat: string, lng: string) => void }) => {
-  const [position, setPosition] = useState<L.LatLng | null>(null);
+export default function MapSelector({ latitude, longitude, onPositionChange }: MapSelectorProps) {
+  const parsedLat = parseFloat(latitude);
+  const parsedLng = parseFloat(longitude);
+  const hasValidCoords = !isNaN(parsedLat) && !isNaN(parsedLng);
+  const [markerPosition, setMarkerPosition] = useState<L.LatLng | null>(
+    hasValidCoords ? L.latLng(parsedLat, parsedLng) : null
+  );
 
-  useMapEvents({
-    click(e) {
-      const { lat, lng } = e.latlng;
-      setPosition(e.latlng);
-      onSelect(lat.toFixed(6), lng.toFixed(6));
-    },
-  });
+  const center = hasValidCoords ? [parsedLat, parsedLng] : [48.3794, 31.1656]; // Центр України
 
-  return position ? <Marker position={position} /> : null;
-};
+  const MapClickHandler = () => {
+    useMapEvents({
+      click(e) {
+        const { lat, lng } = e.latlng;
+        setMarkerPosition(e.latlng);
+        onPositionChange(lat.toFixed(6), lng.toFixed(6));
+      },
+    });
+    return null;
+  };
 
-export default function MapSelector({ latitude, longitude, onChange }: MapSelectorProps) {
-  const center = latitude && longitude ? [parseFloat(latitude), parseFloat(longitude)] : [48.3794, 31.1656]; // Центр України
+  // Синхронізуй маркер, якщо координати змінюються зовні
+  useEffect(() => {
+    if (hasValidCoords) {
+      setMarkerPosition(L.latLng(parsedLat, parsedLng));
+    }
+  }, [parsedLat, parsedLng]);
 
   return (
     <div className="h-64 border dark:border-gray-600 rounded overflow-hidden">
@@ -32,7 +44,8 @@ export default function MapSelector({ latitude, longitude, onChange }: MapSelect
           attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <LocationMarker onSelect={onChange} />
+        <MapClickHandler />
+        {markerPosition && <Marker position={markerPosition} />}
       </MapContainer>
       <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">
         Натисніть на карту, щоб вибрати координати: {latitude}, {longitude}

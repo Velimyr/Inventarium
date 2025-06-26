@@ -45,9 +45,28 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
       .catch((err) => console.error('Failed to load region_structure.json', err));
   }, []);
 
+  // useEffect(() => {
+  //   setFormData(data);
+  // }, [data]);
+
+  //   useEffect(() => {
+  //   if (data && Object.keys(data).length > 0) {
+  //     setFormData(data);
+  //   }
+  // }, [data?.id]);
+
   useEffect(() => {
-    setFormData(data);
-  }, [data]);
+    if (data && Object.keys(data).length > 0) {
+      const cleaned = {
+        ...data,
+        inventory_year: data.inventory_year ?? '',
+        pages_count: data.pages_count ?? '',
+        inventory_start_page: data.inventory_start_page ?? '',
+      };
+      setFormData(cleaned);
+    }
+  }, [data?.id]);
+
 
   useEffect(() => {
     onChange(formData);
@@ -315,7 +334,7 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
 
                 </>
               )}
-              <label className="inline-flex items-center space-x-2 mb-2">
+              {/* <label className="inline-flex items-center space-x-2 mb-2">
                 <input
                   type="checkbox"
                   name="manualEntry"
@@ -323,7 +342,7 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
                   onChange={handleChange}
                 />
                 <span>Населеного пункту нема в списку</span>
-              </label>
+              </label> */}
 
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Оберіть точку на карті, що стосується потрібного населеного пункту (Обов'язково)

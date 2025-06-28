@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
 
+//
+
+
 
 interface MapSelectorProps {
   latitude: string;
@@ -45,6 +48,24 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
   const [duplicateUrl, setDuplicateUrl] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+ 
+  type ArchiveItem = {
+    short_name: string;
+    full_name_ukr: string;
+    country: string;
+  };
+
+  const [archives, setArchives] = useState<ArchiveItem[]>([]);
+
+  useEffect(() => {
+    fetch('/data/archives.json')
+      .then((res) => res.json())
+      .then((data: ArchiveItem[]) => {
+        const ukrainianArchives = data.filter(item => item.country === 'Україна');
+        setArchives(ukrainianArchives);
+      })
+      .catch((err) => console.error('Не вдалося завантажити архіви:', err));
+  }, []);
 
   useEffect(() => {
     fetch('/data/region_structure.json')
@@ -198,7 +219,6 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
             {/* Блок 1: Сучасний адміністративний поділ */}
             <section className="space-y-4">
               <h2 className="text-xl font-semibold">Сучасний адміністративний поділ</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Всі поля є обов'язкові</p>
 
               {!manualEntry ? (
                 <>
@@ -332,7 +352,7 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
 
                 </>
               )}
-              
+
 
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Оберіть точку на карті, що стосується потрібного населеного пункту (Обов'язково)
@@ -348,23 +368,21 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
                     longitude: lng.toString(),
                   }));
                 }}
-              /> 
-
-              
+              />
 
             </section>
             <select
-                name="mark_type"
-                value={formData.mark_type}
-                onChange={handleChange}
-                className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-              >
-                <option value="">Тип позначки</option>
-                <option value="1">Місце</option>
-                <option value="0">Регіон</option>
-              </select>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Обирайте "Місце" якщо точно знаєте, що інвентар стосується цього населеного пункту" (Наприклад назва справи "Інвентар села Калинівка" \ Обирайте "Регіон" якщо не впевнені які села зустрічаються в інвентарі. (Наприклад "Назва справи "Інвентар Білопільського ключа"</p>
-                <br/>
+              name="mark_type"
+              value={formData.mark_type}
+              onChange={handleChange}
+              className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
+            >
+              <option value="">Тип позначки</option>
+              <option value="1">Місце</option>
+              <option value="0">Регіон</option>
+            </select>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Обирайте "Місце" якщо точно знаєте, що інвентар стосується цього населеного пункту" (Наприклад назва справи "Інвентар села Калинівка" \ Обирайте "Регіон" якщо не впевнені які села зустрічаються в інвентарі. (Наприклад "Назва справи "Інвентар Білопільського ключа"</p>
+            <br />
             {/* Блок 2: Адміністративний поділ час складання */}
             <section className="space-y-4">
               <h2 className="text-xl font-semibold">Адміністративний поділ станом на час складання інвентаря</h2>
@@ -436,18 +454,33 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
 
               {formData.is_ukrainian_archive === 'Так' ? (
                 <div className="flex flex-col gap-4">
-                  <input
+                  {/* <input
                     name="archive"
                     value={formData.archive}
                     onChange={handleChange}
                     placeholder="Назва архіву"
                     className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-                  />
+                  /> */}
+
+                  <select
+                    value={formData.archive}
+                    onChange={(e) =>
+                      setFormData((fd) => ({ ...fd, archive: e.target.value }))
+                    }
+                    className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600 w-full"
+                  >
+                    <option value="">Оберіть архів</option>
+                    {archives.map(({ short_name, full_name_ukr }) => (
+                      <option key={short_name} value={short_name}>
+                        {short_name} - {full_name_ukr}
+                      </option>
+                    ))}
+                  </select>
                   <input
                     name="fonds"
                     value={formData.fonds}
                     onChange={handleChange}
-                    placeholder="Номер фонду"
+                    placeholder="Фонд"
                     className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
                   />
                   <input

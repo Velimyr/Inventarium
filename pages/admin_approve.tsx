@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
-import EditableInventoryForm from '../components/EditableInventoryForm';
 import Toast from '../components/Toast';
+import dynamic from 'next/dynamic';
+
+const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
+  ssr: false,
+});
 
 export default function AdminPage() {
   const [user, setUser] = useState<any>(null);

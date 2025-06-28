@@ -24,10 +24,10 @@ export default function Archives() {
   const filteredArchives = archives.filter(archive => {
     const term = searchTerm.toLowerCase();
     return (
-      archive["Скорочення"].toLowerCase().includes(term) ||
-      archive["Країна"].toLowerCase().includes(term) ||
-      archive["Повна назва українською"].toLowerCase().includes(term) ||
-      archive["Повна назва мовою країни архіву"].toLowerCase().includes(term)
+      archive["short_name"].toLowerCase().includes(term) ||
+      archive["country"].toLowerCase().includes(term) ||
+      archive["full_name_ukr"].toLowerCase().includes(term) ||
+      archive["full_name_native"].toLowerCase().includes(term)
     );
   });
 
@@ -50,10 +50,10 @@ export default function Archives() {
             {filteredArchives.map(archive => (
               <li key={archive.id} className="p-4 border rounded shadow bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-semibold">
-                  {archive["Скорочення"]} — {archive["Повна назва українською"]}
+                  {archive["short_name"]} — {archive["full_name_ukr"]}
                 </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Країна: {archive["Країна"]}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Мова оригіналу: {archive["Повна назва мовою країни архіву"]}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Країна: {archive["country"]}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Назва мовою оригіналу: {archive["full_name_native"]}</p>
                 {archive.site && (
                   <p className="mt-2">
                     <a

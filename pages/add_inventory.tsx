@@ -71,6 +71,8 @@ export default function AddInventoryPage() {
         email: '',
     });
 
+    
+
     // Завантажуємо region_structure.json при монтуванні
     useEffect(() => {
         async function fetchNestedData() {
@@ -183,20 +185,6 @@ export default function AddInventoryPage() {
         }
     }, [formData.current_settlement_type, settlements, formData.current_settlement_name, manualEntry]);
 
-    // При зміні current_settlement_name підставляємо координати
-    // useEffect(() => {
-    //     if (!manualEntry && formData.current_settlement_name) {
-    //         const settlement = settlements.find((s) => s.name === formData.current_settlement_name);
-    //         if (settlement) {
-    //             setFormData((fd: any) => ({
-    //                 ...fd,
-    //                 latitude: settlement.lat !== null ? settlement.lat.toString() : '',
-    //                 longitude: settlement.lon !== null ? settlement.lon.toString() : '',
-    //             }));
-    //         }
-    //     }
-    // }, [formData.current_settlement_name, settlements, manualEntry]);
-
     // Обробка зміни форми
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -279,7 +267,7 @@ export default function AddInventoryPage() {
 
         // Якщо ручний ввід — перевіряємо ці ж поля, просто заповнені в інпутах
         if (manualEntry) {
-            // усе добре, бо ми тримаємо поля ті ж
+            
         }
 
         if (formData.is_ukrainian_archive === 'Так') {
@@ -362,43 +350,11 @@ export default function AddInventoryPage() {
             .match(matchQuery)
             .maybeSingle();
 
-
-        // const { data: existing } = await supabase
-        //     .from('records')
-        //     .select('id')
-        //     .match({
-        //         current_region: formData.current_region,
-        //         current_district: formData.current_district,
-        //         current_community: formData.current_community,
-        //         current_settlement_type: formData.current_settlement_type,
-        //         current_settlement_name: formData.current_settlement_name,
-        //         case_signature: formData.case_signature,
-        //         inventory_year: formData.inventory_year,
-        //     })
-        //     .maybeSingle();
-
         if (existing) {
             setDuplicateUrl(`/records/${existing.id}`);
             setToast({ message: `Такий інвентар уже існує. Спробуйте пошукати його в реєстрі інвентарів`, type: 'error' });
             return;
         }
-
-        // Додаткова перевірка в таблиці records_unverified
-        // const { data: unverifiedExisting } = await supabase
-        //     .from('records_unverified')
-        //     .select('id')
-        //     .match({
-        //         current_region: formData.current_region,
-        //         current_district: formData.current_district,
-        //         current_community: formData.current_community,
-        //         current_settlement_type: formData.current_settlement_type,
-        //         current_settlement_name: formData.current_settlement_name,
-        //         case_signature: formData.case_signature,
-        //         inventory_year: formData.inventory_year,
-        //     })
-        //     .maybeSingle();
-
-
 
         const { data: unverifiedExisting } = await supabase
             .from('records_unverified')
@@ -447,7 +403,7 @@ export default function AddInventoryPage() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">Зверніть увагу, доданий вами інвентар буде опубліковано в реєстрі лише після перевірки адміністратором!</p>
 
                     <EditableInventoryForm data={formData} onChange={setFormData} />
-
+                    <div className="flex gap-4 mt-4">
                     <button
                         type="button"
                         onClick={handleSubmit}
@@ -455,7 +411,7 @@ export default function AddInventoryPage() {
                     >
                         Зберегти
                     </button>
-
+                    </div>
                 </div>
             </main>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

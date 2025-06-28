@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
 
+
+interface MapSelectorProps {
+  latitude: string;
+  longitude: string;
+  markType?: number | null;
+  onPositionChange: (lat: number, lng: number) => void;
+}
+
 const MapSelector = dynamic(() => import('../components/MapSelector'), { ssr: false });
 
 interface Settlement {
@@ -44,16 +52,6 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
       .then((json: NestedStructure) => setNestedData(json))
       .catch((err) => console.error('Failed to load region_structure.json', err));
   }, []);
-
-  // useEffect(() => {
-  //   setFormData(data);
-  // }, [data]);
-
-  //   useEffect(() => {
-  //   if (data && Object.keys(data).length > 0) {
-  //     setFormData(data);
-  //   }
-  // }, [data?.id]);
 
   useEffect(() => {
     if (data && Object.keys(data).length > 0) {
@@ -334,30 +332,11 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
 
                 </>
               )}
-              {/* <label className="inline-flex items-center space-x-2 mb-2">
-                <input
-                  type="checkbox"
-                  name="manualEntry"
-                  checked={manualEntry}
-                  onChange={handleChange}
-                />
-                <span>Населеного пункту нема в списку</span>
-              </label> */}
+              
 
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Оберіть точку на карті, що стосується потрібного населеного пункту (Обов'язково)
               </p>
-              {/* <MapSelector
-                latitude={formData.latitude}
-                longitude={formData.longitude}
-                onChange={(lat, lng) =>
-                  setFormData((fd: any) => ({
-                    ...fd,
-                    latitude: lat.toString(),
-                    longitude: lng.toString(),
-                  }))
-                }
-              /> */}
 
               <MapSelector
                 latitude={formData.latitude ? formData.latitude.toString() : ''}
@@ -369,7 +348,10 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
                     longitude: lng.toString(),
                   }));
                 }}
-              />
+              /> 
+
+              
+
             </section>
             <select
                 name="mark_type"

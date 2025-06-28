@@ -371,7 +371,18 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
                 }}
               />
             </section>
-
+            <select
+                name="mark_type"
+                value={formData.mark_type}
+                onChange={handleChange}
+                className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
+              >
+                <option value="">Тип позначки</option>
+                <option value="1">Місце</option>
+                <option value="0">Регіон</option>
+              </select>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Обирайте "Місце" якщо точно знаєте, що інвентар стосується цього населеного пункту" (Наприклад назва справи "Інвентар села Калинівка" \ Обирайте "Регіон" якщо не впевнені які села зустрічаються в інвентарі. (Наприклад "Назва справи "Інвентар Білопільського ключа"</p>
+                <br/>
             {/* Блок 2: Адміністративний поділ час складання */}
             <section className="space-y-4">
               <h2 className="text-xl font-semibold">Адміністративний поділ станом на час складання інвентаря</h2>
@@ -536,18 +547,6 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
                   className="flex-1 min-w-[150px] p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
                 />
               </div>
-              <br />
-              <p className="text-sm text-gray-500 dark:text-gray-400">Обирайте "Місце" якщо точно знаєте, що інвентар стосується цього населеного пункту" (Наприклад назва справи "Інвентар села Калинівка" \ Обирайте "Регіон" якщо не впевнені які села зустрічаються в інвентарі. (Наприклад "Назва справи "Інвентар Білопільського ключа"</p>
-              <select
-                name="mark_type"
-                value={formData.mark_type}
-                onChange={handleChange}
-                className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-              >
-                <option value="">Тип позначки</option>
-                <option value="1">Місце</option>
-                <option value="2">Регіон</option>
-              </select>
               <input
                 name="scans_url"
                 value={formData.scans_url}

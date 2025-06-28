@@ -113,11 +113,18 @@ export default function RecordPage() {
                     <h1 className="text-2xl font-bold mb-6 text-center">
                         {record.case_title || 'Інвентарний опис'}
                     </h1>
+                    {record.mark_type === 0 && (
+                            <h3 className="min-w-[1000px] mx-auto mb-2 text-base font-semibold">
+                                ⚠️ Зверніть увагу: даний інвентар відноситься до певної області навколо вказаного в інвентарі населеного пункту.
+                                Тобто у справі потенційно можуть знаходитися інвентарі по навколишнім населеним пунктам, а не лише по тому, що вказаний в записі.
+                            </h3>
+                        )}
                     <div className="overflow-auto max-w-full">
+                        
                         <table className="min-w-[1000px] border border-gray-300 table-auto mx-auto">
                             <tbody>
-                                {formatRow('Адмінподіл на час створення', fullLocationOld)}
                                 {formatRow('Сучасний адмінподіл', fullLocationCurrent)}
+                                {formatRow('Адмінподіл на час створення', fullLocationOld)}
                                 {formatRow('Рік складання інвентаря', record.inventory_year)}
                                 {formatRow('Сигнатура справи', record.case_signature)}
                                 {formatRow('Назва справи', record.case_title)}

@@ -51,7 +51,7 @@ export default function SettlementRecordsPage() {
       <Header />
       <main className="p-4 w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
         <h1 className="text-2xl font-bold mb-6 text-center">
-          Інвентарі: {current_settlement_name}, {current_community}, {current_district}, {current_region}
+          Інвентарі: {current_settlement_name}, {current_community} громада, {current_district} район, {current_region} область
         </h1>
 
         {loading ? (

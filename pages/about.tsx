@@ -42,7 +42,7 @@ export default function About() {
         <p className="mb-2">Проєкт є відкритим для співпраці. Ви можете:</p>
         <ul className="list-disc list-inside mb-4 space-y-1">
           <li>надіслати інформацію про знайдені інвентарі;</li>
-          <li>допомогти в обробці архівних каталогів і путівників;</li>
+          <li>допомогти в обробці архівних каталогів і описів;</li>
           <li>запропонувати виправлення або доповнення до вже внесених записів.</li>
         </ul>
 
@@ -55,7 +55,7 @@ export default function About() {
         <p className="mb-1">
           Telegram — <a href="https://t.me/velimyr" className="text-blue-600 dark:text-blue-400 underline">@velimyr</a>
         </p>
-        <p>Email — <a href="mailto:velimyr@gmail.com" className="text-blue-600 dark:text-blue-400 underline">velimyr@gmail.com</a></p>
+        <p>Email — <a href="mailto:admin@inventarium.org.ua" className="text-blue-600 dark:text-blue-400 underline">admin@inventarium.org.ua</a></p>
       </div>
     </main>
     </>

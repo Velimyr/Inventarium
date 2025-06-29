@@ -40,7 +40,7 @@ export default function SearchBar({ onFilterChange }: { onFilterChange: (filters
       </div>
 
       {/* Заголовок для фільтрів по роках */}
-      <div className="mb-2 text-sm font-medium">Рік створення інвентаря</div>
+      <div className="mb-2 text-sm font-medium">Рік створення інвентарю</div>
 
       {/* Фільтри по роках */}
       <div className="grid grid-cols-2 gap-2 text-sm max-w-xs">

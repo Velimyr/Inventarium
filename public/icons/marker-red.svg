@@ -1,9 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41" fill="none">
-  <path
-    d="M12.5 0C5.6 0 0 5.6 0 12.5c0 9.4 12.5 28.5 12.5 28.5S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0z"
-    fill="#ffb3b3"
-    stroke="#e57373"
-    stroke-width="2"
-  />
-  <circle cx="12.5" cy="12.5" r="6" fill="#fff0f0" />
+<?xml version="1.0"?>
+<svg width="25" height="41" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+ <g class="layer">
+  <title>Layer 1</title>
+  <g id="svg_1" transform="translate(2.5, 4.1) scale(0.8)">
+   <path d="m12.5,0c-7,0 -12.5,5.6 -12.5,12.5c0,9 12.5,28.5 12.5,28.5c0,0 12.5,-19.5 12.5,-28.5c0,-6.9 -5.5,-12.5 -12.5,-12.5z" fill="#cc3366" id="svg_2" stroke="#993333" stroke-width="1.5"/>
+   <circle cx="12.5" cy="13" fill="#f0f7ff" id="svg_3" r="5"/>
+  </g>
+ </g>
 </svg>

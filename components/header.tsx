@@ -72,7 +72,7 @@ export default function Header() {
                         <li><Link href="/help" className="hover:underline">Документація</Link></li>
                         <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
                         <li><Link href="/volunteer" className="hover:underline">Долучитися до проєкту</Link></li>
-                        <li><Link href="/feedback" className="hover:underline">Відгуки і пропозиції</Link></li>
+                        <li><Link href="/feedback" className="hover:underline">Відгуки та пропозиції</Link></li>
                     </ul>
                 </nav>
             </div>

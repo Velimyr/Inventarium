@@ -313,7 +313,7 @@ export default function AddInventoryPage() {
         if (formData.inventory_start_page) {
             const page = parseInt(formData.inventory_start_page);
             if (isNaN(page) || page <= 0) {
-                return 'Поле "Сторінка початку інвентаря" має бути числом більшим за 0.';
+                return 'Поле "Сторінка початку інвентарю" має бути числом більшим за 0.';
             }
         }
 
@@ -405,7 +405,7 @@ export default function AddInventoryPage() {
                     <h1 className="text-2xl font-bold mb-6">Додати до реєстру новий інвентар інвентар</h1>
 
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Перед додаванням інвентаря,{' '}
+                        Перед додаванням інвентарю,{' '}
                         <a
                             href="https://telegra.ph/%D0%86nstrukc%D1%96ya-po-robot%D1%96-z-%D0%86nventar%D1%96um-06-27"
                             target="_blank"

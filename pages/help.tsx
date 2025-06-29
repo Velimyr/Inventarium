@@ -12,7 +12,7 @@ export default function Help() {
           {/* Блок 1 */}
           <div className="border border-gray-300 dark:border-gray-700 rounded p-6 flex justify-between items-center">
             <h2 className="text-xl font-semibold">Основи роботи з Inventarium</h2>
-            <Link href="#">
+            <Link href="https://telegra.ph/%D0%86nstrukc%D1%96ya-po-robot%D1%96-z-%D0%86nventar%D1%96um-06-29">
               <a className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
                 Дивитися
               </a>
@@ -22,7 +22,7 @@ export default function Help() {
           {/* Блок 2 */}
           <div className="border border-gray-300 dark:border-gray-700 rounded p-6 flex justify-between items-center">
             <h2 className="text-xl font-semibold">Як додавати новий інвентар</h2>
-            <Link href="#">
+            <Link href="https://telegra.ph/YAk-dodavati-%D1%96nventar-v-reyestr-06-29">
               <a className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
                 Дивитися
               </a>

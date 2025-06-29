@@ -385,7 +385,7 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
             <br />
             {/* Блок 2: Адміністративний поділ час складання */}
             <section className="space-y-4">
-              <h2 className="text-xl font-semibold">Адміністративний поділ станом на час складання інвентаря</h2>
+              <h2 className="text-xl font-semibold">Адміністративний поділ станом на час складання інвентарю</h2>
               <br />
               <p className="text-sm text-gray-500 dark:text-gray-400">Заповнюєте лише ті значення, в яких точно впевнені. Вказуйте повну назву, наприклад "Київське воєводство" замість "Київське"</p>
               <div className="flex flex-col gap-4">
@@ -551,14 +551,14 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
                   name="inventory_year"
                   value={formData.inventory_year}
                   onChange={handleChange}
-                  placeholder="Рік складання інвентаря (напр. 1750)"
+                  placeholder="Рік складання інвентарю (напр. 1750)"
                   className="flex-1 min-w-[150px] p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
                 />
                 <input
                   name="inventory_start_page"
                   value={formData.inventory_start_page}
                   onChange={handleChange}
-                  placeholder="Сторінка початку інвентаря"
+                  placeholder="Сторінка початку інвентарю"
                   className="flex-1 min-w-[150px] p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
                 />
               </div>

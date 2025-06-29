@@ -96,7 +96,7 @@ export default function Home() {
             <tr>
               <th className="border border-gray-300 p-2">Адміністративний поділ (на час складання)</th>
               <th className="border border-gray-300 p-2">Адміністративний поділ (сучасний)</th>
-              <th className="border border-gray-300 p-2">Рік складання інвентаря</th>
+              <th className="border border-gray-300 p-2">Рік складання інвентарю</th>
               <th className="border border-gray-300 p-2">Сигнатура справи</th>
               <th className="border border-gray-300 p-2">Назва справи</th>
               <th className="border border-gray-300 p-2">Дата справи</th>
@@ -107,7 +107,7 @@ export default function Home() {
             {records.length === 0 && !loading && (
               <tr>
                 <td colSpan={12} className="text-center p-4 text-sm text-blue-600 dark:text-blue-400">
-                  Введіть назву для пошуку потрібного вам інвентаря.
+                  Введіть назву для пошуку потрібного вам інвентарю.
                 </td>
               </tr>
             )}

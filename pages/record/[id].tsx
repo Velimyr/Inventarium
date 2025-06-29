@@ -127,12 +127,12 @@ export default function RecordPage() {
                             <tbody>
                                 {formatRow('Сучасний адмінподіл', fullLocationCurrent)}
                                 {formatRow('Адмінподіл на час створення', fullLocationOld)}
-                                {formatRow('Рік складання інвентаря', record.inventory_year)}
+                                {formatRow('Рік складання інвентарю', record.inventory_year)}
                                 {formatRow('Сигнатура справи', record.case_signature)}
                                 {formatRow('Назва справи', record.case_title)}
                                 {formatRow('Дата справи', record.case_date)}
                                 {formatRow('Кількість сторінок', record.pages_count)}
-                                {formatRow('Початкова сторінка інвентаря', record.inventory_start_page)}
+                                {formatRow('Початкова сторінка інвентарю', record.inventory_start_page)}
                                 {formatRow('Додаткова сигнатура', record.additional_case_signature)}
                                 {formatRow('Примітки', record.notes)}
                                 {formatRow('Дата створення', new Date(record.created_at).toLocaleString())}

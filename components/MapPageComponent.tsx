@@ -5,6 +5,8 @@ import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import ClientOnly from '../components/clientonly';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 //import '../path/to/leafletIconSetup'; // Імпорт, щоб налаштувати іконки
 
 // Далі інші імпорти і код компонента...
@@ -16,6 +18,21 @@ const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLaye
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
 const Circle = dynamic(() => import('react-leaflet').then(mod => mod.Circle), { ssr: false });
+
+
+const blueIcon = L.icon({
+    iconUrl: '/icons/marker-blue.svg',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -41],
+  });
+  
+  const redIcon = L.icon({
+    iconUrl: '/icons/marker-red.svg',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -41],
+  });
 
 const center: [number, number] = [48.3794, 31.1656];
 interface Record {
@@ -71,7 +88,7 @@ export default function MapPageComponent() {
                                     console.log('mark_type:', record.mark_type, 'isRegion:', isRegion);
 
                                     return (
-                                        <Marker key={record.id} position={position}>
+                                        <Marker key={record.id} position={position} icon={isRegion ? redIcon : blueIcon}>
                                             <Popup>
                                                 <div>
                                                     <strong>{record.current_settlement_name || 'Невідома назва'}</strong>

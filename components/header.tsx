@@ -68,8 +68,9 @@ export default function Header() {
                     <ul className="flex flex-wrap overflow-x-auto space-x-4 sm:space-x-8 text-lg text-gray-700 dark:text-gray-300">
                         <li><Link href="/" className="hover:underline">Головна</Link></li>
                         <li><Link href="/map" className="hover:underline">Карта</Link></li>
-                        <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
                         <li><Link href="/add_inventory" className="hover:underline">Додати інвентар</Link></li>
+                        <li><Link href="/help" className="hover:underline">Документація</Link></li>
+                        <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
                         <li><Link href="/volunteer" className="hover:underline">Долучитися до проєкту</Link></li>
                         <li><Link href="/feedback" className="hover:underline">Відгуки і пропозиції</Link></li>
                     </ul>

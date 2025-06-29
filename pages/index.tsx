@@ -10,16 +10,16 @@ export default function Home() {
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<any>({});
-  
-useEffect(() => {
-  const shouldSearch = filters.search && filters.search.trim().length >= 3;
-  if (shouldSearch) {
-    loadRecords();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } else {
-    setRecords([]);
-  }
-}, [page, filters]);
+
+  useEffect(() => {
+    const shouldSearch = filters.search && filters.search.trim().length >= 3;
+    if (shouldSearch) {
+      loadRecords();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setRecords([]);
+    }
+  }, [page, filters]);
 
   const loadRecords = async () => {
     if (!filters.search || filters.search.trim() === '') {
@@ -130,7 +130,7 @@ useEffect(() => {
                   )}
                 </td>
                 <td className="border border-gray-300 p-1 text-xs">
-                  {[record.current_region, record.current_district, record.current_community]
+                  {[record.current_region + ' область', record.current_district+ ' район', record.current_community+ ' громада']
                     .filter(Boolean)
                     .map((item, idx) => <div key={`current-main-${idx}`}>{item}</div>)}
                   {(record.current_settlement_type || record.current_settlement_name) && (
@@ -140,7 +140,33 @@ useEffect(() => {
                         .join(' ')}
                     </div>
                   )}
-                </td>
+                </td> 
+
+                {/* <td className="border border-gray-300 p-1 text-xs">
+                  {[
+                    record.current_region && !record.current_region.includes('область')
+                      ? `${record.current_region} область`
+                      : record.current_region,
+                    record.current_district && !record.current_district.includes('район')
+                      ? `${record.current_district} район`
+                      : record.current_district,
+                    record.current_community && !record.current_community.includes('громада')
+                      ? `${record.current_community} громада`
+                      : record.current_community,
+                  ]
+                  .filter(Boolean)
+                    .map((item, idx) => (
+                  <div key={`current-main-${idx}`}>{item}</div>
+                    ))}
+
+                  {(record.current_settlement_type || record.current_settlement_name) && (
+                    <div>
+                      {[record.current_settlement_type, record.current_settlement_name]
+                        .filter(Boolean)
+                        .join(' ')}
+                    </div>
+                  )}
+                </td> */}
 
                 <td className="border border-gray-300 p-1 text-xs">{record.inventory_year ?? '-'}</td>
                 <td className="border border-gray-300 p-1 text-xs">{record.case_signature || '-'}</td>

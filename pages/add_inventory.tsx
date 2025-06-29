@@ -4,7 +4,10 @@ import Header from '../components/header';
 import { supabase } from '../lib/supabaseClient';
 import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
-import EditableInventoryForm from '../components/EditableInventoryForm';
+
+const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
+    ssr: false,
+});
 
 const MapSelector = dynamic(() => import('../components/MapSelector'), { ssr: false });
 
@@ -70,6 +73,8 @@ export default function AddInventoryPage() {
         notes: '',
         email: '',
     });
+
+
 
     // Завантажуємо region_structure.json при монтуванні
     useEffect(() => {
@@ -183,20 +188,6 @@ export default function AddInventoryPage() {
         }
     }, [formData.current_settlement_type, settlements, formData.current_settlement_name, manualEntry]);
 
-    // При зміні current_settlement_name підставляємо координати
-    // useEffect(() => {
-    //     if (!manualEntry && formData.current_settlement_name) {
-    //         const settlement = settlements.find((s) => s.name === formData.current_settlement_name);
-    //         if (settlement) {
-    //             setFormData((fd: any) => ({
-    //                 ...fd,
-    //                 latitude: settlement.lat !== null ? settlement.lat.toString() : '',
-    //                 longitude: settlement.lon !== null ? settlement.lon.toString() : '',
-    //             }));
-    //         }
-    //     }
-    // }, [formData.current_settlement_name, settlements, manualEntry]);
-
     // Обробка зміни форми
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -279,7 +270,7 @@ export default function AddInventoryPage() {
 
         // Якщо ручний ввід — перевіряємо ці ж поля, просто заповнені в інпутах
         if (manualEntry) {
-            // усе добре, бо ми тримаємо поля ті ж
+
         }
 
         if (formData.is_ukrainian_archive === 'Так') {
@@ -362,43 +353,11 @@ export default function AddInventoryPage() {
             .match(matchQuery)
             .maybeSingle();
 
-
-        // const { data: existing } = await supabase
-        //     .from('records')
-        //     .select('id')
-        //     .match({
-        //         current_region: formData.current_region,
-        //         current_district: formData.current_district,
-        //         current_community: formData.current_community,
-        //         current_settlement_type: formData.current_settlement_type,
-        //         current_settlement_name: formData.current_settlement_name,
-        //         case_signature: formData.case_signature,
-        //         inventory_year: formData.inventory_year,
-        //     })
-        //     .maybeSingle();
-
         if (existing) {
             setDuplicateUrl(`/records/${existing.id}`);
             setToast({ message: `Такий інвентар уже існує. Спробуйте пошукати його в реєстрі інвентарів`, type: 'error' });
             return;
         }
-
-        // Додаткова перевірка в таблиці records_unverified
-        // const { data: unverifiedExisting } = await supabase
-        //     .from('records_unverified')
-        //     .select('id')
-        //     .match({
-        //         current_region: formData.current_region,
-        //         current_district: formData.current_district,
-        //         current_community: formData.current_community,
-        //         current_settlement_type: formData.current_settlement_type,
-        //         current_settlement_name: formData.current_settlement_name,
-        //         case_signature: formData.case_signature,
-        //         inventory_year: formData.inventory_year,
-        //     })
-        //     .maybeSingle();
-
-
 
         const { data: unverifiedExisting } = await supabase
             .from('records_unverified')
@@ -444,18 +403,30 @@ export default function AddInventoryPage() {
             <main className="p-6 w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex justify-center">
                 <div className="max-w-2xl w-full">
                     <h1 className="text-2xl font-bold mb-6">Додати до реєстру новий інвентар інвентар</h1>
+
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Перед додаванням інвентаря,{' '}
+                        <a
+                            href="https://telegra.ph/%D0%86nstrukc%D1%96ya-po-robot%D1%96-z-%D0%86nventar%D1%96um-06-27"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline hover:text-blue-600 dark:hover:text-blue-400"
+                        >
+                            ознайомтеся з інструкцією
+                        </a>.
+                    </p>
+                    <EditableInventoryForm data={formData} onChange={setFormData} />
                     <p className="text-sm text-gray-500 dark:text-gray-400">Зверніть увагу, доданий вами інвентар буде опубліковано в реєстрі лише після перевірки адміністратором!</p>
 
-                    <EditableInventoryForm data={formData} onChange={setFormData} />
-
-                    <button
-                        type="button"
-                        onClick={handleSubmit}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded mt-4"
-                    >
-                        Зберегти
-                    </button>
-
+                    <div className="flex gap-4 mt-4">
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded mt-4"
+                        >
+                            Зберегти
+                        </button>
+                    </div>
                 </div>
             </main>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

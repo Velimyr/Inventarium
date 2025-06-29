@@ -95,9 +95,9 @@ export default function RecordPage() {
         .join(', ');
 
     const fullLocationCurrent = [
-        record.current_region,
-        record.current_district,
-        record.current_community,
+        record.current_region ? `${record.current_region} область` : null,
+        record.current_district ? `${record.current_district} район` : null,
+        record.current_community ? `${record.current_community} громада` : null,
         record.current_settlement_type && record.current_settlement_name
             ? `${record.current_settlement_type} ${record.current_settlement_name}`
             : null,
@@ -113,11 +113,20 @@ export default function RecordPage() {
                     <h1 className="text-2xl font-bold mb-6 text-center">
                         {record.case_title || 'Інвентарний опис'}
                     </h1>
+                    {record.mark_type === 0 && (
+                       <div className="w-full max-w-[1000px] mx-auto mb-4">
+                            <p className="text-base font-semibold text-yellow-700 dark:text-yellow-400">
+                                ⚠️ Зверніть увагу: даний інвентар відноситься до певної області навколо вказаного в інвентарі населеного пункту.
+                                Тобто у справі потенційно можуть знаходитися інвентарі по навколишнім населеним пунктам, а не лише по тому, що вказаний в записі.
+                            </p>
+                        </div>
+                    )}
                     <div className="overflow-auto max-w-full">
+
                         <table className="min-w-[1000px] border border-gray-300 table-auto mx-auto">
                             <tbody>
-                                {formatRow('Адмінподіл на час створення', fullLocationOld)}
                                 {formatRow('Сучасний адмінподіл', fullLocationCurrent)}
+                                {formatRow('Адмінподіл на час створення', fullLocationOld)}
                                 {formatRow('Рік складання інвентаря', record.inventory_year)}
                                 {formatRow('Сигнатура справи', record.case_signature)}
                                 {formatRow('Назва справи', record.case_title)}

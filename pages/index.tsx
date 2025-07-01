@@ -62,7 +62,8 @@ export default function Home() {
     query = query.or([
       `old_settlement_name.ilike.%${filters.search}%`,
       `current_settlement_name.ilike.%${filters.search}%`,
-      `case_title.ilike.%${filters.search}%`
+      `case_title.ilike.%${filters.search}%`,
+      `notes.ilike.%${filters.search}%`,
     ].join(','));
 
     query = query.order('inventory_year', { ascending: false }).range(from, to);

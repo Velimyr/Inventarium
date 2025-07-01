@@ -454,5 +454,13 @@
     "full_name_ukr": "Національний інститут імені Оссолінських",
     "full_name_native": "Zakład Narodowy im. Ossolińskich",
     "site": "https://www.ossolineum.pl/"
+  },
+   {
+    "id": "2f6e92d4-8f50-4c7a-b78a-b1c6ed1f2e0b",
+    "short_name": "АЮЗР",
+    "country": "російська імперія",
+    "full_name_ukr": "Архів Південно-Західної `Росії`",
+    "full_name_native": "Архив Юго-Западной России",
+    "site": ""
   }
 ]

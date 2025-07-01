@@ -31,7 +31,7 @@ export default function Help() {
 
           {/* Блок 3 */}
           <div className="border border-gray-300 dark:border-gray-700 rounded p-6 flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Відповіді на часті запитанян</h2>
+            <h2 className="text-xl font-semibold">Відповіді на часті запитання</h2>
             <Link href="/FAQ">
               <a className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
                 Дивитися

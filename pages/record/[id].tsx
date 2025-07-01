@@ -114,15 +114,15 @@ export default function RecordPage() {
                         {record.case_title || 'Інвентарний опис'}
                     </h1>
                     {record.mark_type === 0 && (
-                       <div className="w-full max-w-[1000px] mx-auto mb-4">
+                        <div className="w-full max-w-[1000px] mx-auto mb-4">
                             <p className="text-base font-semibold text-yellow-700 dark:text-yellow-400">
                                 ⚠️ Зверніть увагу: даний інвентар відноситься до певної області навколо вказаного в інвентарі населеного пункту.
                                 Тобто у справі потенційно можуть знаходитися інвентарі по навколишнім населеним пунктам, а не лише по тому, що вказаний в записі.
                             </p>
                         </div>
                     )}
-                    <div className="overflow-auto max-w-full">
-
+                    <div className="overflow-auto max-w-full hidden sm:block">
+                        {/* Десктоп версія: таблиця */}
                         <table className="min-w-[1000px] border border-gray-300 table-auto mx-auto">
                             <tbody>
                                 {formatRow('Сучасний адмінподіл', fullLocationCurrent)}
@@ -170,17 +170,68 @@ export default function RecordPage() {
                         </table>
                     </div>
 
+                    {/* Мобільна версія: картка */}
+                    <div className="block sm:hidden w-full border rounded p-4 shadow bg-white dark:bg-gray-800 space-y-4">
+                        {[
+                            ['Сучасний адмінподіл', fullLocationCurrent],
+                            ['Адмінподіл на час створення', fullLocationOld],
+                            ['Рік складання інвентарю', record.inventory_year],
+                            ['Сигнатура справи', record.case_signature],
+                            ['Назва справи', record.case_title],
+                            ['Дата справи', record.case_date],
+                            ['Кількість сторінок', record.pages_count],
+                            ['Початкова сторінка інвентарю', record.inventory_start_page],
+                            ['Додаткова сигнатура', record.additional_case_signature],
+                            ['Примітки', record.notes],
+                            ['Дата створення', new Date(record.created_at).toLocaleString()],
+                            [
+                                'Посилання на скани',
+                                record.scans_url ? (
+                                    <a
+                                        href={record.scans_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-blue-600 underline"
+                                    >
+                                        Переглянути
+                                    </a>
+                                ) : (
+                                    '-'
+                                ),
+                            ],
+                            [
+                                'Карта',
+                                record.latitude && record.longitude ? (
+                                    <a
+                                        href={`https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=16/${record.latitude}/${record.longitude}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-blue-600 underline"
+                                    >
+                                        Відкрити на мапі
+                                    </a>
+                                ) : (
+                                    '-'
+                                ),
+                            ],
+                        ].map(([label, value], i) => (
+                            <div key={i}>
+                                <div className="text-xs font-semibold mb-1">{label}</div>
+                                <div className="text-sm">{value || '-'}</div>
+                            </div>
+                        ))}
+                    </div>
 
-                    <div className="mt-6 flex gap-4">
+                    <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:gap-4">
                         <button
                             onClick={() => router.back()}
-                            className="px-4 py-2 bg-gray-300 dark:bg-gray-700 rounded hover:bg-gray-400 dark:hover:bg-gray-600"
+                            className="px-4 py-2 bg-gray-300 dark:bg-gray-700 rounded hover:bg-gray-400 dark:hover:bg-gray-600 w-full sm:w-auto"
                         >
                             ⬅ Повернутися до списку
                         </button>
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 w-full sm:w-auto"
                         >
                             🚫 Повідомити про помилку в інвентарі
                         </button>
@@ -192,11 +243,12 @@ export default function RecordPage() {
                                 const url = `https://inspector.duckarchive.com/search?q=${encodeURIComponent(query)}`;
                                 window.open(url, '_blank');
                             }}
-                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full sm:w-auto"
                         >
                             🦆 Перевірити в Качиному Інспекторі
                         </button>
                     </div>
+
 
                 </div>
                 <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} as={Fragment}>

@@ -92,7 +92,7 @@ export default function Home() {
 
         {loading && <p>Завантаження...</p>}
 
-        <table className="min-w-full border border-gray-300 table-auto">
+        <table className="hidden sm:table min-w-full border border-gray-300 table-auto">
           <thead>
             <tr>
               <th className="border border-gray-300 p-2">Адміністративний поділ (на час складання)</th>
@@ -131,7 +131,7 @@ export default function Home() {
                   )}
                 </td>
                 <td className="border border-gray-300 p-1 text-xs">
-                  {[record.current_region + ' область', record.current_district+ ' район', record.current_community+ ' громада']
+                  {[record.current_region + ' область', record.current_district + ' район', record.current_community + ' громада']
                     .filter(Boolean)
                     .map((item, idx) => <div key={`current-main-${idx}`}>{item}</div>)}
                   {(record.current_settlement_type || record.current_settlement_name) && (
@@ -141,33 +141,7 @@ export default function Home() {
                         .join(' ')}
                     </div>
                   )}
-                </td> 
-
-                {/* <td className="border border-gray-300 p-1 text-xs">
-                  {[
-                    record.current_region && !record.current_region.includes('область')
-                      ? `${record.current_region} область`
-                      : record.current_region,
-                    record.current_district && !record.current_district.includes('район')
-                      ? `${record.current_district} район`
-                      : record.current_district,
-                    record.current_community && !record.current_community.includes('громада')
-                      ? `${record.current_community} громада`
-                      : record.current_community,
-                  ]
-                  .filter(Boolean)
-                    .map((item, idx) => (
-                  <div key={`current-main-${idx}`}>{item}</div>
-                    ))}
-
-                  {(record.current_settlement_type || record.current_settlement_name) && (
-                    <div>
-                      {[record.current_settlement_type, record.current_settlement_name]
-                        .filter(Boolean)
-                        .join(' ')}
-                    </div>
-                  )}
-                </td> */}
+                </td>
 
                 <td className="border border-gray-300 p-1 text-xs">{record.inventory_year ?? '-'}</td>
                 <td className="border border-gray-300 p-1 text-xs">{record.case_signature || '-'}</td>
@@ -178,6 +152,75 @@ export default function Home() {
             ))}
           </tbody>
         </table>
+
+        {/* Мобільна версія: картки */}
+        <div className="block sm:hidden space-y-4 mt-4">
+          {records.length === 0 && !loading && (
+            <div className="text-center p-4 text-sm text-blue-600 dark:text-blue-400 border rounded">
+              Введіть назву для пошуку потрібного вам інвентарю.
+            </div>
+          )}
+          {records.map(record => (
+            <div
+              key={record.id}
+              className="border rounded p-3 bg-white dark:bg-gray-800 shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+              onClick={() => window.location.href = `/record/${record.id}`}
+            >
+              <div className="mb-3">
+                <div className="text-xs font-semibold">Адміністративний поділ (на час складання):</div>
+                <div className="text-xs mt-1">
+                  {[record.old_province, record.old_district, record.old_community]
+                    .filter(Boolean).join(', ') || '-'}
+                </div>
+                {(record.old_settlement_type || record.old_settlement_name) && (
+                  <div className="text-xs">
+                    {[record.old_settlement_type, record.old_settlement_name].filter(Boolean).join(' ')}
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-3">
+                <div className="text-xs font-semibold">Адміністративний поділ (сучасний):</div>
+                <div className="text-xs mt-1">
+                  {[record.current_region + ' область', record.current_district + ' район', record.current_community + ' громада']
+                    .filter(Boolean).join(', ') || '-'}
+                </div>
+                {(record.current_settlement_type || record.current_settlement_name) && (
+                  <div className="text-xs">
+                    {[record.current_settlement_type, record.current_settlement_name].filter(Boolean).join(' ')}
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-2">
+                <div className="text-xs font-semibold">Рік:</div>
+                <div className="text-xs mt-1">{record.inventory_year ?? '-'}</div>
+              </div>
+
+              <div className="mb-2">
+                <div className="text-xs font-semibold">Сигнатура:</div>
+                <div className="text-xs mt-1">{record.case_signature || '-'}</div>
+              </div>
+
+              <div className="mb-2">
+                <div className="text-xs font-semibold">Назва справи:</div>
+                <div className="text-xs mt-1">{record.case_title || '-'}</div>
+              </div>
+
+              <div className="mb-2">
+                <div className="text-xs font-semibold">Дата справи:</div>
+                <div className="text-xs mt-1">{record.case_date || '-'}</div>
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold">Примітки:</div>
+                <div className="text-xs mt-1">{record.notes || '-'}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+
 
         <div className="flex justify-between items-center mt-4 max-w-md mx-auto">
           <button

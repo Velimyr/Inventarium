@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
+import { Menu, X } from 'lucide-react';
 
 type Theme = 'light' | 'dark';
 
 export default function Header() {
     const [theme, setTheme] = useState<Theme>('light');
     const [user, setUser] = useState<any>(null);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         const saved = localStorage.getItem('theme') as Theme | null;
@@ -45,27 +47,32 @@ export default function Header() {
 
     return (
         <header className="flex items-start sm:items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 flex-wrap gap-4 sm:gap-0">
-            {/* Лівий блок: логотип */}
-            <div className="flex-shrink-0">
+            {/* (логотип)*/}
+            <div className="flex-shrink-0 flex sm:block justify-center sm:justify-start w-full sm:w-auto mt-1 mb-2 sm:my-0">
                 <Image
                     src="/inventarium_logo.webp"
                     alt="Логотип"
-                    width={120}
-                    height={120}
+                    width={96}
+                    height={96}
                     priority
+                    className="sm:w-[120px] sm:h-[120px] w-[96px] h-[96px]"
                 />
             </div>
 
-            {/* Центральний блок: назва сайту, меню */}
-            <div className="flex flex-col flex-grow mx-4 sm:mx-6 min-w-0 max-w-full">
+
+            {/* Центральна частина */}
+            <div className="flex flex-col flex-grow mx-4 sm:mx-6 min-w-0 max-w-full text-center sm:text-left items-center sm:items-start">
                 <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mb-1 truncate">
                     Інвентаріум
                 </h1>
-                <p className="text-lg text-gray-700 dark:text-gray-300 mb-4 truncate">
+                <p className="hidden sm:block text-lg text-gray-700 dark:text-gray-300 mb-4 truncate">
                     Реєстр інвентарних описів маєтків на українських землях
                 </p>
+
+                {/* Меню */}
                 <nav>
-                    <ul className="flex flex-wrap overflow-x-auto space-x-4 sm:space-x-8 text-lg text-gray-700 dark:text-gray-300">
+                    {/* Десктоп: усі посилання */}
+                    <ul className="hidden sm:flex flex-wrap space-x-4 sm:space-x-6 text-lg text-gray-700 dark:text-gray-300">
                         <li><Link href="/" className="hover:underline">Головна</Link></li>
                         <li><Link href="/map" className="hover:underline">Карта</Link></li>
                         <li><Link href="/add_inventory" className="hover:underline">Додати інвентар</Link></li>
@@ -74,11 +81,38 @@ export default function Header() {
                         <li><Link href="/volunteer" className="hover:underline">Долучитися до проєкту</Link></li>
                         <li><Link href="/feedback" className="hover:underline">Відгуки та пропозиції</Link></li>
                     </ul>
+
+                    {/* Мобільне меню: перші 2 + бургер */}
+                    <div className="flex items-center justify-between sm:hidden text-lg text-gray-700 dark:text-gray-300">
+                        <div className="flex space-x-4">
+                            <Link href="/" className="hover:underline">Головна</Link>
+                            <Link href="/map" className="hover:underline">Карта</Link>
+                        </div>
+                        <button
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            aria-label="Меню"
+                            className="p-2"
+                        >
+                            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                        </button>
+                    </div>
+
+                    {/* Мобільне випадаюче меню */}
+                    {mobileMenuOpen && (
+                        <ul className="flex flex-col mt-2 space-y-2 text-lg text-gray-700 dark:text-gray-300 sm:hidden">
+                            <li><Link href="/add_inventory" className="hover:underline">Додати інвентар</Link></li>
+                            <li><Link href="/help" className="hover:underline">Документація</Link></li>
+                            <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
+                            <li><Link href="/volunteer" className="hover:underline">Долучитися до проєкту</Link></li>
+                            <li><Link href="/feedback" className="hover:underline">Відгуки та пропозиції</Link></li>
+                        </ul>
+                    )}
                 </nav>
             </div>
 
-            {/* Правий блок: тема + користувач */}
-            <div className="flex-shrink-0 flex flex-col items-end space-y-2">
+            {/* Тема + юзер */}
+
+            <div className="flex-shrink-0 flex-col items-end sm:flex sm:flex-col sm:items-end space-y-2 sm:space-y-2 hidden sm:flex">
                 <button
                     onClick={toggleTheme}
                     aria-label="Перемкнути тему"
@@ -98,7 +132,7 @@ export default function Header() {
                 </button>
 
                 {user && (
-                    <div className="text-sm text-gray-800 dark:text-gray-100 text-right">
+                    <div className="text-sm text-gray-800 dark:text-gray-100 text-right hidden sm:block">
                         <div className="mb-1 truncate max-w-[160px]">👤 {user.email}</div>
                         <button
                             onClick={signOut}
@@ -109,6 +143,18 @@ export default function Header() {
                     </div>
                 )}
             </div>
+
+            {user && (
+                <div className="flex sm:hidden justify-between items-center w-full text-sm text-gray-800 dark:text-gray-100">
+                    <span className="truncate max-w-[60%]">👤 {user.email}</span>
+                    <button
+                        onClick={signOut}
+                        className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 transition text-sm"
+                    >
+                        Вийти
+                    </button>
+                </div>
+            )}
         </header>
     );
 }

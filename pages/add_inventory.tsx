@@ -4,6 +4,9 @@ import Header from '../components/header';
 import { supabase } from '../lib/supabaseClient';
 import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
+import { useUser } from '../contexts/UserContext';
+
+
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
     ssr: false,
@@ -30,6 +33,7 @@ type NestedStructure = {
 export default function AddInventoryPage() {
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const router = useRouter();
+    const { user, loading } = useUser();
 
     // Дані з JSON
     const [nestedData, setNestedData] = useState<NestedStructure | null>(null);
@@ -90,7 +94,18 @@ export default function AddInventoryPage() {
         }
         fetchNestedData();
     }, []);
+    // Підвантажуємо мейл
 
+    useEffect(() => {
+        if (!loading && user?.email) {
+          setFormData((prev: any) => {
+            if (!prev.email) {
+              return { ...prev, email: user.email };
+            }
+            return prev;
+          });
+        }
+      }, [user, loading]);
     // Оновлюємо districts при зміні current_region
     useEffect(() => {
         if (nestedData && formData.current_region && !manualEntry) {
@@ -379,9 +394,9 @@ export default function AddInventoryPage() {
             pages_count: formData.pages_count ? parseInt(formData.pages_count) : null,
             inventory_start_page: formData.inventory_start_page ? parseInt(formData.inventory_start_page) : null,
             inventory_year: formData.inventory_year ? parseInt(formData.inventory_year) : null,
+            created_by: user?.id || null,
         };
 
-        console.log('To insert:', toInsert);
         const { error: insertError } = await supabase.from('records_unverified').insert([toInsert]);
 
         if (insertError) {

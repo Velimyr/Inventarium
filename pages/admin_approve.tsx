@@ -3,13 +3,15 @@ import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import Toast from '../components/Toast';
 import dynamic from 'next/dynamic';
+import { useUser } from '../contexts/UserContext';
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
   ssr: false,
 });
 
 export default function AdminPage() {
-  const [user, setUser] = useState<any>(null);
+  const { user, loading: userLoading } = useUser();
+
   const [isAdmin, setIsAdmin] = useState(false);
   const [records, setRecords] = useState<any[]>([]);
   const [index, setIndex] = useState(0);
@@ -19,19 +21,17 @@ export default function AdminPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [originalCoords, setOriginalCoords] = useState<{ latitude: any; longitude: any }>({ latitude: '', longitude: '' });
 
-
   useEffect(() => {
-    const fetchUserAndCheckAdmin = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        setError('⛔ Ви не авторизовані');
-        setLoading(false);
-        return;
-      }
-      setUser(user);
+    // Чекаємо, поки юзер завантажиться
+    if (userLoading) return;
 
+    if (!user) {
+      setError('⛔ Ви не авторизовані');
+      setLoading(false);
+      return;
+    }
+
+    const fetchAdminAndRecords = async () => {
       const { data: adminData } = await supabase
         .from('admin_users')
         .select('id')
@@ -45,6 +45,7 @@ export default function AdminPage() {
       }
 
       setIsAdmin(true);
+
       const { data: records } = await supabase
         .from('records_unverified')
         .select('*')
@@ -65,7 +66,6 @@ export default function AdminPage() {
         longitude: first.longitude || '',
       }));
 
-      // 🔽 ось це додаємо:
       setOriginalCoords({
         latitude: first.latitude || '',
         longitude: first.longitude || '',
@@ -74,15 +74,14 @@ export default function AdminPage() {
       setLoading(false);
     };
 
-    fetchUserAndCheckAdmin();
-  }, []);
-
+    fetchAdminAndRecords();
+  }, [user, userLoading]);
 
   const goToRecord = (newIndex: number) => {
     if (newIndex >= 0 && newIndex < records.length) {
       const newRecord = records[newIndex];
       setIndex(newIndex);
-      setFormData(records[newIndex]);
+      setFormData(newRecord);
       setOriginalCoords({
         latitude: newRecord.latitude,
         longitude: newRecord.longitude,
@@ -90,12 +89,12 @@ export default function AdminPage() {
     }
   };
 
-
   function parseLatLng(value: any): number | null {
     if (value === null || value === undefined || value === '') return null;
     const num = parseFloat(value.toString());
     return isNaN(num) ? null : num;
   }
+
   const saveRecord = async () => {
     try {
       const matchQuery: Record<string, any> = {
@@ -117,7 +116,6 @@ export default function AdminPage() {
         .match(matchQuery)
         .maybeSingle();
 
-
       if (existing) {
         setToast({
           message: '❗ Такий інвентар уже існує. Спробуйте пошукати його в реєстрі інвентарів',
@@ -126,16 +124,15 @@ export default function AdminPage() {
         return;
       }
 
-      // 2. Підготовка даних для вставки
       const { is_ukrainian_archive, ...recordToInsert } = formData;
 
-      const parseIntegerOrNull = (value) => {
+      const parseIntegerOrNull = (value: any) => {
         if (value === "" || value === null || value === undefined) return null;
         const num = parseInt(value, 10);
         return isNaN(num) ? null : num;
       };
 
-      const parseFloatOrNull = (value) => {
+      const parseFloatOrNull = (value: any) => {
         if (value === "" || value === null || value === undefined) return null;
         const num = parseFloat(value);
         return isNaN(num) ? null : num;
@@ -144,18 +141,15 @@ export default function AdminPage() {
       const preparedRecord = {
         ...recordToInsert,
         approved: true,
-        created_by: user?.id || null,
-        // Перетворюємо всі числові поля:
+        //created_by: user?.id || null,
         latitude: parseFloatOrNull(formData.latitude) ?? parseFloatOrNull(originalCoords.latitude),
         longitude: parseFloatOrNull(formData.longitude) ?? parseFloatOrNull(originalCoords.longitude),
-
         pages_count: parseIntegerOrNull(recordToInsert.pages_count ?? formData.pages_count),
         inventory_year: parseIntegerOrNull(recordToInsert.inventory_year ?? formData.inventory_year),
         inventory_start_page: parseIntegerOrNull(recordToInsert.inventory_start_page ?? formData.inventory_start_page),
+        created_by: formData.created_by ? formData.created_by : (user?.id || null),
       };
 
-
-      // 3. Вставка до records
       const { error: insertError } = await supabase
         .from('records')
         .insert([preparedRecord]);
@@ -166,7 +160,6 @@ export default function AdminPage() {
         return;
       }
 
-      // 4. Видалення з records_unverified
       const { error: deleteError } = await supabase
         .from('records_unverified')
         .delete()
@@ -179,12 +172,9 @@ export default function AdminPage() {
         setToast({ message: '✅ Інвентар підтверджено і збережено', type: 'success' });
       }
 
-      // 5. Оновлення локального стану
       const updatedRecords = records.filter((_, i) => i !== index);
       setRecords(updatedRecords);
-      //setOriginalCoords({null,null,});
 
-      // 6. Перехід до наступного запису або завершення
       if (updatedRecords.length === 0) {
         setFormData({});
         setIndex(0);
@@ -207,17 +197,14 @@ export default function AdminPage() {
     }
   };
 
-  // Функція для відхилення запису 
   const rejectRecord = async () => {
     const confirmed = window.confirm('Ви впевнені, що хочете відхилити цей інвентар? Це призведе до його видалення.');
 
     if (!confirmed) {
-      // Користувач скасував дію
       return;
     }
 
     try {
-      // Видалення запису з records_unverified
       const { error } = await supabase.from('records_unverified').delete().eq('id', formData.id);
 
       if (error) {
@@ -228,11 +215,9 @@ export default function AdminPage() {
 
       alert('❌ Запис відхилено та видалено');
 
-      // Оновлення локального стану — видаляємо відхилений запис зі списку
       const updatedRecords = records.filter((_, i) => i !== index);
       setRecords(updatedRecords);
 
-      // Встановлюємо форму на наступний запис, або очищуємо, якщо записів немає
       if (updatedRecords.length === 0) {
         setIndex(0);
         setFormData({});
@@ -254,7 +239,6 @@ export default function AdminPage() {
       console.error(err);
     }
   };
-
 
   if (loading) {
     return (

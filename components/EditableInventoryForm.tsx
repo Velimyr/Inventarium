@@ -84,8 +84,14 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
       };
       setFormData(cleaned);
     }
-  }, [data?.id]);
-
+ }, [data?.id]);
+ 
+ useEffect(() => {
+  if (data?.email && (!formData.email || formData.email === '')) {
+    setFormData((prev) => ({ ...prev, email: data.email }));
+  }
+}, [data?.email]);
+//}, [data]);
 
   useEffect(() => {
     onChange(formData);

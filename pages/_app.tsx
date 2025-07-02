@@ -8,10 +8,8 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
-        <link rel="icon" href="/favicon.ico" />
-        {/* Можна також додати PNG-версію:
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" /> */}
-        <title>Inventarium</title> {/* Опціонально */}
+        <link rel="icon" href="/favicon.ico" />        
+        <title>Inventarium</title> 
       </Head>
       <Component {...pageProps} />
       <Analytics />

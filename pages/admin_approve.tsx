@@ -98,20 +98,6 @@ export default function AdminPage() {
   }
   const saveRecord = async () => {
     try {
-      // 1. Перевірка на дублікат
-      // const { data: existing } = await supabase
-      //   .from('records')
-      //   .select('id')
-      //   .match({
-      //     current_region: formData.current_region,
-      //     current_district: formData.current_district,
-      //     current_community: formData.current_community,
-      //     current_settlement_type: formData.current_settlement_type,
-      //     current_settlement_name: formData.current_settlement_name,
-      //     case_signature: formData.case_signature,
-      //     inventory_year: formData.inventory_year,
-      //   })
-      //   .maybeSingle();
       const matchQuery: Record<string, any> = {
         current_region: formData.current_region,
         current_district: formData.current_district,
@@ -143,13 +129,6 @@ export default function AdminPage() {
       // 2. Підготовка даних для вставки
       const { is_ukrainian_archive, ...recordToInsert } = formData;
 
-      // const preparedRecord = {
-      //   ...recordToInsert,
-      //   approved: true,
-      //   created_by: user?.id || null,
-      //   latitude: formData.latitude || originalCoords.latitude || null,
-      //   longitude: formData.longitude || originalCoords.longitude || null,
-      // };
       const parseIntegerOrNull = (value) => {
         if (value === "" || value === null || value === undefined) return null;
         const num = parseInt(value, 10);
@@ -203,6 +182,7 @@ export default function AdminPage() {
       // 5. Оновлення локального стану
       const updatedRecords = records.filter((_, i) => i !== index);
       setRecords(updatedRecords);
+      //setOriginalCoords({null,null,});
 
       // 6. Перехід до наступного запису або завершення
       if (updatedRecords.length === 0) {
@@ -216,6 +196,10 @@ export default function AdminPage() {
         const nextIndex = index >= updatedRecords.length ? updatedRecords.length - 1 : index;
         setIndex(nextIndex);
         setFormData(updatedRecords[nextIndex]);
+        setOriginalCoords({
+          latitude: updatedRecords[nextIndex].latitude,
+          longitude: updatedRecords[nextIndex].longitude,
+        });
       }
     } catch (err) {
       console.error(err);
@@ -260,6 +244,10 @@ export default function AdminPage() {
         const nextIndex = index >= updatedRecords.length ? updatedRecords.length - 1 : index;
         setIndex(nextIndex);
         setFormData(updatedRecords[nextIndex]);
+        setOriginalCoords({
+          latitude: updatedRecords[nextIndex].latitude,
+          longitude: updatedRecords[nextIndex].longitude,
+        });
       }
     } catch (err) {
       alert('❌ Помилка при відхиленні');
@@ -302,6 +290,25 @@ export default function AdminPage() {
             <p className="text-gray-700 dark:text-gray-300">Немає записів для перевірки</p>
           ) : (
             <>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => goToRecord(index - 1)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                  disabled={index === 0}
+                >
+                  ⬅ Попередній
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goToRecord(index + 1)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                  disabled={index === records.length - 1}
+                >
+                  Наступний ➡
+                </button>
+              </div>
+
               <EditableInventoryForm data={formData} onChange={setFormData} />
               <div className="flex justify-between items-center mt-6">
                 <div className="flex gap-2">

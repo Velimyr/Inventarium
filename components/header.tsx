@@ -3,12 +3,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
 import { Menu, X } from 'lucide-react';
+import { useUser } from '../contexts/UserContext';
 
 type Theme = 'light' | 'dark';
 
 export default function Header() {
     const [theme, setTheme] = useState<Theme>('light');
-    const [user, setUser] = useState<any>(null);
+    const { user, loading } = useUser(); // ✅ контекст замість useState
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     useEffect(() => {
@@ -17,20 +18,6 @@ export default function Header() {
             setTheme(saved);
             document.documentElement.classList.toggle('dark', saved === 'dark');
         }
-
-        const getUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setUser(user);
-        };
-        getUser();
-
-        const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-        });
-
-        return () => {
-            listener?.subscription.unsubscribe();
-        };
     }, []);
 
     const toggleTheme = () => {
@@ -38,6 +25,10 @@ export default function Header() {
         setTheme(newTheme);
         document.documentElement.classList.toggle('dark', newTheme === 'dark');
         localStorage.setItem('theme', newTheme);
+    };
+
+    const signInWithGoogle = async () => {
+        await supabase.auth.signInWithOAuth({ provider: 'google' });
     };
 
     const signOut = async () => {
@@ -59,7 +50,6 @@ export default function Header() {
                 />
             </div>
 
-
             {/* Центральна частина */}
             <div className="flex flex-col flex-grow mx-4 sm:mx-6 min-w-0 max-w-full text-center sm:text-left items-center sm:items-start">
                 <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mb-1 truncate">
@@ -71,7 +61,6 @@ export default function Header() {
 
                 {/* Меню */}
                 <nav>
-                    {/* Десктоп: усі посилання */}
                     <ul className="hidden sm:flex flex-wrap space-x-4 sm:space-x-6 text-lg text-gray-700 dark:text-gray-300">
                         <li><Link href="/" className="hover:underline">Головна</Link></li>
                         <li><Link href="/map" className="hover:underline">Карта</Link></li>
@@ -82,7 +71,7 @@ export default function Header() {
                         <li><Link href="/feedback" className="hover:underline">Відгуки та пропозиції</Link></li>
                     </ul>
 
-                    {/* Мобільне меню: перші 2 + бургер */}
+                    {/* Мобільне меню */}
                     <div className="flex items-center justify-between sm:hidden text-lg text-gray-700 dark:text-gray-300">
                         <div className="flex space-x-4">
                             <Link href="/" className="hover:underline">Головна</Link>
@@ -97,7 +86,6 @@ export default function Header() {
                         </button>
                     </div>
 
-                    {/* Мобільне випадаюче меню */}
                     {mobileMenuOpen && (
                         <ul className="flex flex-col mt-2 space-y-2 text-lg text-gray-700 dark:text-gray-300 sm:hidden">
                             <li><Link href="/add_inventory" className="hover:underline">Додати інвентар</Link></li>
@@ -111,40 +99,79 @@ export default function Header() {
             </div>
 
             {/* Тема + юзер */}
+            <div
+  className="
+    flex 
+    items-center justify-between
+    space-x-4    /* горизонтальний відступ між кнопками на мобільній */
+    sm:flex-col sm:items-end sm:space-x-0 sm:space-y-2
+    w-full sm:w-auto
+  "
+>
+  {/* Перемикач тем */}
+  <button
+    onClick={toggleTheme}
+    aria-label="Перемкнути тему"
+    className="focus:outline-none"
+  >
+    {theme === 'light' ? (
+      <svg
+        className="h-8 w-8 text-yellow-500"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M12 3v1m0 16v1m8.66-9h1M3 12H2m15.36 6.36l.7.7M6.34 6.34l.7.7m12.02 0l-.7.7M6.34 17.66l-.7.7M12 7a5 5 0 100 10 5 5 0 000-10z"
+        />
+      </svg>
+    ) : (
+      <svg
+        className="h-8 w-8 text-gray-300"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"
+        />
+      </svg>
+    )}
+  </button>
 
-            <div className="flex-shrink-0 flex-col items-end sm:flex sm:flex-col sm:items-end space-y-2 sm:space-y-2 hidden sm:flex">
-                <button
-                    onClick={toggleTheme}
-                    aria-label="Перемкнути тему"
-                    className="focus:outline-none"
-                >
-                    {theme === 'light' ? (
-                        <svg className="h-8 w-8 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                d="M12 3v1m0 16v1m8.66-9h1M3 12H2m15.36 6.36l.7.7M6.34 6.34l.7.7m12.02 0l-.7.7M6.34 17.66l-.7.7M12 7a5 5 0 100 10 5 5 0 000-10z" />
-                        </svg>
-                    ) : (
-                        <svg className="h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-                        </svg>
-                    )}
-                </button>
-
-                {user && (
-                    <div className="text-sm text-gray-800 dark:text-gray-100 text-right hidden sm:block">
-                        <div className="mb-1 truncate max-w-[160px]">👤 {user.email}</div>
-                        <button
-                            onClick={signOut}
-                            className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 transition text-sm"
-                        >
-                            Вийти
-                        </button>
-                    </div>
-                )}
-            </div>
-
-            {user && (
+  {/* Юзер / кнопки увійти-вийти */}
+  <div className="text-sm text-gray-800 dark:text-gray-100 text-right flex-grow">
+    {loading ? (
+      <div className="italic text-gray-500 dark:text-gray-400">Завантаження…</div>
+    ) : user ? (
+      <div className="flex items-center justify-between sm:flex-col sm:items-end sm:space-y-1">
+        <span className="truncate max-w-[60%] sm:max-w-full">👤 {user.email}</span>
+        <button
+          onClick={signOut}
+          className="ml-4 sm:ml-0 px-2 py-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition"
+        >
+          Вийти
+        </button>
+      </div>
+    ) : (
+      <button
+        onClick={signInWithGoogle}
+        className="w-full sm:w-auto px-2 py-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition"
+      >
+        Увійти через Google
+      </button>
+    )}
+  </div>
+</div>
+            
+            {/* 
+            {!loading && user && (
                 <div className="flex sm:hidden justify-between items-center w-full text-sm text-gray-800 dark:text-gray-100">
                     <span className="truncate max-w-[60%]">👤 {user.email}</span>
                     <button
@@ -154,7 +181,7 @@ export default function Header() {
                         Вийти
                     </button>
                 </div>
-            )}
+            )} */}
         </header>
     );
 }

@@ -12,6 +12,7 @@ export default function StatsPage() {
   const [userApprovedCount, setUserApprovedCount] = useState<number | null>(null);
   const [userUnverifiedCount, setUserUnverifiedCount] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [hasContributed, setHasContributed] = useState(false);
 
   useEffect(() => {
     if (userLoading) return;
@@ -23,6 +24,7 @@ export default function StatsPage() {
 
     const fetchStats = async () => {
       try {
+
         const { data: adminData } = await supabase
           .from('admin_users')
           .select('id')
@@ -48,6 +50,9 @@ export default function StatsPage() {
         setApprovedCount(totalApproved ?? 0);
         setUserApprovedCount(userApproved ?? 0);
         setUserUnverifiedCount(userUnverified ?? 0);
+
+        const has = (userApproved ?? 0) + (userUnverified ?? 0) > 0;
+        setHasContributed(has);
       } catch (e: any) {
         setError('Помилка завантаження статистики');
         console.error(e);
@@ -98,12 +103,25 @@ export default function StatsPage() {
             {/* Звання користувача */}
             <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800 flex items-center">
               <div className="mr-4 text-4xl">
-                {isAdmin ? '👑' : '👑'} {/* Можна замінити на SVG або інші emoji */}
+                <div className="mr-4 w-8 h-8">
+                  {isAdmin ? (
+                    <img src="/images/crown-admin.svg" alt="Admin Crown" className="w-full h-full" />
+                  ) : hasContributed ? (
+                    <img src="/images/crown-researcher.svg" alt="Researcher Crown" className="w-full h-full" />
+                  ) : (
+                    <img src="/images/crown-user.svg" alt="User Crown" className="w-full h-full" />
+                  )}
+                </div>
+
               </div>
               <div>
                 <h2 className="text-xl font-semibold mb-2">Моє звання</h2>
                 <p className="text-lg font-medium">
-                  {isAdmin ? 'Адмін' : 'Інвентарошукач'}
+                  {isAdmin
+                    ? 'Володар інвентарів'
+                    : hasContributed
+                      ? 'Інвентарний детектив'
+                      : 'Архівний турист'}
                 </p>
               </div>
             </section>

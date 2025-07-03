@@ -1,28 +1,27 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
+import { useUser } from '../contexts/UserContext';
 
 export default function AdminDashboard() {
+  const { user, loading: userLoading } = useUser();
   const [approvedCount, setApprovedCount] = useState<number | null>(null);
   const [unverifiedCount, setUnverifiedCount] = useState<number | null>(null);
 
-  const [user, setUser] = useState(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserAndCheckAdmin = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    // Якщо юзер ще завантажується — нічого не робимо
+    if (userLoading) return;
 
-      if (!user) {
-        setError('⛔ Ви не авторизовані');
-        setLoading(false);
-        return;
-      }
-      setUser(user);
+    if (!user) {
+      setError('⛔ Ви не авторизовані');
+      setLoading(false);
+      return;
+    }
 
+    const checkAdminAndLoadData = async () => {
       const { data: adminData, error: adminError } = await supabase
         .from('admin_users')
         .select('id')
@@ -35,7 +34,6 @@ export default function AdminDashboard() {
         return;
       }
 
-      // Якщо адмін — завантажуємо лічильники
       const { count: approved } = await supabase
         .from('records')
         .select('*', { count: 'exact', head: true })
@@ -45,15 +43,15 @@ export default function AdminDashboard() {
         .from('records_unverified')
         .select('*', { count: 'exact', head: true });
 
-      setApprovedCount(approved || 0);
-      setUnverifiedCount(unverified || 0);
+      setApprovedCount(approved ?? 0);
+      setUnverifiedCount(unverified ?? 0);
       setLoading(false);
     };
 
-    fetchUserAndCheckAdmin();
-  }, []);
+    checkAdminAndLoadData();
+  }, [user, userLoading]);
 
-  if (loading) {
+  if (userLoading || loading) {
     return (
       <>
         <Header />

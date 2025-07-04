@@ -91,7 +91,7 @@ export default function StatsPage() {
       <Header />
       <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
         <div className="max-w-screen-lg mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Мій вклад в "Інвентаріум"</h1>
+          <h1 className="text-3xl font-bold mb-8">Мій внесок в "Інвентаріум"</h1>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Загальна кількість інвентарів */}

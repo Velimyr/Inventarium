@@ -139,14 +139,17 @@ export default function RecordPage() {
                                 {formatRow(
                                     'Посилання на скани',
                                     record.scans_url ? (
+                                        <>
                                         <a
                                             href={record.scans_url}
                                             target="_blank"
                                             rel="noreferrer"
                                             className="text-blue-600 underline"
                                         >
-                                            Переглянути
+                                            Переглянути 
                                         </a>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">(Для доступу можливо буде потрібен VPN)</p>
+                                        </>
                                     ) : (
                                         '-'
                                     )
@@ -187,6 +190,7 @@ export default function RecordPage() {
                             [
                                 'Посилання на скани',
                                 record.scans_url ? (
+                                    <>
                                     <a
                                         href={record.scans_url}
                                         target="_blank"
@@ -195,6 +199,8 @@ export default function RecordPage() {
                                     >
                                         Переглянути
                                     </a>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">(Для доступу можливо буде потрібен VPN)</p>
+                                    </>
                                 ) : (
                                     '-'
                                 ),

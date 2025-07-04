@@ -65,7 +65,7 @@ export default function Header() {
             <li><Link href="/" className="hover:underline">Головна</Link></li>
             <li><Link href="/map" className="hover:underline">Карта</Link></li>
             <li><Link href="/add_inventory" className="hover:underline">Додати інвентар</Link></li>
-            <li><Link href="/stats" className="hover:underline">Мій вклад</Link></li>
+            <li><Link href="/stats" className="hover:underline">Мій внесок</Link></li>
             <li><Link href="/help" className="hover:underline">Документація</Link></li>
             <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
             <li><Link href="/volunteer" className="hover:underline">Долучитися</Link></li>
@@ -90,7 +90,7 @@ export default function Header() {
 
           {mobileMenuOpen && (
             <ul className="flex flex-col mt-2 space-y-2 text-lg text-gray-700 dark:text-gray-300 sm:hidden">
-              <li><Link href="/stats" className="hover:underline">Мій вклад</Link></li>
+              <li><Link href="/stats" className="hover:underline">Мій внесок</Link></li>
               <li><Link href="/help" className="hover:underline">Документація</Link></li>
               <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
               <li><Link href="/volunteer" className="hover:underline">Долучитися</Link></li>
@@ -171,19 +171,6 @@ export default function Header() {
           )}
         </div>
       </div>
-
-      {/* 
-            {!loading && user && (
-                <div className="flex sm:hidden justify-between items-center w-full text-sm text-gray-800 dark:text-gray-100">
-                    <span className="truncate max-w-[60%]">👤 {user.email}</span>
-                    <button
-                        onClick={signOut}
-                        className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 transition text-sm"
-                    >
-                        Вийти
-                    </button>
-                </div>
-            )} */}
     </header>
   );
 }

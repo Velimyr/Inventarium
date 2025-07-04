@@ -459,15 +459,7 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
               </div>
 
               {formData.is_ukrainian_archive === 'Так' ? (
-                <div className="flex flex-col gap-4">
-                  {/* <input
-                    name="archive"
-                    value={formData.archive}
-                    onChange={handleChange}
-                    placeholder="Назва архіву"
-                    className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-                  /> */}
-
+                <div className="flex flex-col gap-4">        
                   <select
                     value={formData.archive}
                     onChange={(e) =>
@@ -513,7 +505,7 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
                   className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
                 />
               )}
-
+              <p className="text-sm text-gray-500 dark:text-gray-400">Вказуйте назву справи українською мовою, навіть якщо в оригіналі вона вказана іншою мовою</p>
               <input
                 name="case_title"
                 value={formData.case_title}

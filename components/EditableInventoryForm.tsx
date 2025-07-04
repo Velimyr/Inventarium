@@ -48,7 +48,7 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
   const [duplicateUrl, setDuplicateUrl] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
- 
+
   type ArchiveItem = {
     short_name: string;
     full_name_ukr: string;
@@ -84,14 +84,14 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
       };
       setFormData(cleaned);
     }
- }, [data?.id]);
- 
- useEffect(() => {
-  if (data?.email && (!formData.email || formData.email === '')) {
-    setFormData((prev) => ({ ...prev, email: data.email }));
-  }
-}, [data?.email]);
-//}, [data]);
+  }, [data?.id]);
+
+  useEffect(() => {
+    if (data?.email && (!formData.email || formData.email === '')) {
+      setFormData((prev) => ({ ...prev, email: data.email }));
+    }
+  }, [data?.email]);
+  //}, [data]);
 
   useEffect(() => {
     onChange(formData);
@@ -459,7 +459,7 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
               </div>
 
               {formData.is_ukrainian_archive === 'Так' ? (
-                <div className="flex flex-col gap-4">        
+                <div className="flex flex-col gap-4">                 
                   <select
                     value={formData.archive}
                     onChange={(e) =>
@@ -497,6 +497,17 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
                   />
                 </div>
               ) : (
+                <>
+                 <div className="mb-2">
+                    <a
+                      href="/archives"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline hover:text-blue-800"
+                    >
+                      Список назв архівів та їх скорочень
+                    </a>
+                  </div>
                 <input
                   name="case_signature"
                   value={formData.case_signature}
@@ -504,6 +515,7 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
                   placeholder="Шифр справи"
                   className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
                 />
+                </>
               )}
               <p className="text-sm text-gray-500 dark:text-gray-400">Вказуйте назву справи українською мовою, навіть якщо в оригіналі вона вказана іншою мовою</p>
               <input

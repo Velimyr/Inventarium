@@ -42,6 +42,11 @@ export default function Help() {
                   Інвертарні описи маєтків, як джерело генеалогічної інформації
                 </a>
               </Link>
+              <Link href="https://telegra.ph/Poshuk-%D1%96nventar%D1%96v-u-Lv%D1%96vsk%D1%96j-b%D1%96bl%D1%96otec%D1%96-%D1%96men%D1%96-Vasilya-Stefanika-07-06" passHref>
+                <a className="inline-flex w-fit px-3 py-2 bg-blue-50 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700 dark:hover:bg-blue-800 transition text-sm">
+                  Пошук інвентарів у Львівській бібліотеці імені Василя Стефаника
+                </a>
+              </Link>
             </div>
           </div>
 

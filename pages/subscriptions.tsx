@@ -104,6 +104,7 @@ export default function SubscriptionsPage() {
                                         <th className="p-2 border-b dark:border-gray-700">Населений пункт</th>
                                         <th className="p-2 border-b dark:border-gray-700">Статус</th>
                                         <th className="p-2 border-b dark:border-gray-700">Дійсна до</th>
+                                        <th className="p-2 border-b dark:border-gray-700">Email</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -129,6 +130,7 @@ export default function SubscriptionsPage() {
                                                 <td className="p-2">
                                                     {s.status === 'rejected' ? '—' : formatDate(s.expire_date)}
                                                 </td>
+                                                <td className="p-2">{s.email || '—'}</td>
                                             </tr>
                                         );
                                     })}

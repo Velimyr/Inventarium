@@ -39,6 +39,8 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
   const [names, setNames] = useState<string[]>([]);
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  // Додаємо стан для email
+  const [email, setEmail] = useState<string>(user?.email || '');
 
   // Оновлення районів при зміні області
   useEffect(() => {
@@ -121,7 +123,8 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
     );
   };
 
-  // Перевірка на заповнення обов'язкових полів
+  // Перевірка на заповнення обов'язкових полів + email
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isFormValid =
     !!region &&
     !!district &&
@@ -129,7 +132,8 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
     !!type &&
     !!name &&
     !!file &&
-    !!user;
+    !!user &&
+    isValidEmail;
 
   // Перевірка файлу перед завантаженням
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -207,6 +211,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
         expire_date: expire_date.toISOString(),
         status: 'new',
         screenshot_url: attachmentUrl,
+        email,
       });
 
       if (error) {
@@ -254,6 +259,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
           </Dialog.Title>
 
           <div className="grid gap-3 mb-4">
+           
             <select
               className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               value={region}
@@ -328,6 +334,14 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
               type="file"
               onChange={handleFileChange}
               className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+             <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email на який будуть приходити сповіщення про інвентарі"
+              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              required
             />
           </div>
 

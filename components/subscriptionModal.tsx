@@ -3,6 +3,7 @@ import { useState, Fragment, useEffect, ChangeEvent } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useUser } from '../contexts/UserContext';
 import emailjs from 'emailjs-com';
+import Toast from './Toast';
 
 // Тип для населеного пункту
 type Settlement = {
@@ -17,9 +18,10 @@ interface AddSubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
   regionStructure: RegionStructure | undefined;
+  onSuccess?: () => void;
 }
 
-function AddSubscriptionModal({ isOpen, onClose, regionStructure }: AddSubscriptionModalProps) {
+function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: AddSubscriptionModalProps) {
   const { user } = useUser();
 
   const [region, setRegion] = useState<string>('');
@@ -35,6 +37,8 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure }: AddSubscript
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [types, setTypes] = useState<string[]>([]);
   const [names, setNames] = useState<string[]>([]);
+
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Оновлення районів при зміні області
   useEffect(() => {
@@ -156,8 +160,8 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure }: AddSubscript
     setFile(selectedFile);
   };
 
-  
-  
+
+
   const uploadToSupabase = async (file: File): Promise<string> => {
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const filePath = `${Date.now()}-${sanitizedFileName}`;
@@ -177,13 +181,16 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure }: AddSubscript
 
     const settlement = findSettlementCode();
     if (!settlement) {
-      alert('Населений пункт не знайдено.');
+      setToast({ message: 'Населений пункт не знайдено.', type: 'error' });
       return;
     }
 
     const now = new Date();
-    const start_date = new Date(now.getFullYear(), now.getMonth(), 1);
-    const expire_date = new Date(start_date);
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const start_date = new Date(tomorrow);
+    const expire_date = new Date(tomorrow);
     expire_date.setFullYear(expire_date.getFullYear() + 1);
 
     setSubmitting(true);
@@ -194,11 +201,12 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure }: AddSubscript
       const attachmentUrl = await uploadToSupabase(file);
 
       const { error } = await supabase.from('settlement_subscription').insert({
-        user: user.id,
+        user_id: user.id,
         settlement_code: settlement.code,
         start_date: start_date.toISOString(),
         expire_date: expire_date.toISOString(),
         status: 'new',
+        screenshot_url: attachmentUrl,
       });
 
       if (error) {
@@ -222,7 +230,8 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure }: AddSubscript
         '0vIrWtLaUXsgLH570'
       );
 
-      alert('Підписка створена та підтвердження надіслано.');
+      setToast({ message: 'Підписка створена та підтвердження надіслано.', type: 'success' });
+      if (onSuccess) onSuccess();
       onClose();
     } catch (error: unknown) {
       console.error('Помилка:', error);
@@ -230,14 +239,14 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure }: AddSubscript
         console.error('Повідомлення помилки:', error.message);
         console.error('Стек помилки:', error.stack);
       }
-      alert('Не вдалося створити підписку або надіслати підтвердження.');
+      setToast({ message: 'Не вдалося створити підписку або надіслати підтвердження.', type: 'error' });
     }
 
     setSubmitting(false);
   };
 
   return (
-    <Dialog open={isOpen} onClose={onClose} as={Fragment}>
+    <Dialog open={isOpen} onClose={onClose} as="div">
       <div className="fixed inset-0 bg-black bg-opacity-30 z-40 flex items-center justify-center">
         <div className="bg-white dark:bg-gray-800 p-6 rounded shadow-md max-w-lg w-full z-50">
           <Dialog.Title className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">
@@ -246,7 +255,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure }: AddSubscript
 
           <div className="grid gap-3 mb-4">
             <select
-              className="p-2 rounded"
+              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               value={region}
               onChange={(e) => setRegion(e.target.value)}
             >
@@ -260,7 +269,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure }: AddSubscript
             </select>
 
             <select
-              className="p-2 rounded"
+              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               value={district}
               onChange={(e) => setDistrict(e.target.value)}
               disabled={!region || districts.length === 0}
@@ -274,7 +283,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure }: AddSubscript
             </select>
 
             <select
-              className="p-2 rounded"
+              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               value={community}
               onChange={(e) => setCommunity(e.target.value)}
               disabled={!district || communities.length === 0}
@@ -288,7 +297,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure }: AddSubscript
             </select>
 
             <select
-              className="p-2 rounded"
+              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               value={type}
               onChange={(e) => setType(e.target.value)}
               disabled={!community || types.length === 0}
@@ -302,7 +311,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure }: AddSubscript
             </select>
 
             <select
-              className="p-2 rounded"
+              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={!type || names.length === 0}
@@ -314,28 +323,39 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure }: AddSubscript
                 </option>
               ))}
             </select>
-
-            <input type="file" onChange={handleFileChange} />
+            <p className="mb-6 text-center text-gray-700 dark:text-gray-300"> Оберіть файл з скріншотом вашого донату (дата донату має бути сьогоднішньою)</p>
+            <input
+              type="file"
+              onChange={handleFileChange}
+              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
           </div>
 
           <div className="flex justify-end gap-2">
-            <button onClick={onClose} className="px-4 py-2 bg-gray-400 rounded">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
+              disabled={submitting}
+            >
               Скасувати
             </button>
             <button
               onClick={handleSubmit}
               disabled={submitting || !isFormValid}
-              className={`px-4 py-2 rounded text-white ${
-                submitting || !isFormValid
-                  ? 'bg-blue-300 cursor-not-allowed'
-                  : 'bg-blue-600'
-              }`}
+              className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
             >
               {submitting ? 'Надсилання...' : 'Додати підписку'}
             </button>
           </div>
         </div>
       </div>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </Dialog>
   );
 }

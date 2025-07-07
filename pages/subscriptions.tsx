@@ -33,7 +33,7 @@ export default function SubscriptionsPage() {
         supabase
             .from('settlement_subscription')
             .select('*')
-            .eq('user', user.id)
+            .eq('user_id', user.id)
             .then(({ data, error }) => {
                 if (error) console.error('Помилка завантаження підписок:', error);
                 else setSubscriptions(data || []);
@@ -50,7 +50,7 @@ export default function SubscriptionsPage() {
                     for (const settlement of settlements) {
                         if (settlement.code === code) {
                             const prefix = settlement.type === 'місто' ? 'м.' : 'с.';
-                            return `${prefix} ${settlement.name}, ${communityName}, ${districtName}, ${regionName}`;
+                            return `${prefix} ${settlement.name}, ${communityName} громада, ${districtName} район, ${regionName} область`;
                         }
                     }
                 }
@@ -110,17 +110,24 @@ export default function SubscriptionsPage() {
                                     {subscriptions.map((s) => {
                                         const now = new Date();
                                         const expired = new Date(s.expire_date) < now;
-                                        const statusText = expired
-                                            ? 'Підписка завершена'
-                                            : s.status === 'approve'
-                                                ? 'Активна підписка'
-                                                : 'Не підтверджено';
+                                        let statusText = '';
+                                        if (expired) {
+                                            statusText = 'Підписка завершена';
+                                        } else if (s.status === 'new') {
+                                            statusText = 'Очікує підтвердження адміністратором';
+                                        } else if (s.status === 'approved') {
+                                            statusText = 'Підписка активна';
+                                        } else if (s.status === 'rejected') {
+                                            statusText = 'Підписка відхилена';
+                                        } else {
+                                            statusText = 'Підписка завершена';
+                                        }
                                         return (
                                             <tr key={s.id} className="border-t border-gray-300 dark:border-gray-700">
                                                 <td className="p-2">{getSettlementNameByCode(s.settlement_code)}</td>
                                                 <td className="p-2">{statusText}</td>
                                                 <td className="p-2">
-                                                    {formatDate(s.expire_date)}
+                                                    {s.status === 'rejected' ? '—' : formatDate(s.expire_date)}
                                                 </td>
                                             </tr>
                                         );
@@ -145,6 +152,17 @@ export default function SubscriptionsPage() {
                         isOpen={isModalOpen}
                         onClose={() => setIsModalOpen(false)}
                         regionStructure={regionStructure}
+                        onSuccess={() => {
+                            setLoadingSubscriptions(true);
+                            supabase
+                                .from('settlement_subscription')
+                                .select('*')
+                                .eq('user_id', user.id)
+                                .then(({ data, error }) => {
+                                    if (!error) setSubscriptions(data || []);
+                                    setLoadingSubscriptions(false);
+                                });
+                        }}
                     />
                 </div>
             </main>

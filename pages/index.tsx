@@ -2,6 +2,8 @@ import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { useEffect, useState } from 'react';
 import SearchBar from '../components/SearchBar';
+import FooterDonate from '../components/FooterDonate';
+
 
 const PAGE_SIZE = 20;
 
@@ -88,7 +90,7 @@ export default function Home() {
     <>
       <Header />
       <SearchBar onFilterChange={handleFilterChange} />
-      <main className="p-4 max-w-full mx-auto overflow-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
+      <main className="pb-20 p-4 max-w-full mx-auto overflow-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
 
         {loading && <p>Завантаження...</p>}
 
@@ -251,7 +253,9 @@ export default function Home() {
             Наступна
           </button>
         </div>
+       
       </main>
+      <FooterDonate />
     </>
   );
 }

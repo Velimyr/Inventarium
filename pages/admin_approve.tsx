@@ -4,6 +4,32 @@ import Header from '../components/header';
 import Toast from '../components/Toast';
 import dynamic from 'next/dynamic';
 import { useUser } from '../contexts/UserContext';
+import SubscriptionNotifier from '../components/SubscriptionNotifier';
+import regionStructure from '../public/data/region_structure.json';
+// Отримати код населеного пункту за шляхом
+const getSettlementCodeByPath = (
+  structure: any,
+  region: string,
+  district: string,
+  community: string,
+  type: string,
+  name: string
+): string | null => {
+  const regionNode = structure[region];
+  if (!regionNode) return null;
+
+  const districtNode = regionNode[district];
+  if (!districtNode) return null;
+
+  const communityNode = districtNode[community];
+  if (!communityNode || !Array.isArray(communityNode)) return null;
+
+  const settlement = communityNode.find(
+    (s: any) => s.name === name && s.type === type
+  );
+
+  return settlement?.code || null;
+};
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
   ssr: false,
@@ -20,6 +46,8 @@ export default function AdminPage() {
   const [formData, setFormData] = useState<any>({});
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [originalCoords, setOriginalCoords] = useState<{ latitude: any; longitude: any }>({ latitude: '', longitude: '' });
+  const [notifyAfterSave, setNotifyAfterSave] = useState(false);
+  const [savedRecordInfo, setSavedRecordInfo] = useState<any | null>(null);
 
   useEffect(() => {
     // Чекаємо, поки юзер завантажиться
@@ -116,6 +144,8 @@ export default function AdminPage() {
         .match(matchQuery)
         .maybeSingle();
 
+
+
       if (existing) {
         setToast({
           message: '❗ Такий інвентар уже існує. Спробуйте пошукати його в реєстрі інвентарів',
@@ -159,7 +189,22 @@ export default function AdminPage() {
         setToast({ message: '❌ Помилка при додаванні до бази', type: 'error' });
         return;
       }
-
+      if (!insertError) {
+        setNotifyAfterSave(true);
+        const settlementCode = getSettlementCodeByPath(
+          regionStructure,
+          formData.current_region,
+          formData.current_district,
+          formData.current_community,
+          formData.current_settlement_type,
+          formData.current_settlement_name
+        );
+        setSavedRecordInfo({
+          id: formData.id,
+          settlement_code: settlementCode,
+          settlement: `${formData.current_region}, ${formData.current_district}, ${formData.current_community}, ${formData.current_settlement_type} ${formData.current_settlement_name}`
+        });
+      }
       const { error: deleteError } = await supabase
         .from('records_unverified')
         .delete()
@@ -333,7 +378,16 @@ export default function AdminPage() {
             </>
           )}
         </div>
+        {notifyAfterSave && savedRecordInfo && user?.id && (
+          <SubscriptionNotifier
+            settlement={savedRecordInfo.settlement}
+            settlementCode={savedRecordInfo.settlement_code}
+            link={`https://inventarium.org.ua/record/${savedRecordInfo.id}`}
+            userId={user.id}
+          />
+        )}
       </main>
+
     </>
   );
 }

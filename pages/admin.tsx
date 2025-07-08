@@ -7,6 +7,7 @@ export default function AdminDashboard() {
   const { user, loading: userLoading } = useUser();
   const [approvedCount, setApprovedCount] = useState<number | null>(null);
   const [unverifiedCount, setUnverifiedCount] = useState<number | null>(null);
+  const [pendingSubscriptions, setPendingSubscriptions] = useState<number | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,8 +44,14 @@ export default function AdminDashboard() {
         .from('records_unverified')
         .select('*', { count: 'exact', head: true });
 
+      const { count: subscriptionCount } = await supabase
+        .from('settlement_subscription')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'new');
+
       setApprovedCount(approved ?? 0);
       setUnverifiedCount(unverified ?? 0);
+      setPendingSubscriptions(subscriptionCount ?? 0);
       setLoading(false);
     };
 
@@ -99,6 +106,22 @@ export default function AdminDashboard() {
                 type="button"
               >
                 Почати обробку інвентарів
+              </button>
+            </section>
+
+            <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Непідтверджені підписки</h2>
+                <p className="text-4xl font-bold mb-4">{pendingSubscriptions ?? '—'}</p>
+              </div>
+              <button
+                onClick={() => {
+                  window.location.href = '/admin_subscription';
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
+                type="button"
+              >
+                Почати обробку підписок
               </button>
             </section>
           </div>

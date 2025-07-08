@@ -11,6 +11,7 @@ export default function StatsPage() {
   const [approvedCount, setApprovedCount] = useState<number | null>(null);
   const [userApprovedCount, setUserApprovedCount] = useState<number | null>(null);
   const [userUnverifiedCount, setUserUnverifiedCount] = useState<number | null>(null);
+  const [userSubscriptionsCount, setUserSubscriptionsCount] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasContributed, setHasContributed] = useState(false);
 
@@ -47,9 +48,15 @@ export default function StatsPage() {
           .select('*', { count: 'exact', head: true })
           .eq('created_by', user.id);
 
+        const { count: userSubscriptions } = await supabase
+          .from('settlement_subscription')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
         setApprovedCount(totalApproved ?? 0);
         setUserApprovedCount(userApproved ?? 0);
         setUserUnverifiedCount(userUnverified ?? 0);
+        setUserSubscriptionsCount(userSubscriptions ?? 0);
 
         const has = (userApproved ?? 0) + (userUnverified ?? 0) > 0;
         setHasContributed(has);
@@ -137,6 +144,18 @@ export default function StatsPage() {
               <h2 className="text-xl font-semibold mb-2">Очікують підтвердження адміністратором</h2>
               <p className="text-4xl font-bold">{userUnverifiedCount ?? '—'}</p>
             </section>
+
+            {/* Кількість підписок 
+            <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
+              <h2 className="text-xl font-semibold mb-2">Мої підписки</h2>
+              <p className="text-4xl font-bold mb-4">{userSubscriptionsCount ?? '—'}</p>
+              <a
+                href="/subscriptions"
+                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+              >
+                Дивитися підписки
+              </a>
+            </section>*/}
           </div>
         </div>
       </main>

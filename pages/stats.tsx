@@ -145,7 +145,7 @@ export default function StatsPage() {
               <p className="text-4xl font-bold">{userUnverifiedCount ?? '—'}</p>
             </section>
 
-            {/* Кількість підписок */}
+            {/* Кількість підписок 
             <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
               <h2 className="text-xl font-semibold mb-2">Мої підписки</h2>
               <p className="text-4xl font-bold mb-4">{userSubscriptionsCount ?? '—'}</p>
@@ -155,7 +155,7 @@ export default function StatsPage() {
               >
                 Дивитися підписки
               </a>
-            </section>
+            </section>*/}
           </div>
         </div>
       </main>

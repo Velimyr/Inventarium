@@ -83,9 +83,8 @@ export default function SubscriptionsPage() {
                         Ви можете підписатися на оновлення реєстру Інвентаріуму по певному населеному пункту. Якщо в систему буде внесено інвентар по цьому населеному пункту — ви отримаєте відповідне сповіщення на електронну пошту.
                     </p>
                     <p className="mb-6">
-                        Для створення нової підписки за одним населеним пунктом — ви маєте зробити пожертву на підтримку Сил Оборони України для актуального збору:
+                        Для створення нової підписки за одним населеним пунктом — ви маєте зробити пожертву на підтримку Сил Оборони України для актуального збору на нашому сайті (сума повинна бути від 200 грн.):
                     </p>
-
                     <Link
                         href="/donate"
                         className="inline-block text-blue-600 hover:underline font-semibold mb-8"
@@ -98,6 +97,7 @@ export default function SubscriptionsPage() {
                         <p className="mb-8">Завантаження...</p>
                     ) : (
                         subscriptions.length > 0 ? (
+                            <>
                             <table className="w-full text-left border border-gray-300 dark:border-gray-700 mb-8">
                                 <thead className="bg-gray-100 dark:bg-gray-800">
                                     <tr>
@@ -136,6 +136,10 @@ export default function SubscriptionsPage() {
                                     })}
                                 </tbody>
                             </table>
+                            <p className="text-base font-semibold text-yellow-700 dark:text-yellow-400">
+                                ⚠️ Зверніть увагу: Коли зʼявиться новий інвентар і вам буде відправлено сповіщення про це, лист може потрапити в спам. Додайте завчасно адресу inventariumteam@gmail.com до списку дозволений відправників.
+                            </p>
+                            </>
                         ) : (
                             <p className="mb-8">У вас поки немає підписок.</p>
                         )

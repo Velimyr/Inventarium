@@ -329,7 +329,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
                 </option>
               ))}
             </select>
-            <p className="mb-6 text-center text-gray-700 dark:text-gray-300"> Оберіть файл з скріншотом вашого донату (дата донату має бути сьогоднішньою)</p>
+            <p className="mb-6 text-center text-gray-700 dark:text-gray-300"> Оберіть файл з скріншотом вашого донату (дата донату має бути сьогоднішньою, сума більше 200 грн.)</p>
             <input
               type="file"
               onChange={handleFileChange}

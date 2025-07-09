@@ -7,7 +7,8 @@ import Header from '../components/header';
 import ClientOnly from '../components/clientonly';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-//import '../path/to/leafletIconSetup'; // Імпорт, щоб налаштувати іконки
+import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
+import GeocoderControl from './GeocoderControl';
 
 // Далі інші імпорти і код компонента...
 
@@ -81,6 +82,7 @@ export default function MapPageComponent() {
                                     attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
                                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                 />
+                                <GeocoderControl />
                                 {records.map((record) => {
                                     if (!record.latitude || !record.longitude) return null;
                                     const position: [number, number] = [record.latitude, record.longitude];

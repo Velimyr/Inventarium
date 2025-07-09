@@ -1,0 +1,171 @@
+import { useEffect, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import Header from '../components/header';
+import { useUser } from '../contexts/UserContext';
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip,
+  BarChart, Bar, CartesianGrid, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from 'recharts';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+export default function StatsPage() {
+  const { user, loading: userLoading } = useUser();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [byDay, setByDay] = useState<any[]>([]);
+  const [byRegion, setByRegion] = useState<any[]>([]);
+  const [byEmail, setByEmail] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (userLoading) return;
+
+    if (!user) {
+      setError('⛔ Ви не авторизовані');
+      setLoading(false);
+      return;
+    }
+
+    const load = async () => {
+      const { data: adminData, error: adminError } = await supabase
+        .from('admin_users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      if (adminError || !adminData) {
+        setError('⛔ У вас немає доступу до цієї сторінки');
+        setLoading(false);
+        return;
+      }
+
+      // Запит 1: Динаміка по днях
+      const { data: allRecords } = await supabase
+        .from('records')
+        .select('created_at, current_region, email');
+
+      const groupedByDay = allRecords?.reduce((acc: any, r) => {
+        const day = r.created_at?.slice(0, 10);
+        if (!day) return acc;
+        acc[day] = (acc[day] || 0) + 1;
+        return acc;
+      }, {});
+
+      setByDay(Object.entries(groupedByDay || {}).map(([day, count]) => ({ day, records_count: count })));
+
+      // Запит 2: по регіонах
+      const groupedByRegion = allRecords?.reduce((acc: any, r) => {
+        const region = r.current_region?.trim() || 'Невизначено';
+        acc[region] = (acc[region] || 0) + 1;
+        return acc;
+      }, {});
+
+      setByRegion(Object.entries(groupedByRegion || {}).map(([region, count]) => ({ region, records_count: count })));
+
+      // Запит 3: по email
+      const groupedByEmail = allRecords?.reduce((acc: any, r) => {
+        const email = r.email?.trim() || 'Без email';
+        acc[email] = (acc[email] || 0) + 1;
+        return acc;
+      }, {});
+
+      setByEmail(Object.entries(groupedByEmail || {}).map(([author_email, count]) => ({ author_email, records_count: count })));
+
+      setLoading(false);
+    };
+
+    load();
+  }, [user, userLoading]);
+
+  if (userLoading || loading) {
+    return (
+      <>
+        <Header />
+        <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex items-center justify-center">
+          <p>Завантаження...</p>
+        </main>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <Header />
+        <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-red-600 dark:text-red-400 flex items-center justify-center">
+          <p>{error}</p>
+        </main>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Header />
+      <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <div className="max-w-screen-lg mx-auto">
+          <h1 className="text-3xl font-bold mb-8">Статистика інвентарів</h1>
+
+          <div className="space-y-12">
+
+            <section>
+              <h2 className="text-xl font-semibold mb-2">Динаміка записів по днях</h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={byDay}>
+                  <XAxis dataKey="day" />
+                  <YAxis />
+                  <Tooltip />
+                  <CartesianGrid stroke="#ccc" />
+                  <Line type="monotone" dataKey="records_count" stroke="#8884d8" label />
+                </LineChart>
+              </ResponsiveContainer>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold mb-2">Записи по областях</h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={byRegion.sort((a, b) => b.records_count - a.records_count).slice(0, 15)}>
+                  <XAxis dataKey="region" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="records_count" fill="#82ca9d" label />
+                </BarChart>
+              </ResponsiveContainer>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold mb-2">Активність авторів</h2>
+              <ResponsiveContainer width="100%" height={400}>
+                <PieChart>
+                  <Pie
+                    data={byEmail.sort((a, b) => b.records_count - a.records_count).slice(0, 10)}
+                    dataKey="records_count"
+                    nameKey="author_email"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={130}
+                    label={({ name, percent, records_count, author_email }) =>
+                      `${author_email}: ${records_count}`
+                    }
+                  >
+                    {byEmail.slice(0, 10).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#AF19FF", "#FF5C8D", "#FF7F50", "#9ACD32", "#40E0D0", "#D2691E"][index % 10]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </section>
+
+          </div>
+        </div>
+      </main>
+    </>
+  );
+}

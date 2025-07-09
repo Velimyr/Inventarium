@@ -88,9 +88,20 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold mb-8">Адмін-панель</h1>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
+            <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
+              <div>
               <h2 className="text-xl font-semibold mb-2">К-ть інвентарів в реєстрі</h2>
               <p className="text-4xl font-bold">{approvedCount ?? '—'}</p>
+              </div>
+              <button
+                onClick={() => {
+                  window.location.href = '/admin_stats';
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
+                type="button"
+              >
+                Статистика
+              </button>
             </section>
 
             <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">

@@ -10,6 +10,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
 import GeocoderControl from './GeocoderControl';
 
+
 // Далі інші імпорти і код компонента...
 
 
@@ -53,12 +54,7 @@ export default function MapPageComponent() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const { data, error } = await supabase
-                .from('records')
-                .select('id, latitude, longitude, mark_type, current_settlement_name,current_region,current_district,current_community')
-                .eq('approved', true)
-                .not('latitude', 'is', null)
-                .not('longitude', 'is', null);
+            const { data, error } = await supabase.rpc('get_unique_settlement_records');
 
             if (error) {
                 console.error('Помилка завантаження:', error);

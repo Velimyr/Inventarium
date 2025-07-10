@@ -264,6 +264,8 @@ export default function AddInventoryPage() {
             'current_community',
             'current_settlement_type',
             'current_settlement_name',
+            'old_settlement_type',
+            'old_settlement_name',
             'latitude',
             'longitude',
             'mark_type',
@@ -281,6 +283,8 @@ export default function AddInventoryPage() {
             mark_type: 'Тип позначки',
             email: 'Email',
             case_signature: 'Шифр справи',
+            old_settlement_type: 'Тип населеного пункту (на момент складання інвентаря)',
+            old_settlement_name:'Назва населеного пункту (на момент складання інвентаря)'
         };
 
         // Якщо ручний ввід — перевіряємо ці ж поля, просто заповнені в інпутах
@@ -303,7 +307,7 @@ export default function AddInventoryPage() {
 
         const year = parseInt(formData.inventory_year);
         if (formData.inventory_year && (isNaN(year) || year < 1500 || year > 2000)) {
-            return 'Поле "inventory_year" має бути числом від 1500 до 2000';
+            return 'Поле "Рік складання інвентаря" має бути числом від 1500 до 2000';
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -332,6 +336,10 @@ export default function AddInventoryPage() {
             }
         }
 
+        const cyrillicRegex = /^[А-ЩЬЮЯЄІЇҐа-щьюяєіїґʼ'\s]+$/u;
+        if (formData.case_title && !cyrillicRegex.test(formData.case_title.trim())) {
+            return 'Поле "Назва справи" може містити лише кириличні символи, апостроф та пробіли.';
+        }
 
         return null;
     };

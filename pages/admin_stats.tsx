@@ -115,11 +115,18 @@ export default function StatsPage() {
 
             <section>
               <h2 className="text-xl font-semibold mb-2">Динаміка записів по днях</h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={byDay}>
-                  <XAxis dataKey="day" />
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart
+                  data={byDay}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                >
+                  <XAxis dataKey="day" angle={-45} textAnchor="end" interval={0} />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1f2937', border: 'none' }}
+                    itemStyle={{ color: '#f9fafb' }}
+                    labelStyle={{ color: '#f9fafb' }}
+                  />
                   <CartesianGrid stroke="#ccc" />
                   <Line type="monotone" dataKey="records_count" stroke="#8884d8" label />
                 </LineChart>
@@ -128,11 +135,18 @@ export default function StatsPage() {
 
             <section>
               <h2 className="text-xl font-semibold mb-2">Записи по областях</h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={byRegion.sort((a, b) => b.records_count - a.records_count).slice(0, 15)}>
-                  <XAxis dataKey="region" />
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart
+                  data={byRegion.sort((a, b) => b.records_count - a.records_count).slice(0, 15)}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                >
+                  <XAxis dataKey="region" angle={-45} textAnchor="end" interval={0} />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1f2937', border: 'none' }}
+                    itemStyle={{ color: '#f9fafb' }}
+                    labelStyle={{ color: '#f9fafb' }}
+                  />
                   <Bar dataKey="records_count" fill="#82ca9d" label />
                 </BarChart>
               </ResponsiveContainer>
@@ -157,7 +171,11 @@ export default function StatsPage() {
                       <Cell key={`cell-${index}`} fill={["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#AF19FF", "#FF5C8D", "#FF7F50", "#9ACD32", "#40E0D0", "#D2691E"][index % 10]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1f2937', border: 'none' }}
+                    itemStyle={{ color: '#f9fafb' }}
+                    labelStyle={{ color: '#f9fafb' }}
+                  />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>

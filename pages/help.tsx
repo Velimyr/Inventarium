@@ -49,7 +49,12 @@ export default function Help() {
               </Link>
               <Link href="https://telegra.ph/Poshuk-%D1%96nventar%D1%96v-v-%D0%86nstitut%D1%96-rukopisu-NBUV-07-09" passHref>
                 <a className="inline-flex w-fit px-3 py-2 bg-blue-50 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700 dark:hover:bg-blue-800 transition text-sm">
-                Пошук інвентарів в Інституті рукопису НБУВ
+                  Пошук інвентарів в Інституті рукопису НБУВ
+                </a>
+              </Link>
+              <Link href="https://istznu.org/index.php/journal/article/view/1947" passHref>
+                <a className="inline-flex w-fit px-3 py-2 bg-blue-50 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700 dark:hover:bg-blue-800 transition text-sm">
+                  Господарські інвентарі як джерело з історії Поділля XVII-XIX ст.
                 </a>
               </Link>
             </div>

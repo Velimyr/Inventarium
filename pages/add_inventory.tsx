@@ -336,7 +336,7 @@ export default function AddInventoryPage() {
             }
         }
 
-        const cyrillicRegex = /^[А-ЩЬЮЯЄІЇҐа-щьюяєіїґʼ'\s]+$/u;
+        const cyrillicRegex = /^[А-ЩЬЮЯЄІЇҐа-щьюяєіїґʼ'0-9\s.,:!?]+$/u;
         if (formData.case_title && !cyrillicRegex.test(formData.case_title.trim())) {
             return 'Поле "Назва справи" може містити лише кириличні символи, апостроф та пробіли.';
         }

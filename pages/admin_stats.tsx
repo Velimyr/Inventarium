@@ -18,6 +18,10 @@ export default function StatsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const thisYear = new Date().getFullYear();
+  const [dateFrom, setDateFrom] = useState(`${thisYear}-01-01`);
+  const [dateTo, setDateTo] = useState(`${thisYear}-12-31`);
+
   const [byDay, setByDay] = useState<any[]>([]);
   const [byRegion, setByRegion] = useState<any[]>([]);
   const [byEmail, setByEmail] = useState<any[]>([]);
@@ -49,7 +53,12 @@ export default function StatsPage() {
         .from('records')
         .select('created_at, current_region, email');
 
-      const groupedByDay = allRecords?.reduce((acc: any, r) => {
+      const filteredRecords = allRecords?.filter((r) => {
+        const created = r.created_at?.slice(0, 10);
+        return created && created >= dateFrom && created <= dateTo;
+      }) || [];
+
+      const groupedByDay = filteredRecords.reduce((acc: any, r) => {
         const day = r.created_at?.slice(0, 10);
         if (!day) return acc;
         acc[day] = (acc[day] || 0) + 1;
@@ -59,7 +68,7 @@ export default function StatsPage() {
       setByDay(Object.entries(groupedByDay || {}).map(([day, count]) => ({ day, records_count: count })));
 
       // Запит 2: по регіонах
-      const groupedByRegion = allRecords?.reduce((acc: any, r) => {
+      const groupedByRegion = filteredRecords.reduce((acc: any, r) => {
         const region = r.current_region?.trim() || 'Невизначено';
         acc[region] = (acc[region] || 0) + 1;
         return acc;
@@ -68,7 +77,7 @@ export default function StatsPage() {
       setByRegion(Object.entries(groupedByRegion || {}).map(([region, count]) => ({ region, records_count: count })));
 
       // Запит 3: по email
-      const groupedByEmail = allRecords?.reduce((acc: any, r) => {
+      const groupedByEmail = filteredRecords.reduce((acc: any, r) => {
         const email = r.email?.trim() || 'Без email';
         acc[email] = (acc[email] || 0) + 1;
         return acc;
@@ -80,7 +89,7 @@ export default function StatsPage() {
     };
 
     load();
-  }, [user, userLoading]);
+  }, [user, userLoading, dateFrom, dateTo]);
 
   if (userLoading || loading) {
     return (
@@ -110,6 +119,27 @@ export default function StatsPage() {
       <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
         <div className="max-w-screen-lg mx-auto">
           <h1 className="text-3xl font-bold mb-8">Статистика інвентарів</h1>
+
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <label className="flex flex-col">
+              <span className="mb-1">Дата від:</span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="p-2 rounded border dark:bg-gray-800 dark:border-gray-600"
+              />
+            </label>
+            <label className="flex flex-col">
+              <span className="mb-1">Дата до:</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="p-2 rounded border dark:bg-gray-800 dark:border-gray-600"
+              />
+            </label>
+          </div>
 
           <div className="space-y-12">
 

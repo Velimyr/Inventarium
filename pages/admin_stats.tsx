@@ -69,12 +69,28 @@ export default function StatsPage() {
 
       // Запит 2: по регіонах
       const groupedByRegion = filteredRecords.reduce((acc: any, r) => {
-        const region = r.current_region?.trim() || 'Невизначено';
+        const region = (r.current_region || '').trim().toLowerCase() || 'невизначено';
         acc[region] = (acc[region] || 0) + 1;
         return acc;
       }, {});
 
-      setByRegion(Object.entries(groupedByRegion || {}).map(([region, count]) => ({ region, records_count: count })));
+      console.log('📍 Груповані регіони:', groupedByRegion);
+
+      // Зберігаємо оригінальні назви регіонів
+      const regionDisplayNames: Record<string, string> = {};
+      filteredRecords.forEach(r => {
+        const key = (r.current_region || '').trim().toLowerCase();
+        if (key && !regionDisplayNames[key]) {
+          regionDisplayNames[key] = (r.current_region || '').trim();
+        }
+      });
+
+      setByRegion(
+        Object.entries(groupedByRegion || {}).map(([regionKey, count]) => ({
+          region: regionDisplayNames[regionKey] || regionKey,
+          records_count: count
+        }))
+      );
 
       // Запит 3: по email
       const groupedByEmail = filteredRecords.reduce((acc: any, r) => {

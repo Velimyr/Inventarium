@@ -135,7 +135,7 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
     }
   }, [formData.current_settlement_name, formData.current_settlement_type, settlements, manualEntry]);
 
-  useEffect(() => {
+/*   useEffect(() => {
     if (data) {
       const latFromData = data.latitude ?? '';
       const lonFromData = data.longitude ?? '';
@@ -152,7 +152,7 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
         }));
       }
     }
-  }, [data]);
+  }, [data]); */
 
 
 

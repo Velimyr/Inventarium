@@ -183,7 +183,7 @@ export default function StatsPage() {
               <h2 className="text-xl font-semibold mb-2">Записи по областях</h2>
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart
-                  data={byRegion.sort((a, b) => b.records_count - a.records_count).slice(0, 15)}
+                  data={byRegion.sort((a, b) => b.records_count - a.records_count).slice(0,40)}
                   margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
                 >
                   <XAxis dataKey="region" angle={-45} textAnchor="end" interval={0} />
@@ -199,7 +199,7 @@ export default function StatsPage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-2">Активність авторів</h2>
+              <h2 className="text-xl font-semibold mb-2">Активність авторів (топ 10)</h2>
               <ResponsiveContainer width="100%" height={400}>
                 <PieChart>
                   <Pie

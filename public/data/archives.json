@@ -462,5 +462,13 @@
     "full_name_ukr": "Архів Південно-Західної `Росії`",
     "full_name_native": "Архив Юго-Западной России",
     "site": ""
+  },
+  {
+    "id": "f3a97b62-b5cb-4e2e-9c64-6f9125f23db7",
+    "short_name": "MNL",
+    "country": "Угорщина",
+    "full_name_ukr": "Угорський національний архів",
+    "full_name_native": "Magyar Nemzeti Levéltár",
+    "site": ""
   }
 ]

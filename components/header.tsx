@@ -68,8 +68,8 @@ export default function Header() {
             <li><Link href="/stats" className="hover:underline">Мій внесок</Link></li>
             <li><Link href="/help" className="hover:underline">Документація</Link></li>
             <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
-            <li><Link href="/volunteer" className="hover:underline">Долучитися</Link></li>
-            <li><Link href="/feedback" className="hover:underline">Відгук</Link></li>
+            {/* <li><Link href="/volunteer" className="hover:underline">Долучитися</Link></li>
+            <li><Link href="/feedback" className="hover:underline">Відгук</Link></li> */}
           </ul>
 
           {/* Мобільне меню */}
@@ -93,8 +93,8 @@ export default function Header() {
               <li><Link href="/stats" className="hover:underline">Мій внесок</Link></li>
               <li><Link href="/help" className="hover:underline">Документація</Link></li>
               <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
-              <li><Link href="/volunteer" className="hover:underline">Долучитися</Link></li>
-              <li><Link href="/feedback" className="hover:underline">Відгук</Link></li>
+              {/* <li><Link href="/volunteer" className="hover:underline">Долучитися</Link></li>
+              <li><Link href="/feedback" className="hover:underline">Відгук</Link></li> */}
             </ul>
           )}
         </nav>

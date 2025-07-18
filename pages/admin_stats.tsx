@@ -25,6 +25,7 @@ export default function StatsPage() {
   const [byDay, setByDay] = useState<any[]>([]);
   const [byRegion, setByRegion] = useState<any[]>([]);
   const [byEmail, setByEmail] = useState<any[]>([]);
+  const [byArchive, setByArchive] = useState<any[]>([]);
 
   useEffect(() => {
     if (userLoading) return;
@@ -51,7 +52,7 @@ export default function StatsPage() {
       // Запит 1: Динаміка по днях
       const { data: allRecords } = await supabase
         .from('records')
-        .select('created_at, current_region, email');
+        .select('created_at, current_region, email, archive, case_signature');
 
       const filteredRecords = allRecords?.filter((r) => {
         const created = r.created_at?.slice(0, 10);
@@ -100,6 +101,18 @@ export default function StatsPage() {
       }, {});
 
       setByEmail(Object.entries(groupedByEmail || {}).map(([author_email, count]) => ({ author_email, records_count: count })));
+
+      const groupedByArchive = filteredRecords.reduce((acc: any, r) => {
+        let key = (r.archive || '').trim();
+        if (!key && r.case_signature) {
+          const match = r.case_signature.trim().match(/^[^,\s-]+/);
+          if (match) key = match[0];
+        }
+        key = key || 'Невідомо';
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+      setByArchive(Object.entries(groupedByArchive).map(([archive, records_count]) => ({ archive, records_count })));
 
       setLoading(false);
     };
@@ -194,6 +207,25 @@ export default function StatsPage() {
                     labelStyle={{ color: '#f9fafb' }}
                   />
                   <Bar dataKey="records_count" fill="#82ca9d" label />
+                </BarChart>
+              </ResponsiveContainer>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold mb-2">Розподіл по архівах</h2>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart
+                  data={byArchive.sort((a, b) => b.records_count - a.records_count)}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                >
+                  <XAxis dataKey="archive" angle={-45} textAnchor="end" interval={0} />
+                  <YAxis />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1f2937', border: 'none' }}
+                    itemStyle={{ color: '#f9fafb' }}
+                    labelStyle={{ color: '#f9fafb' }}
+                  />
+                  <Bar dataKey="records_count" fill="#8884d8" label />
                 </BarChart>
               </ResponsiveContainer>
             </section>

@@ -156,6 +156,16 @@ export default function StatsPage() {
                 Дивитися підписки
               </a>
             </section>
+
+            {/* <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
+              <h2 className="text-xl font-semibold mb-4">Інвентарний марафон</h2>
+              <a
+                href="/marathon1"
+                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+              >
+                Детальніше
+              </a>
+            </section> */}
           </div>
         </div>
       </main>

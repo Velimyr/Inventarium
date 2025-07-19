@@ -16,6 +16,23 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+
+      if (user) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('user_id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!profile && !error) {
+          await supabase.from('profiles').insert({
+            user_id: user.id,
+            email: user.email,
+            name: user.user_metadata?.name || user.email,
+          });
+        }
+      }
+
       setLoading(false);
     };
 

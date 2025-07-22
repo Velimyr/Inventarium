@@ -149,8 +149,95 @@ export default function MarathonPage() {
               Правила Інвентарного марафону {showRules ? '▲' : '▼'}
             </button>
             {showRules && (
-              <div className="mt-2 bg-gray-100 dark:bg-gray-800 p-4 rounded">
-                <p>Учасники додають інвентарі протягом серпня 2025 року. У залік йдуть як підтверджені, так і ті, що чекають на перевірку.</p>
+              <div className="mt-2 bg-gray-100 dark:bg-gray-800 p-4 rounded space-y-4 text-gray-900 dark:text-gray-100">
+                <p><strong>Перший Інвентарний Марафон</strong> <br /> Проходить з 1 серпня по 31 серпня 2025 року.</p>
+                <p>Завдання учасників — знайти в архівах та бібліотеках якомога більше інвентарів і додати їх до реєстру <strong>Інвентаріум</strong>.</p>
+                <br />
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg mt-4">Умови зарахування інвентарів:</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <p><strong>Авторизація на сайті:</strong></p>
+                      <p>Щоб інвентар був зарахований, його потрібно додати, будучи авторизованим користувачем сайту Інвентаріум. Якщо інвентар додано без входу в акаунт — він не враховується у статистиці марафону.</p>
+                    </div>
+
+                    <div>
+                      <p><strong>Підтвердження адміністратором:</strong></p>
+                      <p>Інвентар має пройти перевірку адміністратора. Якщо запис не відповідає вимогам (наприклад, неповні дані, дублікати або помилки), його можуть відхилити. Тільки підтверджені записи враховуються в підсумку.</p>
+                    </div>
+
+                    <div>
+                      <p><strong>Оцінювання записів:</strong></p>
+                      <p>Кількість балів нараховується за окремі населені пункти з інвентаря. Наприклад:</p>
+                      <ul className="list-disc list-inside ml-4">
+                        <li>В одному інвентарі є згадки про 10 сіл чи містечок.</li>
+                        <li>Якщо ви додасте до реєстру 10 окремих записів для кожного з них — отримаєте 10 балів у марафоні.</li>
+                      </ul>
+                      <p>Однаково зараховуються як записи з типом “місце”, так і з типом “регіон”.</p>
+                    </div>
+
+                    <div>
+                      <p><strong>Часові рамки:</strong></p>
+                      <p>Інвентар повинен бути і доданий, і підтверджений в період проведення марафону — з 1 по 31 серпня 2025 року. Записи, додані до початку марафону або підтверджені після його завершення, не враховуються.</p>
+                    </div>
+                  </div>
+                </div>
+                <br />
+                <h3 className="font-semibold text-lg mt-4">Бонуси та винагороди:</h3>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-6 my-4">
+                  <div className="sm:w-2/3">
+                    <p>
+                      Усі, хто додасть хоча б один запис, отримають запрошення на закриту онлайн-зустріч —
+                      <strong> “Генеалогічну балачку”</strong> з Сергієм Фазульяновим та Віктором Долецьким.
+                    </p>
+                    <p className="mt-2">
+                      Під час зустрічі ви дізнаєтесь про генеалогічні джерела, архівний пошук і зможете поставити свої запитання.
+                    </p>
+                  </div>
+                  <div className="sm:w-1/3 mt-4 sm:mt-0">
+                    <img
+                      src="/images/marathon/balachka.png"
+                      alt="Генеалогічна балачка"
+                      className="w-full max-w-[250px] mx-auto sm:mx-0 rounded shadow-md"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row items-start gap-6 my-4">
+                  {/* Ліва частина — текст */}
+                  <div className="sm:w-2/3">
+                    <p>
+                      Також серед учасників, які додадуть <strong>щонайменше 10 записів</strong>, ми розіграємо призи:
+                    </p>
+                    <p className="mt-4">
+                      Кожні 10 записів = 1 шанс на виграш.
+                      <br />
+                      10 записів — 1 шанс, 20 — 2 шанси, 30 — 3 шанси і т.д.
+                    </p>
+                  </div>
+
+                  {/* Права частина — зображення в один ряд */}
+                  <div className="sm:w-1/3 flex gap-4 justify-center">
+                    <div className="flex flex-col items-center">
+                      <img
+                        src="/images/marathon/tshirt.png"
+                        alt="Футболка Інвентаріум"
+                        className="w-full max-w-[150px] h-[220px] object-contain rounded shadow-md"
+                      />
+                      <span className="mt-2 font-medium text-center">Футболка “Інвентаріум”</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <img
+                        src="/images/marathon/book.png"
+                        alt="Книга Люди без облич"
+                        className="w-full max-w-[150px] h-[220px] object-contain rounded shadow-md"
+                      />
+                      <span className="mt-2 font-medium text-center">Книга “Люди без облич”</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="font-semibold mt-4">
+                  Долучайтесь до Першого Інвентарного Марафону, шукайте й додавайте інвентарі — та вигравайте призи!
+                </p>
               </div>
             )}
           </section>
@@ -184,13 +271,12 @@ export default function MarathonPage() {
                   {leaders.map((u, i) => (
                     <tr
                       key={u.user_id}
-                      className={`${
-                        u.user_id === user?.id
-                          ? 'font-semibold bg-blue-50 dark:bg-blue-900'
-                          : leaders.indexOf(u) < 3
+                      className={`${u.user_id === user?.id
+                        ? 'font-semibold bg-blue-50 dark:bg-blue-900'
+                        : leaders.indexOf(u) < 3
                           ? 'bg-yellow-100 dark:bg-yellow-900'
                           : ''
-                      }`}
+                        }`}
                     >
                       <td className="py-2 px-4">{i + 1}</td>
                       <td className="py-2 px-4 flex items-center gap-2">

@@ -66,7 +66,11 @@ export default function StatsPage() {
         return acc;
       }, {});
 
-      setByDay(Object.entries(groupedByDay || {}).map(([day, count]) => ({ day, records_count: count })));
+      setByDay(
+        Object.entries(groupedByDay || {})
+          .map(([day, count]) => ({ day, records_count: count }))
+          .sort((a, b) => a.day.localeCompare(b.day))
+      );
 
       // Запит 2: по регіонах
       const groupedByRegion = filteredRecords.reduce((acc: any, r) => {

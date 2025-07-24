@@ -77,7 +77,21 @@ export default function MarathonPage() {
           total: u.approved + u.unverified
         }));
 
-        list.sort((a, b) => b.total - a.total);
+        // Сортування: спочатку за total, потім за датою найпершого запису користувача
+        list.sort((a, b) => {
+          if (b.total !== a.total) {
+            return b.total - a.total;
+          }
+          const aFirstDate = Math.min(
+            ...(approvedRecords?.filter(r => r.created_by === a.user_id).map(r => new Date(r.created_at).getTime()) || []),
+            ...(unverifiedRecords?.filter(r => r.created_by === a.user_id).map(r => new Date(r.created_at).getTime()) || [])
+          );
+          const bFirstDate = Math.min(
+            ...(approvedRecords?.filter(r => r.created_by === b.user_id).map(r => new Date(r.created_at).getTime()) || []),
+            ...(unverifiedRecords?.filter(r => r.created_by === b.user_id).map(r => new Date(r.created_at).getTime()) || [])
+          );
+          return aFirstDate - bFirstDate;
+        });
 
         // Отримати імена користувачів із таблиці profiles
         const userIds = list.map(u => u.user_id);

@@ -27,14 +27,14 @@ const blueIcon = L.icon({
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -41],
-  });
-  
-  const redIcon = L.icon({
+});
+
+const redIcon = L.icon({
     iconUrl: '/icons/marker-red.svg',
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -41],
-  });
+});
 
 const center: [number, number] = [48.3794, 31.1656];
 interface Record {
@@ -93,17 +93,18 @@ export default function MapPageComponent() {
                                                     <br />
                                                     <button
                                                         className="text-blue-600 underline"
-                                                        onClick={() =>
-                                                            router.push({
-                                                                pathname: '/settlement',
-                                                                query: {
-                                                                    current_region: record.current_region,
-                                                                    current_district: record.current_district,
-                                                                    current_community: record.current_community,
-                                                                    current_settlement_name: record.current_settlement_name
-                                                                }
-                                                            })
-                                                        }
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+
+                                                            const params = new URLSearchParams();
+                                                            if (record.current_region) params.set('current_region', record.current_region);
+                                                            if (record.current_district) params.set('current_district', record.current_district);
+                                                            if (record.current_community) params.set('current_community', record.current_community);
+                                                            if (record.current_settlement_name) params.set('current_settlement_name', record.current_settlement_name);
+
+                                                            const url = `/settlement?${params.toString()}`;
+                                                            window.open(url, '_blank', 'noopener,noreferrer');
+                                                        }}
                                                     >
                                                         Переглянути всі записи населеного пункту
                                                     </button>

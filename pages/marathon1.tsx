@@ -26,7 +26,7 @@ export default function MarathonPage() {
         return;
       }
       // Діапазон дат для марафону: весь серпень 2025
-      const fromDate = '2025-01-01T00:00:00';
+      const fromDate = '2025-08-01T00:00:00';
       const toDate = '2025-08-31T23:59:59';
 
       try {

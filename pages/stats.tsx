@@ -157,7 +157,7 @@ export default function StatsPage() {
               </a>
             </section>
 
-            {/* <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
+             <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
               <h2 className="text-xl font-semibold mb-4">Інвентарний марафон</h2>
               <a
                 href="/marathon1"
@@ -165,7 +165,7 @@ export default function StatsPage() {
               >
                 Детальніше
               </a>
-            </section> */}
+            </section> 
           </div>
         </div>
       </main>

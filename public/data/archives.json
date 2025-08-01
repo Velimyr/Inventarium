@@ -455,7 +455,7 @@
     "full_name_native": "Zakład Narodowy im. Ossolińskich",
     "site": "https://www.ossolineum.pl/"
   },
-   {
+  {
     "id": "2f6e92d4-8f50-4c7a-b78a-b1c6ed1f2e0b",
     "short_name": "АЮЗР",
     "country": "російська імперія",
@@ -470,5 +470,13 @@
     "full_name_ukr": "Угорський національний архів",
     "full_name_native": "Magyar Nemzeti Levéltár",
     "site": ""
+  },
+  {
+    "id": "b7a96fa2-8fd4-4c32-9106-2f2c8f3791f6",
+    "short_name": "BN PAU-PAN",
+    "country": "Польща",
+    "full_name_ukr": "Наукова бібліоетка Польської Академії Наук в Кракові",
+    "full_name_native": "Biblioteka Naukowa PAU i PAN w Krakowie",
+    "site": "http://biblioteka.pau.krakow.pl/"
   }
 ]

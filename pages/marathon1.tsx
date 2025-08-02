@@ -63,13 +63,14 @@ export default function MarathonPage() {
             console.warn('[approvedRecords] Record with null created_by. ID:', rec.id, 'Full record:', rec);
             continue;
           }
+          if (rec.created_by === '3dd4529a-268b-417a-8b61-4136fee07666') continue;
           if (!userMap[rec.created_by]) {
             userMap[rec.created_by] = { user_id: rec.created_by, name: '', approved: 0, unverified: 0, total: 0 };
           }
           userMap[rec.created_by].approved++;
         }
 
-        for (const rec of (unverifiedRecords || []).filter(r => !!r.created_by)) {
+        for (const rec of (unverifiedRecords || []).filter(r => !!r.created_by && r.created_by !== '3dd4529a-268b-417a-8b61-4136fee07666')) {
           if (!userMap[rec.created_by]) {
             userMap[rec.created_by] = { user_id: rec.created_by, name: '', approved: 0, unverified: 0, total: 0 };
           }

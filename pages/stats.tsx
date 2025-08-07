@@ -142,7 +142,13 @@ export default function StatsPage() {
             {/* Кількість записів в очікуванні */}
             <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
               <h2 className="text-xl font-semibold mb-2">Очікують підтвердження адміністратором</h2>
-              <p className="text-4xl font-bold">{userUnverifiedCount ?? '—'}</p>
+              <p className="text-4xl font-bold mb-4">{userUnverifiedCount ?? '—'}</p>
+               <a
+                href="/edit_drafts"
+                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+              >
+                Редагувати
+              </a>
             </section>
 
             {/* Кількість підписок */}

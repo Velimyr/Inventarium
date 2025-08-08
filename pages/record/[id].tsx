@@ -6,6 +6,7 @@ import { useEffect, useState, Fragment } from 'react';
 import emailjs from 'emailjs-com';
 
 export default function RecordPage() {
+    
     const router = useRouter();
     const { id } = router.query;
 
@@ -140,15 +141,15 @@ export default function RecordPage() {
                                     'Посилання на скани',
                                     record.scans_url ? (
                                         <>
-                                        <a
-                                            href={record.scans_url}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="text-blue-600 underline"
-                                        >
-                                            Переглянути 
-                                        </a>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">(Для доступу можливо буде потрібен VPN)</p>
+                                            <a
+                                                href={record.scans_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-blue-600 underline"
+                                            >
+                                                Переглянути
+                                            </a>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">(Для доступу можливо буде потрібен VPN)</p>
                                         </>
                                     ) : (
                                         '-'
@@ -191,15 +192,15 @@ export default function RecordPage() {
                                 'Посилання на скани',
                                 record.scans_url ? (
                                     <>
-                                    <a
-                                        href={record.scans_url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-blue-600 underline"
-                                    >
-                                        Переглянути
-                                    </a>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">(Для доступу можливо буде потрібен VPN)</p>
+                                        <a
+                                            href={record.scans_url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-blue-600 underline"
+                                        >
+                                            Переглянути
+                                        </a>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">(Для доступу можливо буде потрібен VPN)</p>
                                     </>
                                 ) : (
                                     '-'
@@ -236,10 +237,10 @@ export default function RecordPage() {
                             ⬅ Повернутися до списку
                         </button>
                         <button
-                            onClick={() => setIsModalOpen(true)}
+                            onClick={() => router.push(`/edit/${record.id}`)}
                             className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 w-full sm:w-auto"
                         >
-                            🚫 Повідомити про помилку в інвентарі
+                            🚫 Виправити помилку в інвентарі
                         </button>
                         <button
                             onClick={() => {

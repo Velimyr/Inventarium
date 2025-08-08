@@ -7,6 +7,7 @@ export default function AdminDashboard() {
   const { user, loading: userLoading } = useUser();
   const [approvedCount, setApprovedCount] = useState<number | null>(null);
   const [unverifiedCount, setUnverifiedCount] = useState<number | null>(null);
+  const [editCount, setEditCount] = useState<number | null>(null);
   const [pendingSubscriptions, setPendingSubscriptions] = useState<number | null>(null);
 
   const [error, setError] = useState<string | null>(null);
@@ -49,9 +50,14 @@ export default function AdminDashboard() {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'new');
 
+      const { count: editCount } = await supabase
+        .from('records_edit')
+        .select('*', { count: 'exact', head: true })        
+
       setApprovedCount(approved ?? 0);
       setUnverifiedCount(unverified ?? 0);
       setPendingSubscriptions(subscriptionCount ?? 0);
+      setEditCount(editCount ?? 0);
       setLoading(false);
     };
 
@@ -133,6 +139,22 @@ export default function AdminDashboard() {
                 type="button"
               >
                 Почати обробку підписок
+              </button>
+            </section>
+
+              <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
+              <div>
+                <h2 className="text-xl font-semibold mb-2">К-ть редагованих інвентарів</h2>
+                <p className="text-4xl font-bold mb-4">{editCount ?? '—'}</p>
+              </div>
+              <button
+                onClick={() => {
+                  window.location.href = '/admin_editapprove';
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
+                type="button"
+              >
+                Почати обробку інвентарів
               </button>
             </section>
           </div>

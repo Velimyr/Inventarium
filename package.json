@@ -16,6 +16,7 @@
     "emailjs-com": "^3.2.0",
     "leaflet": "^1.9.4",
     "leaflet-control-geocoder": "^3.2.0",
+    "lodash.isequal": "^4.5.0",
     "lucide-react": "^0.522.0",
     "next": "^14.2.30",
     "react": "^18.3.1",

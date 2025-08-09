@@ -66,6 +66,7 @@ export default function Home() {
       `current_settlement_name.ilike.%${filters.search}%`,
       `case_title.ilike.%${filters.search}%`,
       `notes.ilike.%${filters.search}%`,
+      `case_signature.ilike.%${filters.search}%`,
     ].join(','));
 
     query = query.order('inventory_year', { ascending: false }).range(from, to);

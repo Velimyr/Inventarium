@@ -78,6 +78,61 @@ export default function AddInventoryPage() {
         email: '',
     });
 
+    //Перевірка дублів за inventory_year + суч. адмін.поділ
+    const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+
+    useEffect(() => {
+        const checkDuplicateYear = async () => {
+            if (
+                formData.inventory_year &&
+                formData.current_region &&
+                formData.current_district &&
+                formData.current_community &&
+                formData.current_settlement_type &&
+                formData.current_settlement_name
+            ) {
+                const yearInt = parseInt(formData.inventory_year);
+
+                const { data, error } = await supabase
+                    .from('records')
+                    .select('id, archive')
+                    .match({
+                        current_region: formData.current_region,
+                        current_district: formData.current_district,
+                        current_community: formData.current_community,
+                        current_settlement_type: formData.current_settlement_type,
+                        current_settlement_name: formData.current_settlement_name,
+                        inventory_year: yearInt
+                    });
+
+                if (!error && data && data.length > 0) {
+                    const sameArchive = data.some(r => r.archive === formData.archive);
+                    if (!sameArchive) {
+                        setDuplicateWarning(
+                            'В реєстрі уже є інвентар за цей рік, але в іншому архіві, перевірте чи це не один і той самий інвентар'
+                        );
+                    } else {
+                        setDuplicateWarning(null);
+                    }
+                } else {
+                    setDuplicateWarning(null);
+                }
+            } else {
+                setDuplicateWarning(null);
+            }
+        };
+
+        checkDuplicateYear();
+    }, [
+        formData.inventory_year,
+        formData.current_region,
+        formData.current_district,
+        formData.current_community,
+        formData.current_settlement_type,
+        formData.current_settlement_name,
+        formData.archive
+    ]);
+
 
 
     // Завантажуємо region_structure.json при монтуванні
@@ -98,14 +153,14 @@ export default function AddInventoryPage() {
 
     useEffect(() => {
         if (!loading && user?.email) {
-          setFormData((prev: any) => {
-            if (!prev.email) {
-              return { ...prev, email: user.email };
-            }
-            return prev;
-          });
+            setFormData((prev: any) => {
+                if (!prev.email) {
+                    return { ...prev, email: user.email };
+                }
+                return prev;
+            });
         }
-      }, [user, loading]);
+    }, [user, loading]);
     // Оновлюємо districts при зміні current_region
     useEffect(() => {
         if (nestedData && formData.current_region && !manualEntry) {
@@ -284,7 +339,7 @@ export default function AddInventoryPage() {
             email: 'Email',
             case_signature: 'Шифр справи',
             old_settlement_type: 'Тип населеного пункту (на момент складання інвентаря)',
-            old_settlement_name:'Назва населеного пункту (на момент складання інвентаря)'
+            old_settlement_name: 'Назва населеного пункту (на момент складання інвентаря)'
         };
 
         // Якщо ручний ввід — перевіряємо ці ж поля, просто заповнені в інпутах
@@ -438,7 +493,11 @@ export default function AddInventoryPage() {
                             ознайомтеся з інструкцією
                         </a>.
                     </p>
-                    <EditableInventoryForm data={formData} onChange={setFormData} />
+                    <EditableInventoryForm
+                        data={formData}
+                        onChange={setFormData}
+                        duplicateWarning={duplicateWarning}
+                    />
                     <p className="text-sm text-gray-500 dark:text-gray-400">Зверніть увагу, доданий вами інвентар буде опубліковано в реєстрі лише після перевірки адміністратором!</p>
 
                     <div className="flex gap-4 mt-4">

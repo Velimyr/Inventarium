@@ -15,13 +15,13 @@ export default function GeocoderControl() {
 
   useEffect(() => {
     const geocoder = L.Control.geocoder({
-      defaultMarkGeocode: true,
+      defaultMarkGeocode: false, // вимикаємо автододавання маркера
       collapsed: false,
     })
       .on('markgeocode', function (e: any) {
         const bbox = e.geocode.bbox;
         const bounds = L.latLngBounds(bbox);
-        map.fitBounds(bounds);
+        map.fitBounds(bounds); // лише скролимо
       })
       .addTo(map);
 

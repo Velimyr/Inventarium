@@ -478,5 +478,13 @@
     "full_name_ukr": "Наукова бібліоетка Польської Академії Наук в Кракові",
     "full_name_native": "Biblioteka Naukowa PAU i PAN w Krakowie",
     "site": "http://biblioteka.pau.krakow.pl/"
+  },
+  {
+    "id": "c9a16de8-bc93-4ff5-b364-5938b38e6a67",
+    "short_name": "РГИА",
+    "country": "росія",
+    "full_name_ukr": "російський державний історичний архів",
+    "full_name_native": "российский государственный исторический архив",
+    "site": "https://fgurgia.ru/"
   }
 ]

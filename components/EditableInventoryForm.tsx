@@ -3,9 +3,6 @@ import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
 
 //
-
-
-
 interface MapSelectorProps {
   latitude: string;
   longitude: string;
@@ -34,9 +31,10 @@ interface NestedStructure {
 interface EditableInventoryFormProps {
   data: any;
   onChange: (data: any) => void;
+   duplicateWarning?: string | null;
 }
 
-export default function EditableInventoryForm({ data, onChange }: EditableInventoryFormProps) {
+export default function EditableInventoryForm({ data, onChange,  duplicateWarning, }: EditableInventoryFormProps) {
   const [formData, setFormData] = useState(data);
   const [manualEntry, setManualEntry] = useState(false);
   const [nestedData, setNestedData] = useState<NestedStructure | null>(null);
@@ -135,24 +133,24 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
     }
   }, [formData.current_settlement_name, formData.current_settlement_type, settlements, manualEntry]);
 
-/*   useEffect(() => {
-    if (data) {
-      const latFromData = data.latitude ?? '';
-      const lonFromData = data.longitude ?? '';
-
-      // Перевіряємо, чи координати в formData відсутні або відрізняються від data
-      if (
-        (latFromData !== '' && formData.latitude !== latFromData) ||
-        (lonFromData !== '' && formData.longitude !== lonFromData)
-      ) {
-        setFormData((fd: any) => ({
-          ...fd,
-          latitude: latFromData,
-          longitude: lonFromData,
-        }));
+  /*   useEffect(() => {
+      if (data) {
+        const latFromData = data.latitude ?? '';
+        const lonFromData = data.longitude ?? '';
+  
+        // Перевіряємо, чи координати в formData відсутні або відрізняються від data
+        if (
+          (latFromData !== '' && formData.latitude !== latFromData) ||
+          (lonFromData !== '' && formData.longitude !== lonFromData)
+        ) {
+          setFormData((fd: any) => ({
+            ...fd,
+            latitude: latFromData,
+            longitude: lonFromData,
+          }));
+        }
       }
-    }
-  }, [data]); */
+    }, [data]); */
 
 
 
@@ -459,7 +457,7 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
               </div>
 
               {formData.is_ukrainian_archive === 'Так' ? (
-                <div className="flex flex-col gap-4">                 
+                <div className="flex flex-col gap-4">
                   <select
                     value={formData.archive}
                     onChange={(e) =>
@@ -498,7 +496,7 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
                 </div>
               ) : (
                 <>
-                 <div className="mb-2">
+                  <div className="mb-2">
                     <a
                       href="/archives"
                       target="_blank"
@@ -508,13 +506,13 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
                       Список назв архівів та їх скорочень
                     </a>
                   </div>
-                <input
-                  name="case_signature"
-                  value={formData.case_signature}
-                  onChange={handleChange}
-                  placeholder="Шифр справи"
-                  className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-                />
+                  <input
+                    name="case_signature"
+                    value={formData.case_signature}
+                    onChange={handleChange}
+                    placeholder="Шифр справи"
+                    className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
+                  />
                 </>
               )}
               <p className="text-sm text-gray-500 dark:text-gray-400">Вказуйте назву справи українською мовою, навіть якщо в оригіналі вона вказана іншою мовою</p>
@@ -564,6 +562,10 @@ export default function EditableInventoryForm({ data, onChange }: EditableInvent
                   placeholder="Рік складання інвентарю (напр. 1750)"
                   className="flex-1 min-w-[150px] p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
                 />
+                {duplicateWarning && (
+                  <p className="text-red-600 text-sm mt-1">{duplicateWarning}</p>
+                )}
+
                 <input
                   name="inventory_start_page"
                   value={formData.inventory_start_page}

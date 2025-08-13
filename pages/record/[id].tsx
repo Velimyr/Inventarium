@@ -6,7 +6,7 @@ import { useEffect, useState, Fragment } from 'react';
 import emailjs from 'emailjs-com';
 
 export default function RecordPage() {
-    
+
     const router = useRouter();
     const { id } = router.query;
 
@@ -242,18 +242,37 @@ export default function RecordPage() {
                         >
                             🚫 Виправити помилку в інвентарі
                         </button>
-                        <button
-                            onClick={() => {
-                                const query = [record.archive, record.fonds, record.series, record.record]
-                                    .filter(Boolean)
-                                    .join('-');
-                                const url = `https://inspector.duckarchive.com/search?q=${encodeURIComponent(query)}`;
-                                window.open(url, '_blank');
-                            }}
-                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full sm:w-auto"
-                        >
-                            🦆 Перевірити в Качиному Інспекторі
-                        </button>
+                        {record.archive && record.fonds && record.series && record.record && (
+                            <button
+                                onClick={() => {
+                                    const query = [record.archive, record.fonds, record.series, record.record]
+                                        .filter(Boolean)
+                                        .join('-');
+                                    const url = `https://inspector.duckarchive.com/search?q=${encodeURIComponent(query)}`;
+                                    window.open(url, '_blank');
+                                }}
+                                className="flex items-center justify-center gap-1 p-1 bg-[#F97316] text-white rounded w-full sm:w-auto sm:p-3 sm:gap-3 border border-black hover:bg-[#ea580c]"
+                            >
+                                <svg
+                                    className="w-6 h-6 sm:w-9 sm:h-9"
+                                    viewBox="0 0 38 38"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path
+                                        d="M19 37C28.9411 37 37 28.9411 37 19C37 9.05888 28.9411 1 19 1C9.05888 1 1 9.05888 1 19C1 28.9411 9.05888 37 19 37Z"
+                                        fill="white"
+                                        stroke="black"
+                                    ></path>
+                                    <path
+                                        d="M31.2715 19.75L22.0334 33.4H15.9263L6.6882 19.75H31.2715Z"
+                                        fill="#F97316"
+                                        stroke="#000"
+                                    ></path>
+                                </svg>
+                                Знайти в Інспекторі
+                            </button>
+                        )}
                     </div>
 
 

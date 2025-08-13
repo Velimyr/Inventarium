@@ -58,15 +58,21 @@ export default function MyDraftsPage() {
         const recordId = formData.id;
         if (!recordId) return;
 
-        const matchQuery = {
-            current_region: formData.current_region,
-            current_district: formData.current_district,
-            current_community: formData.current_community,
-            current_settlement_type: formData.current_settlement_type,
-            current_settlement_name: formData.current_settlement_name,
-            case_signature: formData.case_signature,
-            inventory_year: formData.inventory_year,
-        };
+        // Додаємо у matchQuery лише непорожні значення
+        const matchQuery: any = {};
+        if (formData.current_region != null && formData.current_region !== '') matchQuery.current_region = formData.current_region;
+        if (formData.current_district != null && formData.current_district !== '') matchQuery.current_district = formData.current_district;
+        if (formData.current_community != null && formData.current_community !== '') matchQuery.current_community = formData.current_community;
+        if (formData.current_settlement_type != null && formData.current_settlement_type !== '') matchQuery.current_settlement_type = formData.current_settlement_type;
+        if (formData.current_settlement_name != null && formData.current_settlement_name !== '') matchQuery.current_settlement_name = formData.current_settlement_name;
+        if (formData.case_signature != null && formData.case_signature !== '') matchQuery.case_signature = formData.case_signature;
+        const year = formData.inventory_year?.toString().trim();
+        if (year) matchQuery.inventory_year = Number(year);
+
+        // Підготовка payload для оновлення
+        const payload = { ...formData };
+        const payloadYear = payload.inventory_year?.toString().trim();
+        payload.inventory_year = payloadYear ? Number(payloadYear) : null;
 
         try {
             // 🔍 Перевірка records_unverified (чернетки)
@@ -107,7 +113,7 @@ export default function MyDraftsPage() {
             // ✅ Якщо унікально — оновити запис у records_unverified
             const { error } = await supabase
                 .from('records_unverified')
-                .update(formData)
+                .update(payload)
                 .eq('id', recordId);
 
             if (error) throw error;

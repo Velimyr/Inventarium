@@ -251,7 +251,7 @@ export default function RecordPage() {
                                     const url = `https://inspector.duckarchive.com/search?q=${encodeURIComponent(query)}`;
                                     window.open(url, '_blank');
                                 }}
-                                className="flex items-center justify-center gap-1 p-1 bg-[#F97316] text-white rounded w-full sm:w-auto sm:p-3 sm:gap-3 border border-black hover:bg-[#ea580c]"
+                                className="flex items-center justify-center gap-1 p-1 bg-white text-black rounded w-full sm:w-auto sm:p-3 sm:gap-3 border hover:bg-[#F97316] hover:text-white"
                             >
                                 <svg
                                     className="w-6 h-6 sm:w-9 sm:h-9"
@@ -274,7 +274,6 @@ export default function RecordPage() {
                             </button>
                         )}
                     </div>
-
 
                 </div>
                 <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} as={Fragment}>

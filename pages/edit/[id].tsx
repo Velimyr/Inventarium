@@ -27,6 +27,7 @@ export default function EditSingleRecordPage() {
     const [formData, setFormData] = useState<any>({});
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [comment, setComment] = useState<string>("");
 
     useEffect(() => {
         if (!id || userLoading) return;
@@ -69,6 +70,11 @@ export default function EditSingleRecordPage() {
 
     const saveRecord = async () => {
         if (!id || !formData) return;
+
+        if (!comment.trim()) {
+            setToast({ message: '❌ Потрібно заповнити поле з поясненням змін', type: 'error' });
+            return;
+        }
 
         function isEmptyValue(val: any) {
             return val === null || val === undefined || val === "";
@@ -118,6 +124,7 @@ export default function EditSingleRecordPage() {
         }
 
         updatedFields['email'] = emailToSave;
+        updatedFields['comment'] = comment.trim();
 
         // Перевірка унікальності — тільки якщо змінились ключові поля
         const keyFields = [
@@ -199,6 +206,18 @@ export default function EditSingleRecordPage() {
                         <>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Внесіть зміни до запису про інвентар</p>
                             <EditableInventoryForm data={formData} onChange={setFormData} />
+                            <div className="mt-6">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Опишіть детально чому ви вважаєте що саме такі зміни потрібно внести в інвентар
+                                </label>
+                                <textarea
+                                    value={comment}
+                                    onChange={(e) => setComment(e.target.value)}
+                                    className="w-full border border-gray-300 dark:border-gray-600 rounded p-2 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                                    rows={4}
+                                    required
+                                />
+                            </div>
                             <div className="mt-6 flex justify-end">
                                 <button
                                     onClick={saveRecord}

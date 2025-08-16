@@ -167,7 +167,7 @@ export default function ReviewEditedRecordsPage() {
 
         const updateData: Record<string, any> = { id: recordEdit.id };
         Object.entries(fieldsToUpdate).forEach(([field, checked]) => {
-            if (checked && field !== 'approved' && field !== 'email') {
+            if (checked && field !== 'approved' && field !== 'email' && field !== 'comment') {
                 updateData[field] = recordEdit[field];
             }
         });
@@ -384,6 +384,14 @@ export default function ReviewEditedRecordsPage() {
                             )}
                         </div>
                     </section>
+                </div>
+
+                {/* Коментар редактора інвентарю */}
+                <div className="max-w-7xl mx-auto mt-6 bg-gray-50 dark:bg-gray-800 p-4 rounded shadow">
+                    <h3 className="text-lg font-semibold mb-2">Коментар редактора інвентарю</h3>
+                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                        {recordEdit?.comment ? recordEdit.comment : '—'}
+                    </p>
                 </div>
 
                 {/* Навігація */}

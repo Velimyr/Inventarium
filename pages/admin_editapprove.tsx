@@ -299,7 +299,8 @@ export default function ReviewEditedRecordsPage() {
             value !== null &&
             key !== 'id' &&
             key !== 'approved' &&
-            key !== 'email'
+            key !== 'email' &&
+            key !== 'comment'
         );
 
     const originalFields = editFields

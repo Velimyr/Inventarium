@@ -422,7 +422,7 @@ export default function AddInventoryPage() {
         };
 
         if (formData.inventory_year) {
-            matchQuery.inventory_year = formData.inventory_year;
+            matchQuery.inventory_year = formData.inventory_year.trim();
         }
 
         const { data: existing } = await supabase

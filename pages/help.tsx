@@ -33,7 +33,24 @@ export default function Help() {
             </div>
           </div>
 
-          {/* Блок 2 – Про пошук інвентарів в архівах */}
+          {/* Блок 2 – Навчальний курс */}
+          <div className="border border-gray-300 dark:border-gray-700 rounded p-6">
+            <h2 className="text-xl font-semibold mb-4">Навчальні курси і відеолекції</h2>
+            <div className="flex flex-wrap gap-x-2 gap-y-2">
+              <Link href="https://youtu.be/gW30DA3QrBc" passHref>
+                <a className="inline-flex w-fit px-3 py-2 bg-blue-50 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700 dark:hover:bg-blue-800 transition text-sm">
+                Навчальний курс "Інвентарний детектив XVIII ст." Лекція 1
+                </a>
+              </Link>
+              <Link href="https://youtu.be/bZUNAxE3Ztg" passHref>
+                <a className="inline-flex w-fit px-3 py-2 bg-blue-50 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700 dark:hover:bg-blue-800 transition text-sm">
+                Навчальний курс "Інвентарний детектив XVIII ст." Лекція 2
+                </a>
+              </Link>
+          
+            </div>
+          </div>
+          {/* Блок 3 – Про пошук інвентарів в архівах */}
           <div className="border border-gray-300 dark:border-gray-700 rounded p-6">
             <h2 className="text-xl font-semibold mb-4">Методика пошуку інвентарів в архівах</h2>
             <div className="flex flex-wrap gap-x-2 gap-y-2">
@@ -60,7 +77,7 @@ export default function Help() {
             </div>
           </div>
 
-          {/* Блок 3 – Корисні посилання */}
+          {/* Блок 4 – Корисні посилання */}
           <div className="border border-gray-300 dark:border-gray-700 rounded p-6">
             <h2 className="text-xl font-semibold mb-4">Корисні генеалогічні та краєзнавчі ресурси</h2>
             <div className="flex flex-wrap gap-x-2 gap-y-2">

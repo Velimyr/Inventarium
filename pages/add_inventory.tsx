@@ -361,8 +361,8 @@ export default function AddInventoryPage() {
         }
 
         const year = parseInt(formData.inventory_year);
-        if (formData.inventory_year && (isNaN(year) || year < 1500 || year > 2000)) {
-            return 'Поле "Рік складання інвентаря" має бути числом від 1500 до 2000';
+        if (formData.inventory_year && (isNaN(year) || year < 1400 || year > 2000)) {
+            return 'Поле "Рік складання інвентаря" має бути числом від 1400 до 2000';
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -81,30 +81,53 @@ export default function EditSingleRecordPage() {
         }
 
         // Збираємо тільки дійсно змінені поля (без email — будемо обробляти email окремо)
+        /*  const updatedFields: any = {};
+         for (const key in formData) {
+             if (key === 'email') continue;
+ 
+             const original = originalData[key];
+             const current = formData[key];
+ 
+             // Якщо обидва пусті ("" або null/undefined) — пропускаємо
+             if (isEmptyValue(original) && isEmptyValue(current)) {
+                 continue;
+             }
+ 
+             // Якщо значення однакові (з урахуванням типів) — пропускаємо
+             if (isEqual(current, original)) continue;
+ 
+             // Якщо оригінал не пустий, а зараз пустий — зберігаємо ""
+             if (!isEmptyValue(original) && isEmptyValue(current)) {
+                 updatedFields[key] = "";
+                 continue;
+             }
+ 
+             // В інших випадках — зберігаємо нове значення як є
+             updatedFields[key] = current;
+         } */
+
         const updatedFields: any = {};
+
+        function normalizeValue(val: any) {
+            // null/undefined → ""
+            if (val === null || val === undefined) return "";
+            // trim рядків
+            if (typeof val === "string") return val.trim();
+            // інші типи приводимо до рядка
+            return String(val);
+        }
+
         for (const key in formData) {
             if (key === 'email') continue;
 
-            const original = originalData[key];
-            const current = formData[key];
+            const original = normalizeValue(originalData[key]);
+            const current = normalizeValue(formData[key]);
 
-            // Якщо обидва пусті ("" або null/undefined) — пропускаємо
-            if (isEmptyValue(original) && isEmptyValue(current)) {
-                continue;
+            if (original !== current) {
+                updatedFields[key] = formData[key]; // зберігаємо оригінальний тип з форми
             }
-
-            // Якщо значення однакові (з урахуванням типів) — пропускаємо
-            if (isEqual(current, original)) continue;
-
-            // Якщо оригінал не пустий, а зараз пустий — зберігаємо ""
-            if (!isEmptyValue(original) && isEmptyValue(current)) {
-                updatedFields[key] = "";
-                continue;
-            }
-
-            // В інших випадках — зберігаємо нове значення як є
-            updatedFields[key] = current;
         }
+
 
         // Якщо змінили archive / fonds / series / record — додаємо case_signature (з форми)
         const importantFields = ['archive', 'fonds', 'series', 'record'];
@@ -173,6 +196,7 @@ export default function EditSingleRecordPage() {
             }
         }
 
+        console.log(updatedFields)
         // Виконуємо upsert у таблицю records_edit
         try {
             const { error } = await supabase

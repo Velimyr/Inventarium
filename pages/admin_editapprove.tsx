@@ -167,7 +167,7 @@ export default function ReviewEditedRecordsPage() {
 
         const updateData: Record<string, any> = { id: recordEdit.id };
         Object.entries(fieldsToUpdate).forEach(([field, checked]) => {
-            if (checked && field !== 'approved' && field !== 'email' && field !== 'comment') {
+            if (checked && field !== 'approved' && field !== 'email' && field !== 'comment' && field !== 'json_full_data') {
                 updateData[field] = recordEdit[field];
             }
         });
@@ -300,7 +300,8 @@ export default function ReviewEditedRecordsPage() {
             key !== 'id' &&
             key !== 'approved' &&
             key !== 'email' &&
-            key !== 'comment'
+            key !== 'comment' &&
+            key !== 'json_full_data'
         );
 
     const originalFields = editFields

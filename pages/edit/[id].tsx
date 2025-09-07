@@ -201,7 +201,14 @@ export default function EditSingleRecordPage() {
         try {
             const { error } = await supabase
                 .from('records_edit')
-                .upsert({ id, ...updatedFields }, { onConflict: 'id' });
+                .upsert(
+                    {
+                        id,
+                        ...updatedFields,          // тільки змінені поля
+                        json_full_data: formData,            // повний стан форми у json
+                    },
+                    { onConflict: "id" }
+                );
 
             if (error) throw error;
 

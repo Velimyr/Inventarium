@@ -73,7 +73,7 @@ export default function EditableInventoryForm({ data, onChange, duplicateWarning
   }, []);
 
   useEffect(() => {
-    if (data && Object.keys(data).length > 0) {
+     if (data && Object.keys(data).length > 0 && (!formData || !formData.id)) {
       const cleaned = {
         ...data,
         inventory_year: data.inventory_year ?? '',
@@ -89,7 +89,7 @@ export default function EditableInventoryForm({ data, onChange, duplicateWarning
       setFormData((prev) => ({ ...prev, email: data.email }));
     }
   }, [data?.email]);
-  //}, [data]);
+
 
   useEffect(() => {
     onChange(formData);

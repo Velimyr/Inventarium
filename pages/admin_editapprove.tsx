@@ -132,15 +132,21 @@ export default function ReviewEditedRecordsPage() {
         fetchData();
     }, [isAdmin]);
 
-    // приховуємо координати якщо вони не мінялися
-    const filteredRecordsEdit = recordsEdit.map(edit => {
-        const original = recordsOriginal[edit.id] || {};
-        return {
-            ...edit,
-            show_latitude: edit.latitude !== original.latitude,
-            show_longitude: edit.longitude !== original.longitude,
-        };
-    });
+    // приховуємо поля якщо вони не мінялися
+    const filteredRecordsEdit = recordsEdit
+        .map(edit => {
+            const original = recordsOriginal[edit.id] || {};
+            const diffFields: Record<string, any> = {};
+            Object.keys(edit).forEach((key) => {
+                if (key === 'id' || key === 'email') return;
+                if (edit[key] !== original[key]) {
+                    diffFields[key] = edit[key];
+                }
+            });
+            if (Object.keys(diffFields).length === 0) return null; // якщо нічого не змінилося
+            return { ...edit, diffFields };
+        })
+        .filter(Boolean); // видаляємо null
 
     const handleCheckboxChange = (recordId: string, field: string) => {
         setConfirmFields((prev) => ({
@@ -167,7 +173,7 @@ export default function ReviewEditedRecordsPage() {
 
         const updateData: Record<string, any> = { id: recordEdit.id };
         Object.entries(fieldsToUpdate).forEach(([field, checked]) => {
-            if (checked && field !== 'approved' && field !== 'email' && field !== 'comment' && field !== 'json_full_data') {
+            if (checked && field !== 'approved' && field !== 'email' && field !== 'is_ukrainian_archive') {
                 updateData[field] = recordEdit[field];
             }
         });
@@ -299,16 +305,14 @@ export default function ReviewEditedRecordsPage() {
             value !== null &&
             key !== 'id' &&
             key !== 'approved' &&
-            key !== 'email' &&
-            key !== 'comment' &&
-            key !== 'json_full_data'
+            key !== 'email'
         );
 
     const originalFields = editFields
         .map(([field]) => [field, recordOriginal[field]])
         .filter(([key]) => key !== 'email');
 
-    
+
 
     return (
         <>
@@ -386,14 +390,6 @@ export default function ReviewEditedRecordsPage() {
                             )}
                         </div>
                     </section>
-                </div>
-
-                {/* Коментар редактора інвентарю */}
-                <div className="max-w-7xl mx-auto mt-6 bg-gray-50 dark:bg-gray-800 p-4 rounded shadow">
-                    <h3 className="text-lg font-semibold mb-2">Коментар редактора інвентарю</h3>
-                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                        {recordEdit?.comment ? recordEdit.comment : '—'}
-                    </p>
                 </div>
 
                 {/* Навігація */}

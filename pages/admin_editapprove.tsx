@@ -300,14 +300,15 @@ export default function ReviewEditedRecordsPage() {
     const recordEdit = recordsEdit[index];
     const recordOriginal = recordsOriginal[recordEdit.id] || {};
 
-    const editFields = Object.entries(recordEdit)
+    /* const editFields = Object.entries(recordEdit)
         .filter(([key, value]) =>
             value !== null &&
             key !== 'id' &&
             key !== 'approved' &&
             key !== 'email'
-        );
-
+        ); */
+        
+    const editFields = Object.entries(recordEdit.diffFields || {});
     const originalFields = editFields
         .map(([field]) => [field, recordOriginal[field]])
         .filter(([key]) => key !== 'email');

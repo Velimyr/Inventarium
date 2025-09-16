@@ -300,15 +300,12 @@ export default function ReviewEditedRecordsPage() {
     const recordEdit = recordsEdit[index];
     const recordOriginal = recordsOriginal[recordEdit.id] || {};
 
-    /* const editFields = Object.entries(recordEdit)
-        .filter(([key, value]) =>
-            value !== null &&
-            key !== 'id' &&
-            key !== 'approved' &&
-            key !== 'email'
-        ); */
-        
-    const editFields = Object.entries(recordEdit.diffFields || {});
+    const editFields = Object.entries(recordEdit)
+    .filter(([key, value]) => {
+        if (['id', 'approved', 'email', 'created_by','created_at','comment','json_full_data','is_ukrainian_archive'].includes(key)) return false;
+        return value !== recordOriginal[key];
+    });
+
     const originalFields = editFields
         .map(([field]) => [field, recordOriginal[field]])
         .filter(([key]) => key !== 'email');

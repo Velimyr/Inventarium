@@ -81,9 +81,10 @@ export default function EditSingleRecordPage() {
             return;
         }
 
+        /*
         const updatedFields: any = {};
 
-        for (const key in formData) {
+         for (const key in formData) {
             if (key === 'email') continue;
 
             const original = normalize(originalData[key]);
@@ -99,7 +100,7 @@ export default function EditSingleRecordPage() {
 
             // якщо користувач стер значення → зберігаємо як ""
             updatedFields[key] = current;
-        }
+        } 
 
         // Якщо змінили archive / fonds / series / record — додаємо case_signature (з форми)
         const importantFields = ['archive', 'fonds', 'series', 'record'];
@@ -107,6 +108,7 @@ export default function EditSingleRecordPage() {
         if (changedImportantField) {
             updatedFields['case_signature'] = formData['case_signature'];
         }
+        */
 
         // --- Email ---
         const emailFromForm = typeof formData.email === 'string' ? formData.email.trim() : null;
@@ -119,8 +121,8 @@ export default function EditSingleRecordPage() {
             return;
         }
 
-        updatedFields['email'] = emailToSave;
-        updatedFields['comment'] = comment.trim();
+        formData['email'] = emailToSave;
+        formData['comment'] = comment.trim();
 
         // Перевірка унікальності — тільки якщо змінились ключові поля
         const keyFields = [
@@ -133,41 +135,39 @@ export default function EditSingleRecordPage() {
             'inventory_year',
         ];
 
-        const anyKeyFieldChanged = keyFields.some((field) => field in updatedFields);
 
-        if (anyKeyFieldChanged) {
-            const matchQuery: any = {};
-            for (const field of keyFields) {
-                let value = (field in updatedFields) ? updatedFields[field] : formData[field];
-                if (value === "") value = null;
-                if (value !== null && value !== undefined) {
-                    matchQuery[field] = value;
-                }
-            }
 
-            if (Object.keys(matchQuery).length > 0) {
-                const { data: duplicate, error: dupError } = await supabase
-                    .from('records')
-                    .select('id')
-                    .match(matchQuery)
-                    .neq('id', id)
-                    .maybeSingle();
-
-                if (dupError) {
-                    console.error(dupError);
-                    setToast({ message: '❌ Помилка при перевірці унікальності', type: 'error' });
-                    return;
-                }
-
-                if (duplicate) {
-                    setToast({
-                        message: '❗ Такий запис уже існує в реєстрі Інвентаріум',
-                        type: 'error',
-                    });
-                    return;
-                }
+        const matchQuery: any = {};
+        for (const field of keyFields) {
+            let value = formData[field];
+            if (value === "") value = null;
+            if (value !== null && value !== undefined) {
+                matchQuery[field] = value;
             }
         }
+        if (Object.keys(matchQuery).length > 0) {
+            const { data: duplicate, error: dupError } = await supabase
+                .from('records')
+                .select('id')
+                .match(matchQuery)
+                .neq('id', id)
+                .maybeSingle();
+
+            if (dupError) {
+                console.error(dupError);
+                setToast({ message: '❌ Помилка при перевірці унікальності', type: 'error' });
+                return;
+            }
+
+            if (duplicate) {
+                setToast({
+                    message: '❗ Такий запис уже існує в реєстрі Інвентаріум',
+                    type: 'error',
+                });
+                return;
+            }
+        }
+
 
         //console.log(updatedFields)
         // Виконуємо upsert у таблицю records_edit
@@ -177,7 +177,7 @@ export default function EditSingleRecordPage() {
                 .upsert(
                     {
                         id,
-                        ...updatedFields,          // тільки змінені поля
+                        ...formData,          // тільки змінені поля
                         json_full_data: formData,            // повний стан форми у json
                     },
                     { onConflict: "id" }

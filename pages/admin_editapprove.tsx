@@ -119,7 +119,7 @@ export default function ReviewEditedRecordsPage() {
                 initialConfirmFields[rec.id] = {};
                 Object.entries(rec).forEach(([field, val]) => {
                     if (field === 'id') return;
-                    if (val !== null && val !== undefined) {
+                    if (val !== undefined) {
                         initialConfirmFields[rec.id][field] = true;
                     }
                 });
@@ -171,10 +171,14 @@ export default function ReviewEditedRecordsPage() {
         const fieldsToUpdate = confirmFields[recordEdit.id];
         if (!fieldsToUpdate) return;
 
+        console.log("recordEdit.inventory_start_page =", recordEdit.inventory_start_page);
+        console.log("fieldsToUpdate.inventory_start_page =", fieldsToUpdate["inventory_start_page"]);
+
         const updateData: Record<string, any> = { id: recordEdit.id };
         Object.entries(fieldsToUpdate).forEach(([field, checked]) => {
             if (checked && field !== 'approved' && field !== 'email' && field !== 'is_ukrainian_archive' && field !== 'comment' && field !== 'json_full_data') {
-                updateData[field] = recordEdit[field];
+                const value = recordEdit[field];
+                updateData[field] = value === '' ? null : value;
             }
         });
 
@@ -186,6 +190,7 @@ export default function ReviewEditedRecordsPage() {
 
         try {
             // Оновлюємо record в records (реальний)
+            console.log(updateData);
             const { error: updateError } = await supabase
                 .from('records')
                 .upsert([updateData], { onConflict: 'id' });
@@ -301,10 +306,10 @@ export default function ReviewEditedRecordsPage() {
     const recordOriginal = recordsOriginal[recordEdit.id] || {};
 
     const editFields = Object.entries(recordEdit)
-    .filter(([key, value]) => {
-        if (['id', 'approved', 'email', 'created_by','created_at','comment','json_full_data','is_ukrainian_archive'].includes(key)) return false;
-        return value !== recordOriginal[key];
-    });
+        .filter(([key, value]) => {
+            if (['id', 'approved', 'email', 'created_by', 'created_at', 'comment', 'json_full_data', 'is_ukrainian_archive'].includes(key)) return false;
+            return value !== recordOriginal[key];
+        });
 
     const originalFields = editFields
         .map(([field]) => [field, recordOriginal[field]])

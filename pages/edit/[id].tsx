@@ -171,13 +171,19 @@ export default function EditSingleRecordPage() {
 
         //console.log(updatedFields)
         // Виконуємо upsert у таблицю records_edit
+        const sanitizedFormData: any = {};
+        for (const key in formData) {
+            let value = formData[key];
+            if (value === "") value = null; // заміна порожніх рядків на null
+            sanitizedFormData[key] = value;
+        }
         try {
             const { error } = await supabase
                 .from('records_edit')
                 .upsert(
                     {
                         id,
-                        ...formData,          // тільки змінені поля
+                        ...sanitizedFormData,          // тільки змінені поля
                         json_full_data: formData,            // повний стан форми у json
                     },
                     { onConflict: "id" }
@@ -209,7 +215,7 @@ export default function EditSingleRecordPage() {
                     ) : (
                         <>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Внесіть зміни до запису про інвентар</p>
-                            <EditableInventoryForm data={formData} onChange={setFormData} />
+                            <EditableInventoryForm data={formData} onChange={setFormData} onSubmit={saveRecord} />
                             <div className="mt-6">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Опишіть детально чому ви вважаєте що саме такі зміни потрібно внести в інвентар

@@ -31,10 +31,11 @@ interface NestedStructure {
 interface EditableInventoryFormProps {
   data: any;
   onChange: (data: any) => void;
+  onSubmit?: (data: any) => Promise<void>; 
   duplicateWarning?: string | null;
 }
 
-export default function EditableInventoryForm({ data, onChange, duplicateWarning, }: EditableInventoryFormProps) {
+export default function EditableInventoryForm({ data, onChange, onSubmit, duplicateWarning, }: EditableInventoryFormProps) {
   const [formData, setFormData] = useState(data);
   const [manualEntry, setManualEntry] = useState(false);
   const [nestedData, setNestedData] = useState<NestedStructure | null>(null);
@@ -205,7 +206,7 @@ export default function EditableInventoryForm({ data, onChange, duplicateWarning
     setDuplicateUrl(null);
     setSuccess(false);
 
-    // Примусово зібрати всі значення з форми
+   /*  // Примусово зібрати всі значення з форми
     const formElement = e.currentTarget as HTMLFormElement;
     const formEntries = new FormData(formElement);
     const updatedData: any = {};
@@ -215,7 +216,11 @@ export default function EditableInventoryForm({ data, onChange, duplicateWarning
 
     // Підставляємо в formData перед подальшим збереженням
     setFormData((prev) => ({ ...prev, ...updatedData }));
-
+ */
+  
+  if (onSubmit) {
+    await onSubmit(formData);
+  }
   }
 
   return (

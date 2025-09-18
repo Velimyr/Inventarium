@@ -32,7 +32,36 @@ export default function RecordPage() {
 
     const fetchRecord = async () => {
         setLoading(true);
-        const { data, error } = await supabase.from('records').select('*').eq('id', id).single();
+        const { data, error } = await supabase.from('records').select(`
+    id,
+    case_title,
+    case_signature,
+    case_date,
+    inventory_year,
+    inventory_start_page,
+    pages_count,
+    additional_case_signature,
+    notes,
+    scans_url,
+    latitude,
+    longitude,
+    created_at,
+    mark_type,
+    archive,
+    fonds,
+    series,
+    record,
+    old_province,
+    old_district,
+    old_community,
+    old_settlement_type,
+    old_settlement_name,
+    current_region,
+    current_district,
+    current_community,
+    current_settlement_type,
+    current_settlement_name
+  `).eq('id', id).single();
         if (error) {
             console.error('Помилка:', error);
             setRecord(null);

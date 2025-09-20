@@ -342,10 +342,22 @@ export default function AddInventoryPage() {
             old_settlement_name: 'Назва населеного пункту (на момент складання інвентаря)'
         };
 
-        // Якщо ручний ввід — перевіряємо ці ж поля, просто заповнені в інпутах
-        if (manualEntry) {
+        
+        // Валідація: якщо заповнені старі адмін. поля — мають містити мінімум два слова
+        const twoWordsRegex = /^\S+\s+\S+/;
 
+        if (formData.old_province && !twoWordsRegex.test(formData.old_province.trim())) {
+            return 'Поле "Воєводство (губернія)" має містити мінімум два слова. Вказуйте повну назву, наприклад "Київське воєводство" замість "Київське"';
         }
+
+        if (formData.old_district && !twoWordsRegex.test(formData.old_district.trim())) {
+            return 'Поле "Повіт" має містити мінімум два слова. Вказуйте повну назву, наприклад "Махнівський повіт" замість "Махнівський"';
+        }
+
+        if (formData.old_community && !twoWordsRegex.test(formData.old_community.trim())) {
+            return 'Поле "Ключ (Староство)" має містити мінімум два слова. Вказуйте повну назву, наприклад "Махнівський ключ" замість "Махнівський"';
+        }
+
 
         if (formData.is_ukrainian_archive === 'Так') {
             requiredFields.push('archive', 'fonds', 'series', 'record');

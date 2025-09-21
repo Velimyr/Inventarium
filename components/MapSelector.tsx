@@ -43,6 +43,15 @@ export default function MapSelector({ latitude, longitude, onPositionChange }: M
     }
   }, [parsedLat, parsedLng]);
 
+  useEffect(() => {
+  if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+    setMarkerPosition(L.latLng(parsedLat, parsedLng));
+  } else {
+    // якщо координати порожні або некоректні → прибираємо маркер
+    setMarkerPosition(null);
+  }
+}, [parsedLat, parsedLng]);
+
   return (
     <div className="h-64 border dark:border-gray-600 rounded overflow-hidden">
       <MapContainer
@@ -56,7 +65,7 @@ export default function MapSelector({ latitude, longitude, onPositionChange }: M
         />
         <MapClickHandler />
         {markerPosition && <Marker position={markerPosition} />}
-        {hasValidCoords && <RecenterMap lat={parsedLat} lng={parsedLng} />}
+        {hasValidCoords && <RecenterMap lat={parsedLat} lng={parsedLng} />}    
       </MapContainer>
       <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">
         Натисніть на карту, щоб вибрати координати: {latitude}, {longitude}

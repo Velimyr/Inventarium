@@ -460,7 +460,7 @@ export default function AddInventoryPage() {
             return;
         }
 
-        console.log('To insert: ПОЧАТОК');
+        //console.log('To insert: ПОЧАТОК');
         const toInsert = {
             ...formData,
             latitude: formData.latitude ? parseFloat(formData.latitude) : null,

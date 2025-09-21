@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
+import Link from 'next/link';
 
 //
 interface MapSelectorProps {
@@ -31,7 +32,7 @@ interface NestedStructure {
 interface EditableInventoryFormProps {
   data: any;
   onChange: (data: any) => void;
-  onSubmit?: (data: any) => Promise<void>; 
+  onSubmit?: (data: any) => Promise<void>;
   duplicateWarning?: string | null;
 }
 
@@ -74,7 +75,7 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
   }, []);
 
   useEffect(() => {
-     if (data && Object.keys(data).length > 0) {
+    if (data && Object.keys(data).length > 0) {
       const cleaned = {
         ...data,
         inventory_year: data.inventory_year ?? '',
@@ -206,21 +207,21 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
     setDuplicateUrl(null);
     setSuccess(false);
 
-   /*  // Примусово зібрати всі значення з форми
-    const formElement = e.currentTarget as HTMLFormElement;
-    const formEntries = new FormData(formElement);
-    const updatedData: any = {};
-    formEntries.forEach((value, key) => {
-      updatedData[key] = value.toString();
-    });
+    /*  // Примусово зібрати всі значення з форми
+     const formElement = e.currentTarget as HTMLFormElement;
+     const formEntries = new FormData(formElement);
+     const updatedData: any = {};
+     formEntries.forEach((value, key) => {
+       updatedData[key] = value.toString();
+     });
+ 
+     // Підставляємо в formData перед подальшим збереженням
+     setFormData((prev) => ({ ...prev, ...updatedData }));
+  */
 
-    // Підставляємо в formData перед подальшим збереженням
-    setFormData((prev) => ({ ...prev, ...updatedData }));
- */
-  
-  if (onSubmit) {
-    await onSubmit(formData);
-  }
+    if (onSubmit) {
+      await onSubmit(formData);
+    }
   }
 
   return (
@@ -320,6 +321,12 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
                           </option>
                         ))}
                     </select>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Якщо потрібного вас населеного пунтку немає ви можете ,{' '}
+                      <Link href="/add_settlement" className="underline hover:text-blue-600 dark:hover:text-blue-400">
+                       надіслати запит на його додавання
+                      </Link>.
+                    </p>
                   </div>
 
                 </>

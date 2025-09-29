@@ -346,7 +346,7 @@ export default function AddSettlementPage() {
 
 
                     <input type="text" name="email" placeholder="Ваш E-mail" value={formData.email} onChange={handleChange} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 p-3 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button onClick={handleSend} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded transition">Відпарвити на перевірку</button>
+                    <button onClick={handleSend} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded transition">Відправити на перевірку</button>
                 </div>
                 {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} duration={4000} />}
             </main>

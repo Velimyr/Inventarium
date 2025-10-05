@@ -75,7 +75,7 @@ export default function MapPageComponent() {
             <Header />
             <div style={{ height: 'calc(100vh - 80px)', width: '100%', position: 'relative' }}>
                 {isLoading ? (
-                    <div className="absolute z-[1001] top-0 left-0 w-full h-full flex items-center justify-center backdrop-blur-sm bg-white/50 dark:bg-gray-900/50">
+                     <div className="absolute z-[1001] top-0 left-0 w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
                         <div className="flex flex-col items-center gap-4">
                             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                             <span className="text-lg font-medium text-gray-900 dark:text-gray-100">Завантаження карти...</span>

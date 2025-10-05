@@ -315,6 +315,7 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
                       <option value="">Оберіть населений пункт</option>
                       {settlements
                         .filter((s) => s.type === formData.current_settlement_type)
+                        .sort((a, b) => a.name.localeCompare(b.name, 'uk'))
                         .map((s) => (
                           <option key={s.code} value={s.name}>
                             {s.name}

@@ -38,6 +38,8 @@ export default function AddSettlementPage() {
         latitude: '',
         longitude: '',
         email: '',
+        comment: '',
+        isNonExistent: false,
     });
 
     const [districts, setDistricts] = useState<string[]>([]);
@@ -91,9 +93,14 @@ export default function AddSettlementPage() {
         setFormData(prev => ({ ...prev, settlementType: '' }));
     }, [formData.community, formData.district, formData.region, regionStructure]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+    const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value, type } = e.target;
+        if (type === 'checkbox') {
+            const checked = (e.target as HTMLInputElement).checked;
+            setFormData(prev => ({ ...prev, [name]: checked }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleRemove = (index: number) => {
@@ -168,6 +175,8 @@ export default function AddSettlementPage() {
             settlementName: '',
             latitude: '',
             longitude: '',
+            comment: '',
+            isNonExistent: false,
         }));
 
     }
@@ -186,6 +195,7 @@ export default function AddSettlementPage() {
 
         // Формуємо структуру тільки з нових пунктів
         const payload: NestedStructure = {};
+        const settlements: any[] = [];
 
         addedSettlements.forEach(s => {
             if (!payload[s.region]) payload[s.region] = {};
@@ -199,6 +209,19 @@ export default function AddSettlementPage() {
                 lat: parseFloat(s.latitude),
                 lon: parseFloat(s.longitude),
             });
+
+            // Зберігаємо також додаткову інформацію
+            settlements.push({
+                region: s.region,
+                district: s.district,
+                community: s.community,
+                name: s.settlementName,
+                type: s.settlementType,
+                lat: s.latitude,
+                lon: s.longitude,
+                comment: s.comment || '',
+                isNonExistent: s.isNonExistent || false,
+            });
         });
 
         setToast({ message: 'Зачекайте, дані відправляються...', type: 'success' });
@@ -209,6 +232,7 @@ export default function AddSettlementPage() {
                 {
                     email: formData.email,
                     json: JSON.stringify(payload, null, 2),
+                    settlements: JSON.stringify(settlements, null, 2),
                 },
                 'WBCc_TP1lGiy8DVtF'      // public key
             );
@@ -226,6 +250,8 @@ export default function AddSettlementPage() {
                 latitude: '',
                 longitude: '',
                 email: '',
+                comment: '',
+                isNonExistent: false,
             }));
             setAddedSettlements([]); // чистимо таблицю
 
@@ -281,6 +307,26 @@ export default function AddSettlementPage() {
 
                     <input type="text" name="settlementName" placeholder="Назва населеного пункту" value={formData.settlementName} onChange={handleChange} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 p-3 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
+                    {/* Нові поля */}
+                    <textarea 
+                        name="comment" 
+                        placeholder="Коментар (необов'язково)" 
+                        value={formData.comment} 
+                        onChange={handleChange} 
+                        rows={3}
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 p-3 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            name="isNonExistent" 
+                            checked={formData.isNonExistent} 
+                            onChange={handleChange}
+                            className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium">Неіснуючий населений пункт</span>
+                    </label>
 
                     {/* Карта */}
                     <MapSelector latitude={formData.latitude} longitude={formData.longitude} onPositionChange={(lat, lng) => setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }))} />
@@ -298,6 +344,8 @@ export default function AddSettlementPage() {
                                     <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Тип</th>
                                     <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Широта</th>
                                     <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Довгота</th>
+                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Коментар</th>
+                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Неіснуючий</th>
                                     <th className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200">Дія</th>
                                 </tr>
                             </thead>
@@ -311,6 +359,8 @@ export default function AddSettlementPage() {
                                         <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.settlementType}</td>
                                         <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.latitude}</td>
                                         <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.longitude}</td>
+                                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.comment || '-'}</td>
+                                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.isNonExistent ? 'Так' : 'Ні'}</td>
                                         <td className="px-4 py-2">
                                             <button
                                                 onClick={() => handleRemove(idx)}
@@ -334,6 +384,8 @@ export default function AddSettlementPage() {
                                 <div className="text-sm font-medium">{s.community}</div>
                                 <div className="text-sm font-medium">{s.settlementType}, {s.settlementName}</div>
                                 <div className="text-xs">Координати: {s.latitude}, {s.longitude}</div>
+                                {s.comment && <div className="text-xs mt-1">Коментар: {s.comment}</div>}
+                                {s.isNonExistent && <div className="text-xs mt-1 text-red-600 dark:text-red-400">⚠️ Неіснуючий населений пункт</div>}
                                 <button
                                     onClick={() => handleRemove(idx)}
                                     className="mt-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1 rounded transition"

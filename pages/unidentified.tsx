@@ -91,10 +91,9 @@ export default function NotIdentifyPage() {
 
     function getStatusLabel(status: string | null | undefined) {
         switch (status) {
-            case 'new': return 'Новий';
-            case 'review': return 'На перевірці';
-            case 'approved': return 'Затверджено';
-            case 'rejected': return 'Відхилено';
+            case 'new': return 'Очікує ідентифікації';
+            case 'review': return 'Обробляється адміністратором';
+            case 'done': return 'Оброблено';            
             default: return '—';
         }
     }

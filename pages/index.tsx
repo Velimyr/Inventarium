@@ -92,9 +92,7 @@ export default function Home() {
       <Header />
       <SearchBar onFilterChange={handleFilterChange} />
       <main className="pb-20 p-4 max-w-full mx-auto overflow-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
-
         {loading && <p>Завантаження...</p>}
-
         <table className="hidden sm:table min-w-full border border-gray-300 table-auto">
           <thead>
             <tr>
@@ -254,7 +252,7 @@ export default function Home() {
             Наступна
           </button>
         </div>
-       
+
       </main>
       <FooterDonate />
     </>

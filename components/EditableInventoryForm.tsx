@@ -135,27 +135,6 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
     }
   }, [formData.current_settlement_name, formData.current_settlement_type, settlements, manualEntry]);
 
-  /*   useEffect(() => {
-      if (data) {
-        const latFromData = data.latitude ?? '';
-        const lonFromData = data.longitude ?? '';
-  
-        // Перевіряємо, чи координати в formData відсутні або відрізняються від data
-        if (
-          (latFromData !== '' && formData.latitude !== latFromData) ||
-          (lonFromData !== '' && formData.longitude !== lonFromData)
-        ) {
-          setFormData((fd: any) => ({
-            ...fd,
-            latitude: latFromData,
-            longitude: lonFromData,
-          }));
-        }
-      }
-    }, [data]); */
-
-
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -206,18 +185,6 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
     setError(null);
     setDuplicateUrl(null);
     setSuccess(false);
-
-    /*  // Примусово зібрати всі значення з форми
-     const formElement = e.currentTarget as HTMLFormElement;
-     const formEntries = new FormData(formElement);
-     const updatedData: any = {};
-     formEntries.forEach((value, key) => {
-       updatedData[key] = value.toString();
-     });
- 
-     // Підставляємо в formData перед подальшим збереженням
-     setFormData((prev) => ({ ...prev, ...updatedData }));
-  */
 
     if (onSubmit) {
       await onSubmit(formData);

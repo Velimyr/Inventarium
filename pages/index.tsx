@@ -259,7 +259,7 @@ export default function Home() {
       </main>
 
       <FooterDonate />
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end pointer-events-auto">
+      <div className="fixed bottom-2 right-4 z-50 flex flex-col items-end pointer-events-auto">
         <button
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow-lg mb-2"
           onClick={() => setIsChatOpen(prev => !prev)}

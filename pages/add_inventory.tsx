@@ -342,7 +342,7 @@ export default function AddInventoryPage() {
             old_settlement_name: 'Назва населеного пункту (на момент складання інвентаря)'
         };
 
-        
+
         // Валідація: якщо заповнені старі адмін. поля — мають містити мінімум два слова
         const twoWordsRegex = /^\S+\s+\S+/;
 
@@ -433,34 +433,58 @@ export default function AddInventoryPage() {
             case_signature: formData.case_signature,
         };
 
+        // Додаткова умова для інвентарного року
+        let existing;
         if (formData.inventory_year) {
-            matchQuery.inventory_year = formData.inventory_year.trim();
+            // Якщо рік вказано — шукаємо запис із точно таким самим роком
+            ({ data: existing } = await supabase
+                .from('records')
+                .select('id')
+                .match({ ...matchQuery, inventory_year: formData.inventory_year.trim() })
+                .maybeSingle());
+        } else {
+            // Якщо рік НЕ вказано — шукаємо записи, де inventory_year IS NULL або ''
+            ({ data: existing } = await supabase
+                .from('records')
+                .select('id')
+                .match(matchQuery)
+                .is('inventory_year', null)
+                .maybeSingle());
         }
-
-        const { data: existing } = await supabase
-            .from('records')
-            .select('id')
-            .match(matchQuery)
-            .maybeSingle();
 
         if (existing) {
             setDuplicateUrl(`/records/${existing.id}`);
-            setToast({ message: `Такий інвентар уже існує. Спробуйте пошукати його в реєстрі інвентарів`, type: 'error' });
+            setToast({
+                message: `Такий інвентар уже існує. Спробуйте пошукати його в реєстрі інвентарів`,
+                type: 'error',
+            });
             return;
         }
 
-        const { data: unverifiedExisting } = await supabase
-            .from('records_unverified')
-            .select('id')
-            .match(matchQuery)
-            .maybeSingle();
+        let unverifiedExisting;
+        if (formData.inventory_year) {
+            ({ data: unverifiedExisting } = await supabase
+                .from('records_unverified')
+                .select('id')
+                .match({ ...matchQuery, inventory_year: formData.inventory_year.trim() })
+                .maybeSingle());
+        } else {
+            ({ data: unverifiedExisting } = await supabase
+                .from('records_unverified')
+                .select('id')
+                .match(matchQuery)
+                .is('inventory_year', null)
+                .maybeSingle());
+        }
 
         if (unverifiedExisting) {
-            setToast({ message: `Такий інвентар уже надіслано на перевірку. Зачекайте доки адміністратор проекту Inventarium опрацює його і запис з'явиться в реєстрі інвентарів`, type: 'error' });
+            setToast({
+                message: `Такий інвентар уже надіслано на перевірку. Зачекайте, доки адміністратор Inventarium його опрацює.`,
+                type: 'error',
+            });
             return;
         }
 
-        //console.log('To insert: ПОЧАТОК');
         const toInsert = {
             ...formData,
             latitude: formData.latitude ? parseFloat(formData.latitude) : null,

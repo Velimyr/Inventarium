@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 2. Пошук у Qdrant
     const qdrant_collection = process.env.QDRANT_COLLECTION!
-    
+
     const searchResp = await qdrant.search(qdrant_collection, {
       vector: userEmbedding,
       limit: 5,
@@ -72,7 +72,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const filtered = allRecords.filter(r => r.similarity === null || r.similarity >= MIN_SIMILARITY);
     console.log(`🔎 Відібрано ${filtered.length} записів (після фільтрування за схожістю)`);
 
-    // 4. Формування контексту
+    // 4. Сортуємо за схожістю (від більшої до меншої)
+    const sorted = filtered.sort((a, b) => b.similarity - a.similarity);
+    // 5. Вибираємо топ-5 для показу
+    const top5 = sorted.slice(0, 5);
+
+    // 6. Для GPT — короткий список і загальна кількість
+    const totalFound = filtered.length;
+    
+
+    // 7. Формування контексту
     const context = filtered
       .map((r: any) => {
         const fields = [
@@ -87,20 +96,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
       .join('\n');
 
-    const shortContext = filtered
+    const shortContext = top5
       .map((r: any, idx: number) => `${idx + 1}. ${r.case_signature ?? '—'}: /record/${r.id}`)
       .join('\n');
 
     console.log("🧾 Короткий контекст для GPT:\n", shortContext);
     console.log("📚 Повний контекст (для аналізу GPT):\n", context);
 
-    // 5. Формуємо prompt
+    // 8. Формуємо prompt
     const prompt = `
 Ти архівний асистент. Відповідай українською на питання користувача.
 
 Використовуй записи для оцінки релевантності на основі запиту користувача "${query}". 
 Повертай тільки: 
-- якщо записи знайдено, повідом "За вашим запитом знайдено N записів" і короткий список: ${shortContext}
+- якщо записи знайдено, повідом "За вашим запитом знайдено  ${totalFound} записів" і короткий список: ${shortContext}
 
 Повний контекст (для аналізу, не для показу користувачу): 
 ${context}
@@ -108,7 +117,7 @@ ${context}
 Питання: ${query}
 `;
 
-    // 6. Викликаємо ChatGPT
+    // 9. Викликаємо ChatGPT
     console.log("🤖 Надсилаємо запит до ChatGPT...");
     const chatResp = await client.chat.completions.create({
       model: 'gpt-3.5-turbo',
@@ -119,17 +128,10 @@ ${context}
     let answer = chatResp.choices[0].message.content;
     console.log("💬 Відповідь ChatGPT:", answer);
 
-    // Постпроцесинг: Markdown-посилання
+    //10. Постпроцесинг: Markdown-посилання
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers.host ? `${protocol}://${req.headers.host}` : 'https://inventarium.org.ua';
     answer = answer.replace(/\/record\/([a-f0-9-]{36})/g, (_, id) => `[Переглянути інвентар](${host}/record/${id})`);
-
-
-    //const host = req.headers.host ? `${req.headers.host}` : 'https://inventarium.org.ua';
-    //answer = answer.replace(
-    //  /\/record\/([a-f0-9-]{36})/g,
-    //  (_, id) => `[Переглянути інвентар](${host}/record/${id})`
-    //);
 
     console.log("✅ Остаточна відповідь після обробки Markdown:", answer);
 

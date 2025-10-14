@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const searchResp = await qdrant.search(qdrant_collection, {
       vector: userEmbedding,
-      limit: 5,
+      limit: 1000,
       with_payload: true,
     });
 

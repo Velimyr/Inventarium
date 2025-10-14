@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const searchResp = await qdrant.search(qdrant_collection, {
       vector: userEmbedding,
-      limit: 1000,
+      limit: 10,
       with_payload: true,
     });
 
@@ -79,7 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 6. Для GPT — короткий список і загальна кількість
     const totalFound = filtered.length;
-    
+    console.log(`✅ Знайдено записів: ${totalFound}, з них для контексту GPT обрано: ${top5.length}`);
 
     // 7. Формування контексту
     const context = top5

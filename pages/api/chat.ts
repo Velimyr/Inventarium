@@ -82,7 +82,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
 
     // 7. Формування контексту
-    const context = filtered
+    const context = top5
       .map((r: any) => {
         const fields = [
           `id: ${r.id}`,

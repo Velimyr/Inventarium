@@ -142,7 +142,7 @@ export default function AdminPage() {
             ({ data: existing } = await supabase
                 .from('records')
                 .select('id')
-                .match({ ...matchQuery, inventory_year: formData.inventory_year.trim() })
+                .match({ ...matchQuery, inventory_year: formData.inventory_year})
                 .maybeSingle());
         } else {
             // Якщо рік НЕ вказано — шукаємо записи, де inventory_year IS NULL або ''

@@ -209,6 +209,39 @@ export default function AdminNotIdentifyPage() {
     }
   };
 
+  const returnToIdentification = async (record: any) => {
+    const confirmed = window.confirm(
+      `Ви впевнені, що хочете повернути інвентар на ідентифікацію?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const { error: updateError } = await supabase
+        .from('records_notidentify')
+        .update({ status: 'new' })
+        .eq('id', record.id);
+
+      if (updateError) {
+        console.error('Error updating status:', updateError);
+        setToast({ message: '❌ Помилка при оновленні статусу', type: 'error' });
+        return;
+      }
+
+      setToast({
+        message: '✅ Інвентар повернуто на ідентифікацію',
+        type: 'success'
+      });
+
+      await fetchRecords();
+      setExpandedRecordId(null);
+      setSettlementPoints([]);
+    } catch (err) {
+      console.error('Error returning to identification:', err);
+      setToast({ message: '❌ Невідома помилка', type: 'error' });
+    }
+  };
+
   if (loading) {
     return (
       <>
@@ -332,12 +365,20 @@ export default function AdminNotIdentifyPage() {
                         </td>
                         <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center">
                           {record.status === 'review' && (
-                            <button
-                              onClick={() => confirmRecord(record)}
-                              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                            >
-                              ✅ Підтвердити
-                            </button>
+                            <div className="flex gap-2 justify-center">
+                              <button
+                                onClick={() => confirmRecord(record)}
+                                className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                              >
+                                ✅ Підтвердити
+                              </button>
+                              <button
+                                onClick={() => returnToIdentification(record)}
+                                className="px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm"
+                              >
+                                🔄 На ідентифікацію
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -359,6 +400,7 @@ export default function AdminNotIdentifyPage() {
                                       <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Район</th>
                                       <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Громада</th>
                                       <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Населений пункт</th>
+                                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Автор</th>
                                       <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-center">На карті</th>
                                     </tr>
                                   </thead>
@@ -371,6 +413,7 @@ export default function AdminNotIdentifyPage() {
                                         <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">
                                           {point.current_settlement_type} {point.current_settlement_name}
                                         </td>
+                                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{point.email}</td>
                                         <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-center">
                                           {point.latitude && point.longitude ? (
                                             <a

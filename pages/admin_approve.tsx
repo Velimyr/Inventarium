@@ -125,7 +125,8 @@ export default function AdminPage() {
 
   const saveRecord = async () => {
     try {
-      const matchQuery: Record<string, any> = {
+
+       const matchQuery: Record<string, any> = {
         current_region: formData.current_region,
         current_district: formData.current_district,
         current_community: formData.current_community,
@@ -134,25 +135,33 @@ export default function AdminPage() {
         case_signature: formData.case_signature,
       };
 
-      if (formData.inventory_year) {
-        matchQuery.inventory_year = formData.inventory_year;
-      }
+       // Додаткова умова для інвентарного року
+        let existing;
+        if (formData.inventory_year) {
+            // Якщо рік вказано — шукаємо запис із точно таким самим роком
+            ({ data: existing } = await supabase
+                .from('records')
+                .select('id')
+                .match({ ...matchQuery, inventory_year: formData.inventory_year.trim() })
+                .maybeSingle());
+        } else {
+            // Якщо рік НЕ вказано — шукаємо записи, де inventory_year IS NULL або ''
+            ({ data: existing } = await supabase
+                .from('records')
+                .select('id')
+                .match(matchQuery)
+                .is('inventory_year', null)
+                .maybeSingle());
+        }
 
-      const { data: existing } = await supabase
-        .from('records')
-        .select('id')
-        .match(matchQuery)
-        .maybeSingle();
+        if (existing) {            
+            setToast({
+                message: `Такий інвентар уже існує. Спробуйте пошукати його в реєстрі інвентарів`,
+                type: 'error',
+            });
+            return;
+        }
 
-
-
-      if (existing) {
-        setToast({
-          message: '❗ Такий інвентар уже існує. Спробуйте пошукати його в реєстрі інвентарів',
-          type: 'error',
-        });
-        return;
-      }
 
       const { is_ukrainian_archive, ...recordToInsert } = formData;
 
@@ -206,16 +215,16 @@ export default function AdminPage() {
         });
       }
       const { error: deleteError } = await supabase
-        .from('records_unverified')
-        .delete()
-        .eq('id', formData.id);
+       .from('records_unverified')
+       .delete()
+       .eq('id', formData.id);
 
       if (deleteError) {
-        console.error('Delete error:', deleteError);
-        setToast({ message: `Помилка видалення: ${deleteError.message}`, type: 'error' });
+       console.error('Delete error:', deleteError);
+       setToast({ message: `Помилка видалення: ${deleteError.message}`, type: 'error' });
       } else {
-        setToast({ message: '✅ Інвентар підтверджено і збережено', type: 'success' });
-      }
+       setToast({ message: '✅ Інвентар підтверджено і збережено', type: 'success' });
+     }
 
       const updatedRecords = records.filter((_, i) => i !== index);
       setRecords(updatedRecords);

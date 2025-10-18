@@ -202,19 +202,20 @@ export default function NotIdentifyDetails() {
     // Валідація форми
     const validate = () => {
         const requiredFields = [
-            'current_region',
-            'current_district',
-            'current_community',
-            'current_settlement_type',
-            'current_settlement_name',
+            //'current_region',
+            //'current_district',
+            //'current_community',
+            //'current_settlement_type',
+            //'current_settlement_name',
             'old_settlement_type',
             'old_settlement_name',
-            'latitude',
-            'longitude',
+            //'latitude',
+            //'longitude',
             'mark_type',
             'email',
         ];
-
+        
+  
         const fieldLabels: { [key: string]: string } = {
             current_region: 'Область',
             current_district: 'Район',
@@ -275,6 +276,7 @@ export default function NotIdentifyDetails() {
 
         // Перевірка статусу інвентаря
         if (record.status !== 'new') {
+            console.log('Неможливо додати населений пункт до цього інвентаря. Status: ', record.status);
             setToast({ message: 'Неможливо додати населений пункт до цього інвентаря', type: 'error' });
             return;
         }
@@ -403,6 +405,7 @@ export default function NotIdentifyDetails() {
     };
 
     // Завершення ідентифікації
+    // Завершення ідентифікації
     const completeIdentification = async () => {
         if (!id || !record) return;
 
@@ -416,6 +419,58 @@ export default function NotIdentifyDetails() {
         if (points.length === 0) {
             setToast({ message: 'Додайте хоча б один населений пункт перед завершенням ідентифікації', type: 'error' });
             return;
+        }
+
+        // Перевірка заповнення всіх обов'язкових полів для кожної точки
+        const requiredFields = [
+            'current_region',
+            'current_district',
+            'current_community',
+            'current_settlement_type',
+            'current_settlement_name',
+            'old_settlement_type',
+            'old_settlement_name',
+            'latitude',
+            'longitude',
+            'mark_type',
+            'email',
+        ];
+
+        const fieldLabels: { [key: string]: string } = {
+            current_region: 'Область',
+            current_district: 'Район',
+            current_community: 'ОТГ',
+            current_settlement_type: 'Тип населеного пункту',
+            current_settlement_name: 'Назва населеного пункту',
+            latitude: 'Широта',
+            longitude: 'Довгота',
+            mark_type: 'Тип позначки',
+            email: 'Email',
+            old_settlement_type: 'Тип населеного пункту (на момент складання інвентаря)',
+            old_settlement_name: 'Назва населеного пункту (на момент складання інвентаря)',
+        };
+
+        // Перевіряємо кожну точку
+        for (let i = 0; i < points.length; i++) {
+            const point = points[i];
+            const pointNumber = i + 1;
+
+            for (const field of requiredFields) {
+                const value = point[field];
+                
+                if (value === null || value === undefined || value === '') {
+                    const label = fieldLabels[field] || field;
+                    const locationInfo = point.current_settlement_name 
+                        ? ` (${point.current_settlement_name})`
+                        : ` (точка №${pointNumber})`;
+                    
+                    setToast({ 
+                        message: `У точки${locationInfo} не заповнено обов'язкове поле "${label}". Відредагуйте запис перед завершенням ідентифікації.`, 
+                        type: 'error' 
+                    });
+                    return;
+                }
+            }
         }
 
         const recordId = Array.isArray(id) ? id[0] : id;

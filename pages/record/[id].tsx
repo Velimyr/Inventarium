@@ -158,7 +158,19 @@ export default function RecordPage() {
                                 {formatRow('Сучасний адмінподіл', fullLocationCurrent)}
                                 {formatRow('Адмінподіл на час створення', fullLocationOld)}
                                 {formatRow('Рік складання інвентарю', record.inventory_year)}
-                                {formatRow('Сигнатура справи', record.case_signature)}
+                                {formatRow('Сигнатура справи',
+                                    record.case_signature ? (
+                                        <div className="flex items-center gap-2">
+                                            <span>{record.case_signature}</span>
+                                            <button
+                                                onClick={() => router.push(`/case?case_signature=${encodeURIComponent(record.case_signature)}`)}
+                                                className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                                            >
+                                                Переглянути всі записи справи
+                                            </button>
+                                        </div>
+                                    ) : '-'
+                                )}
                                 {formatRow('Назва справи', record.case_title)}
                                 {formatRow('Дата справи', record.case_date)}
                                 {formatRow('Кількість сторінок', record.pages_count)}
@@ -209,7 +221,20 @@ export default function RecordPage() {
                             ['Сучасний адмінподіл', fullLocationCurrent],
                             ['Адмінподіл на час створення', fullLocationOld],
                             ['Рік складання інвентарю', record.inventory_year],
-                            ['Сигнатура справи', record.case_signature],
+                            [
+                                'Сигнатура справи',
+                                record.case_signature ? (
+                                    <div className="flex flex-col gap-2">
+                                        <span>{record.case_signature}</span>
+                                        <button
+                                            onClick={() => router.push(`/case?case_signature=${encodeURIComponent(record.case_signature)}`)}
+                                            className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 w-full"
+                                        >
+                                            Переглянути всі записи справи
+                                        </button>
+                                    </div>
+                                ) : '-',
+                            ],
                             ['Назва справи', record.case_title],
                             ['Дата справи', record.case_date],
                             ['Кількість сторінок', record.pages_count],

@@ -132,6 +132,8 @@ export default function AdminPage() {
         current_community: formData.current_community,
         current_settlement_type: formData.current_settlement_type,
         current_settlement_name: formData.current_settlement_name,
+        old_settlement_type: formData.old_settlement_type,
+        old_settlement_name: formData.old_settlement_name,
         case_signature: formData.case_signature,
       };
 

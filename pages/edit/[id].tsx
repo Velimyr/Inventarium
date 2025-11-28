@@ -29,8 +29,14 @@ export default function EditSingleRecordPage() {
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [comment, setComment] = useState<string>("");
 
+    // Зберігаємо останній завантажений ID, щоб не перезавантажувати при перемиканні вкладок
+    const [lastLoadedId, setLastLoadedId] = useState<string | null>(null);
+
     useEffect(() => {
         if (!id || userLoading) return;
+
+        // Перезавантажуємо дані ТІЛЬКИ якщо змінився ID
+        if (id === lastLoadedId) return;
 
         // Скидаємо весь стан при зміні id
         setLoading(true);
@@ -39,7 +45,6 @@ export default function EditSingleRecordPage() {
         setOriginalData({});
         setComment("");
         setToast(null);
-
 
         const fetchRecord = async () => {
             const { data, error } = await supabase.from('records').select('*').eq('id', id).single();
@@ -71,11 +76,12 @@ export default function EditSingleRecordPage() {
 
             setFormData(initialForm);
             setOriginalData(initialForm);
+            setLastLoadedId(id as string);
             setLoading(false);
         };
 
         fetchRecord();
-    }, [id, userLoading, user]);
+    }, [id, userLoading, user, lastLoadedId]);
 
     const saveRecord = async () => {
         if (!id || !formData) return;
@@ -224,7 +230,12 @@ export default function EditSingleRecordPage() {
                     ) : (
                         <>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Внесіть зміни до запису про інвентар</p>
-                            <EditableInventoryForm data={formData} onChange={setFormData} onSubmit={saveRecord} />
+                            <EditableInventoryForm 
+                                key={id as string}
+                                data={formData} 
+                                onChange={setFormData} 
+                                onSubmit={saveRecord} 
+                            />
                             <div className="mt-6">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Опишіть детально чому ви вважаєте що саме такі зміни потрібно внести в інвентар

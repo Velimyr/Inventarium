@@ -32,6 +32,15 @@ export default function EditSingleRecordPage() {
     useEffect(() => {
         if (!id || userLoading) return;
 
+        // Скидаємо весь стан при зміні id
+        setLoading(true);
+        setRecord(null);
+        setFormData({});
+        setOriginalData({});
+        setComment("");
+        setToast(null);
+
+
         const fetchRecord = async () => {
             const { data, error } = await supabase.from('records').select('*').eq('id', id).single();
             if (error || !data) {

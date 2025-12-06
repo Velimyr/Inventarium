@@ -10,7 +10,7 @@ interface SubscriptionNotifierProps {
 }
 
 export default function SubscriptionNotifier({ settlement, settlementCode, link, userId }: SubscriptionNotifierProps) {
-console.log('🔔 Запускаємо перевірку підписників для:', settlement);
+//console.log('🔔 Запускаємо перевірку підписників для:', settlement);
   useEffect(() => {
     async function notifySubscribers() {
       if (!settlement || !userId) return;

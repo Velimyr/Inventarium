@@ -29,8 +29,22 @@ export default function EditSingleRecordPage() {
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [comment, setComment] = useState<string>("");
 
+    // Зберігаємо останній завантажений ID, щоб не перезавантажувати при перемиканні вкладок
+    const [lastLoadedId, setLastLoadedId] = useState<string | null>(null);
+
     useEffect(() => {
         if (!id || userLoading) return;
+
+        // Перезавантажуємо дані ТІЛЬКИ якщо змінився ID
+        if (id === lastLoadedId) return;
+
+        // Скидаємо весь стан при зміні id
+        setLoading(true);
+        setRecord(null);
+        setFormData({});
+        setOriginalData({});
+        setComment("");
+        setToast(null);
 
         const fetchRecord = async () => {
             const { data, error } = await supabase.from('records').select('*').eq('id', id).single();
@@ -62,49 +76,46 @@ export default function EditSingleRecordPage() {
 
             setFormData(initialForm);
             setOriginalData(initialForm);
+            setLastLoadedId(id as string);
             setLoading(false);
         };
 
         fetchRecord();
-    }, [id, userLoading, user]);
+    }, [id, userLoading, user, lastLoadedId]);
 
     const saveRecord = async () => {
         if (!id || !formData) return;
+
+        const normalize = (val: any) => {
+            if (val === null || val === undefined) return "";
+            return String(val).trim();
+        };
 
         if (!comment.trim()) {
             setToast({ message: '❌ Потрібно заповнити поле з поясненням змін', type: 'error' });
             return;
         }
 
-        function isEmptyValue(val: any) {
-            return val === null || val === undefined || val === "";
-        }
-
-        // Збираємо тільки дійсно змінені поля (без email — будемо обробляти email окремо)
+        /*
         const updatedFields: any = {};
-        for (const key in formData) {
+
+         for (const key in formData) {
             if (key === 'email') continue;
 
-            const original = originalData[key];
-            const current = formData[key];
+            const original = normalize(originalData[key]);
+            const current = normalize(formData[key]);
 
-            // Якщо обидва пусті ("" або null/undefined) — пропускаємо
-            if (isEmptyValue(original) && isEmptyValue(current)) {
-                continue;
+            if (original === "" && current === "") {
+                continue; // обидва пусті → пропускаємо
             }
 
-            // Якщо значення однакові (з урахуванням типів) — пропускаємо
-            if (isEqual(current, original)) continue;
-
-            // Якщо оригінал не пустий, а зараз пустий — зберігаємо ""
-            if (!isEmptyValue(original) && isEmptyValue(current)) {
-                updatedFields[key] = "";
-                continue;
+            if (original === current) {
+                continue; // однакові → пропускаємо
             }
 
-            // В інших випадках — зберігаємо нове значення як є
+            // якщо користувач стер значення → зберігаємо як ""
             updatedFields[key] = current;
-        }
+        } 
 
         // Якщо змінили archive / fonds / series / record — додаємо case_signature (з форми)
         const importantFields = ['archive', 'fonds', 'series', 'record'];
@@ -112,19 +123,21 @@ export default function EditSingleRecordPage() {
         if (changedImportantField) {
             updatedFields['case_signature'] = formData['case_signature'];
         }
+        */
 
         // --- Email ---
         const emailFromForm = typeof formData.email === 'string' ? formData.email.trim() : null;
         const emailFromUser = typeof user?.email === 'string' ? user.email.trim() : null;
         const emailToSave = emailFromForm || emailFromUser || null;
 
+
         if (!isValidEmail(emailToSave)) {
             setToast({ message: '❌ Потрібен валідний email (введіть коректну адресу)', type: 'error' });
             return;
         }
 
-        updatedFields['email'] = emailToSave;
-        updatedFields['comment'] = comment.trim();
+        formData['email'] = emailToSave;
+        formData['comment'] = comment.trim();
 
         // Перевірка унікальності — тільки якщо змінились ключові поля
         const keyFields = [
@@ -137,47 +150,59 @@ export default function EditSingleRecordPage() {
             'inventory_year',
         ];
 
-        const anyKeyFieldChanged = keyFields.some((field) => field in updatedFields);
 
-        if (anyKeyFieldChanged) {
-            const matchQuery: any = {};
-            for (const field of keyFields) {
-                let value = (field in updatedFields) ? updatedFields[field] : formData[field];
-                if (value === "") value = null;
-                if (value !== null && value !== undefined) {
-                    matchQuery[field] = value;
-                }
+
+        const matchQuery: any = {};
+        for (const field of keyFields) {
+            let value = formData[field];
+            if (value === "") value = null;
+            if (value !== null && value !== undefined) {
+                matchQuery[field] = value;
+            }
+        }
+        if (Object.keys(matchQuery).length > 0) {
+            const { data: duplicate, error: dupError } = await supabase
+                .from('records')
+                .select('id')
+                .match(matchQuery)
+                .neq('id', id)
+                .maybeSingle();
+
+            if (dupError) {
+                console.error(dupError);
+                setToast({ message: '❌ Помилка при перевірці унікальності', type: 'error' });
+                return;
             }
 
-            if (Object.keys(matchQuery).length > 0) {
-                const { data: duplicate, error: dupError } = await supabase
-                    .from('records')
-                    .select('id')
-                    .match(matchQuery)
-                    .neq('id', id)
-                    .maybeSingle();
-
-                if (dupError) {
-                    console.error(dupError);
-                    setToast({ message: '❌ Помилка при перевірці унікальності', type: 'error' });
-                    return;
-                }
-
-                if (duplicate) {
-                    setToast({
-                        message: '❗ Такий запис уже існує в реєстрі Інвентаріум',
-                        type: 'error',
-                    });
-                    return;
-                }
+            if (duplicate) {
+                setToast({
+                    message: '❗ Такий запис уже існує в реєстрі Інвентаріум',
+                    type: 'error',
+                });
+                return;
             }
         }
 
+
+        //console.log(updatedFields)
         // Виконуємо upsert у таблицю records_edit
+        const sanitizedFormData: any = {};
+        for (const key in formData) {
+            let value = formData[key];
+            if (value === "") value = null; // заміна порожніх рядків на null
+            sanitizedFormData[key] = value;
+        }
         try {
             const { error } = await supabase
                 .from('records_edit')
-                .upsert({ id, ...updatedFields }, { onConflict: 'id' });
+                .upsert(
+                    {
+                        id,
+                        ...sanitizedFormData,          // тільки змінені поля
+                        json_full_data: formData,            // повний стан форми у json
+                    },
+                    { onConflict: "id" }
+                );
 
             if (error) throw error;
 
@@ -205,7 +230,12 @@ export default function EditSingleRecordPage() {
                     ) : (
                         <>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Внесіть зміни до запису про інвентар</p>
-                            <EditableInventoryForm data={formData} onChange={setFormData} />
+                            <EditableInventoryForm 
+                                key={id as string}
+                                data={formData} 
+                                onChange={setFormData} 
+                                onSubmit={saveRecord} 
+                            />
                             <div className="mt-6">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Опишіть детально чому ви вважаєте що саме такі зміни потрібно внести в інвентар

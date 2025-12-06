@@ -119,7 +119,7 @@ export default function ReviewEditedRecordsPage() {
                 initialConfirmFields[rec.id] = {};
                 Object.entries(rec).forEach(([field, val]) => {
                     if (field === 'id') return;
-                    if (val !== null && val !== undefined) {
+                    if (val !== undefined) {
                         initialConfirmFields[rec.id][field] = true;
                     }
                 });
@@ -132,15 +132,21 @@ export default function ReviewEditedRecordsPage() {
         fetchData();
     }, [isAdmin]);
 
-    // приховуємо координати якщо вони не мінялися
-    const filteredRecordsEdit = recordsEdit.map(edit => {
-        const original = recordsOriginal[edit.id] || {};
-        return {
-            ...edit,
-            show_latitude: edit.latitude !== original.latitude,
-            show_longitude: edit.longitude !== original.longitude,
-        };
-    });
+    // приховуємо поля якщо вони не мінялися
+    const filteredRecordsEdit = recordsEdit
+        .map(edit => {
+            const original = recordsOriginal[edit.id] || {};
+            const diffFields: Record<string, any> = {};
+            Object.keys(edit).forEach((key) => {
+                if (key === 'id' || key === 'email') return;
+                if (edit[key] !== original[key]) {
+                    diffFields[key] = edit[key];
+                }
+            });
+            if (Object.keys(diffFields).length === 0) return null; // якщо нічого не змінилося
+            return { ...edit, diffFields };
+        })
+        .filter(Boolean); // видаляємо null
 
     const handleCheckboxChange = (recordId: string, field: string) => {
         setConfirmFields((prev) => ({
@@ -165,10 +171,14 @@ export default function ReviewEditedRecordsPage() {
         const fieldsToUpdate = confirmFields[recordEdit.id];
         if (!fieldsToUpdate) return;
 
+        console.log("recordEdit.inventory_start_page =", recordEdit.inventory_start_page);
+        console.log("fieldsToUpdate.inventory_start_page =", fieldsToUpdate["inventory_start_page"]);
+
         const updateData: Record<string, any> = { id: recordEdit.id };
         Object.entries(fieldsToUpdate).forEach(([field, checked]) => {
-            if (checked && field !== 'approved' && field !== 'email' && field !== 'comment') {
-                updateData[field] = recordEdit[field];
+            if (checked && field !== 'approved' && field !== 'email' && field !== 'is_ukrainian_archive' && field !== 'comment' && field !== 'json_full_data') {
+                const value = recordEdit[field];
+                updateData[field] = value === '' ? null : value;
             }
         });
 
@@ -180,6 +190,7 @@ export default function ReviewEditedRecordsPage() {
 
         try {
             // Оновлюємо record в records (реальний)
+            console.log(updateData);
             const { error: updateError } = await supabase
                 .from('records')
                 .upsert([updateData], { onConflict: 'id' });
@@ -295,19 +306,16 @@ export default function ReviewEditedRecordsPage() {
     const recordOriginal = recordsOriginal[recordEdit.id] || {};
 
     const editFields = Object.entries(recordEdit)
-        .filter(([key, value]) =>
-            value !== null &&
-            key !== 'id' &&
-            key !== 'approved' &&
-            key !== 'email' &&
-            key !== 'comment'
-        );
+        .filter(([key, value]) => {
+            if (['id', 'approved', 'email', 'created_by', 'created_at', 'comment', 'json_full_data', 'is_ukrainian_archive'].includes(key)) return false;
+            return value !== recordOriginal[key];
+        });
 
     const originalFields = editFields
         .map(([field]) => [field, recordOriginal[field]])
         .filter(([key]) => key !== 'email');
 
-    
+
 
     return (
         <>

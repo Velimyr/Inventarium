@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
+import Link from 'next/link';
 
 //
 interface MapSelectorProps {
@@ -31,10 +32,11 @@ interface NestedStructure {
 interface EditableInventoryFormProps {
   data: any;
   onChange: (data: any) => void;
-   duplicateWarning?: string | null;
+  onSubmit?: (data: any) => Promise<void>;
+  duplicateWarning?: string | null;
 }
 
-export default function EditableInventoryForm({ data, onChange,  duplicateWarning, }: EditableInventoryFormProps) {
+export default function EditableInventoryForm({ data, onChange, onSubmit, duplicateWarning, }: EditableInventoryFormProps) {
   const [formData, setFormData] = useState(data);
   const [manualEntry, setManualEntry] = useState(false);
   const [nestedData, setNestedData] = useState<NestedStructure | null>(null);
@@ -89,7 +91,7 @@ export default function EditableInventoryForm({ data, onChange,  duplicateWarnin
       setFormData((prev) => ({ ...prev, email: data.email }));
     }
   }, [data?.email]);
-  //}, [data]);
+
 
   useEffect(() => {
     onChange(formData);
@@ -132,27 +134,6 @@ export default function EditableInventoryForm({ data, onChange,  duplicateWarnin
       }
     }
   }, [formData.current_settlement_name, formData.current_settlement_type, settlements, manualEntry]);
-
-  /*   useEffect(() => {
-      if (data) {
-        const latFromData = data.latitude ?? '';
-        const lonFromData = data.longitude ?? '';
-  
-        // Перевіряємо, чи координати в formData відсутні або відрізняються від data
-        if (
-          (latFromData !== '' && formData.latitude !== latFromData) ||
-          (lonFromData !== '' && formData.longitude !== lonFromData)
-        ) {
-          setFormData((fd: any) => ({
-            ...fd,
-            latitude: latFromData,
-            longitude: lonFromData,
-          }));
-        }
-      }
-    }, [data]); */
-
-
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -204,6 +185,10 @@ export default function EditableInventoryForm({ data, onChange,  duplicateWarnin
     setError(null);
     setDuplicateUrl(null);
     setSuccess(false);
+
+    if (onSubmit) {
+      await onSubmit(formData);
+    }
   }
 
   return (
@@ -297,12 +282,19 @@ export default function EditableInventoryForm({ data, onChange,  duplicateWarnin
                       <option value="">Оберіть населений пункт</option>
                       {settlements
                         .filter((s) => s.type === formData.current_settlement_type)
+                        .sort((a, b) => a.name.localeCompare(b.name, 'uk'))
                         .map((s) => (
                           <option key={s.code} value={s.name}>
                             {s.name}
                           </option>
                         ))}
                     </select>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Якщо потрібного вас населеного пунтку немає ви можете ,{' '}
+                      <Link href="/add_settlement" className="underline hover:text-blue-600 dark:hover:text-blue-400">
+                       надіслати запит на його додавання
+                      </Link>.
+                    </p>
                   </div>
 
                 </>

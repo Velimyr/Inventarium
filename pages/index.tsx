@@ -3,6 +3,8 @@ import Header from '../components/header';
 import { useEffect, useState } from 'react';
 import SearchBar from '../components/SearchBar';
 import FooterDonate from '../components/FooterDonate';
+import ChatAI from '../components/chatAI';
+
 
 
 const PAGE_SIZE = 20;
@@ -12,6 +14,7 @@ export default function Home() {
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<any>({});
+  const [isChatOpen, setIsChatOpen] = useState(false); // стан чату
 
   useEffect(() => {
     const shouldSearch = filters.search && filters.search.trim().length >= 3;
@@ -92,9 +95,7 @@ export default function Home() {
       <Header />
       <SearchBar onFilterChange={handleFilterChange} />
       <main className="pb-20 p-4 max-w-full mx-auto overflow-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
-
         {loading && <p>Завантаження...</p>}
-
         <table className="hidden sm:table min-w-full border border-gray-300 table-auto">
           <thead>
             <tr>
@@ -254,9 +255,25 @@ export default function Home() {
             Наступна
           </button>
         </div>
-       
+
       </main>
+
       <FooterDonate />
+      { <div className="fixed bottom-2 right-4 z-50 flex flex-col items-end pointer-events-auto">
+        <button
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow-lg mb-2"
+          onClick={() => setIsChatOpen(prev => !prev)}
+        >
+          {isChatOpen ? "❌ Закрити чат" : "💬 AI асистент"}
+        </button>
+
+        {isChatOpen && (
+          <div className="w-80 h-96 bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden mt-2">
+            <ChatAI isOpen={isChatOpen} />
+          </div>
+        )}
+      </div> }
+
     </>
   );
 }

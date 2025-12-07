@@ -49,15 +49,38 @@ export default function StatsPage() {
         return;
       }
 
-      // Запит 1: Динаміка по днях
-      const { data: allRecords } = await supabase
-        .from('records')
-        .select('created_at, current_region, email, archive, case_signature');
+      // Завантаження всіх записів з пагінацією
+      let allRecords: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
 
-      const filteredRecords = allRecords?.filter((r) => {
+      while (true) {
+        const { data, error } = await supabase
+          .from('records')
+          .select('created_at, current_region, email, archive, case_signature')
+          .range(from, from + pageSize - 1);
+        
+        if (error) {
+          console.error('Помилка завантаження записів:', error);
+          break;
+        }
+        
+        if (!data || data.length === 0) break;
+        
+        allRecords = [...allRecords, ...data];
+        
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+
+      console.log('📊 Всього записів завантажено:', allRecords.length);
+
+      const filteredRecords = allRecords.filter((r) => {
         const created = r.created_at?.slice(0, 10);
         return created && created >= dateFrom && created <= dateTo;
-      }) || [];
+      });
+
+      console.log('📊 Після фільтрації filteredRecords:', filteredRecords.length);
 
       const groupedByDay = filteredRecords.reduce((acc: any, r) => {
         const day = r.created_at?.slice(0, 10);
@@ -78,8 +101,6 @@ export default function StatsPage() {
         acc[region] = (acc[region] || 0) + 1;
         return acc;
       }, {});
-
-      console.log('📍 Груповані регіони:', groupedByRegion);
 
       // Зберігаємо оригінальні назви регіонів
       const regionDisplayNames: Record<string, string> = {};
@@ -104,9 +125,6 @@ export default function StatsPage() {
         return acc;
       }, {});
 
-
-      console.log('📊 Всього записів allRecords:', allRecords?.length);
-      console.log('📊 Після фільтрації filteredRecords:', filteredRecords.length);
       console.log('📊 Групування по email:', groupedByEmail);
       console.log('📊 Запис для romankozak97.ua@gmail.com:',
         groupedByEmail['romankozak97.ua@gmail.com']);

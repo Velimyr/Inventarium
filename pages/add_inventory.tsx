@@ -405,7 +405,10 @@ export default function AddInventoryPage() {
 
         const cyrillicRegex = /^[А-ЩЬЮЯЄІЇҐа-щьюяєіїґʼ'"0-9\s.,:!?()\/«»\-—]+$/u;
         if (formData.case_title && !cyrillicRegex.test(formData.case_title.trim())) {
-            return 'Поле "Назва справи" може містити лише кириличні символи, апостроф та пробіли.';
+            return 'Поле "Назва справи" може містити лише кириличні символи, дефіс, апостроф та пробіли.';
+        }
+        if (formData.old_settlement_name && !cyrillicRegex.test(formData.old_settlement_name.trim())) {
+            return 'Поле "Назва населеного пункту" може містити лише кириличні символи, дефіс, апостроф та пробіли.';
         }
 
         return null;

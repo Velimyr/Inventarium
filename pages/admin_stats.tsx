@@ -104,6 +104,13 @@ export default function StatsPage() {
         return acc;
       }, {});
 
+
+      console.log('📊 Всього записів allRecords:', allRecords?.length);
+      console.log('📊 Після фільтрації filteredRecords:', filteredRecords.length);
+      console.log('📊 Групування по email:', groupedByEmail);
+      console.log('📊 Запис для romankozak97.ua@gmail.com:',
+        groupedByEmail['romankozak97.ua@gmail.com']);
+
       setByEmail(Object.entries(groupedByEmail || {}).map(([author_email, count]) => ({ author_email, records_count: count })));
 
       const groupedByArchive = filteredRecords.reduce((acc: any, r) => {
@@ -200,7 +207,7 @@ export default function StatsPage() {
               <h2 className="text-xl font-semibold mb-2">Записи по областях</h2>
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart
-                  data={byRegion.sort((a, b) => b.records_count - a.records_count).slice(0,40)}
+                  data={byRegion.sort((a, b) => b.records_count - a.records_count).slice(0, 40)}
                   margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
                 >
                   <XAxis dataKey="region" angle={-45} textAnchor="end" interval={0} />

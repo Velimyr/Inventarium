@@ -266,13 +266,19 @@ export default function NotIdentifyDetails() {
                 return 'Поле "Сторінка початку інвентарю" має бути числом більшим за 0.';
             }
         }
+        //Валідація старої назви населеного пункту
+        const cyrillicRegex = /^[А-ЩЬЮЯЄІЇҐа-щьюяєіїґʼ'"0-9\s.,:!?()\/«»\-—]+$/u;
+        if (formData.old_settlement_name && !cyrillicRegex.test(formData.old_settlement_name.trim())) {
+            return 'Поле "Назва населеного пункту" може містити лише кириличні символи, дефіс, апостроф та пробіли.';
+        }
 
         return null;
     };
 
     // Додавання або оновлення точки
     const handleSubmit = async () => {
-        if (!id || !user || !record) return;
+
+        //if (!id || !user || !record) return;
 
         // Перевірка статусу інвентаря
         if (record.status !== 'new') {
@@ -288,7 +294,10 @@ export default function NotIdentifyDetails() {
             return;
         }
 
+        console.log ('Validation ended ');
         const recordId = Array.isArray(id) ? id[0] : id;
+
+        console.log ('record_id '+recordId);
 
         // Перевірка на дублікат при додаванні нового запису
         if (!editingPointId) {
@@ -366,12 +375,13 @@ export default function NotIdentifyDetails() {
             setEditingPointId(null);
         } else {
             // Додавання нового запису
+            console.log ('start add point');
             const { error } = await supabase
                 .from('records_notidentify_points')
                 .insert([{
                     ...payload,
                     notidentify_record_id: recordId,
-                    created_by: user.id,
+                    created_by: (user?.id || null),
                 }]);
 
             if (error) {

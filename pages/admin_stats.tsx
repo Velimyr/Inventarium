@@ -270,8 +270,8 @@ export default function StatsPage() {
                     cx="50%"
                     cy="50%"
                     outerRadius={130}
-                    label={({ name, percent, records_count, author_email }) =>
-                      `${author_email}: ${records_count}`
+                    label={({ payload }) =>
+                      `${payload.author_email}: ${payload.records_count}`
                     }
                   >
                     {byEmail.slice(0, 10).map((entry, index) => (

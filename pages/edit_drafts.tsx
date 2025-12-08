@@ -75,17 +75,17 @@ export default function MyDraftsPage() {
         payload.inventory_year = payloadYear ? Number(payloadYear) : null;
 
         try {
-            // 🔍 Перевірка records_unverified (чернетки)
-            const { data: unverifiedDup, error: unverifiedError } = await supabase
+            // 🔍 Перевірка records_unverified (чернетки) - використовуємо limit замість maybeSingle
+            const { data: unverifiedDups, error: unverifiedError } = await supabase
                 .from('records_unverified')
                 .select('id')
                 .match(matchQuery)
                 .neq('id', recordId)
-                .maybeSingle();
+                .limit(1);
 
             if (unverifiedError) throw unverifiedError;
 
-            if (unverifiedDup) {
+            if (unverifiedDups && unverifiedDups.length > 0) {
                 setToast({
                     message: '❗ Такий запис уже існує серед ваших чернеток',
                     type: 'error',
@@ -93,16 +93,16 @@ export default function MyDraftsPage() {
                 return;
             }
 
-            // 🔍 Перевірка records (офіційна база)
-            const { data: verifiedDup, error: verifiedError } = await supabase
+            // 🔍 Перевірка records (офіційна база) - використовуємо limit замість maybeSingle
+            const { data: verifiedDups, error: verifiedError } = await supabase
                 .from('records')
                 .select('id')
                 .match(matchQuery)
-                .maybeSingle();
+                .limit(1);
 
             if (verifiedError) throw verifiedError;
 
-            if (verifiedDup) {
+            if (verifiedDups && verifiedDups.length > 0) {
                 setToast({
                     message: '❗ Такий запис уже є в реєстрі Інвентаріума',
                     type: 'error',
@@ -136,8 +136,8 @@ export default function MyDraftsPage() {
         return (
             <>
                 <Header />
-                <main className="p-6 min-h-screen flex items-center justify-center">
-                    <p>Завантаження...</p>
+                <main className="p-6 min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
+                    <p className="text-gray-900 dark:text-gray-100">Завантаження...</p>
                 </main>
             </>
         );
@@ -147,7 +147,7 @@ export default function MyDraftsPage() {
         return (
             <>
                 <Header />
-                <main className="p-6 min-h-screen flex items-center justify-center">
+                <main className="p-6 min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
                     <p className="text-red-600">⛔ Лише для авторизованих користувачів</p>
                 </main>
             </>

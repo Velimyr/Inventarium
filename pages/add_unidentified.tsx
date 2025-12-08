@@ -77,45 +77,38 @@ export default function AddUnidentifiedInventoryPage() {
 
         const year = parseInt(formData.inventory_year);
         if (formData.inventory_year && (isNaN(year) || year < 1400 || year > 2000)) {
-            setToast({ message: 'Поле "Рік складання інвентаря" має бути числом від 1400 до 2000', type: 'error' });
-            return;
+            return 'Поле "Рік складання інвентаря" має бути числом від 1400 до 2000';
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email)) {
-            setToast({ message: 'Поле "email" має містити дійсну електронну адресу.', type: 'error' });
-            return;
+            return 'Поле "email" має містити дійсну електронну адресу.';
         }
 
         if (formData.scans_url) {
             const urlRegex = /^https?:\/\/[^\s]+$/;
             if (!urlRegex.test(formData.scans_url)) {
-                setToast({ message: 'Поле "Посилання на скани" має містити одне коректне посилання або бути порожнім.', type: 'error' });
-                return;
+                return 'Поле "Посилання на скани" має містити одне коректне посилання або бути порожнім.';
             }
         }
 
         if (formData.pages_count) {
             const pages = parseInt(formData.pages_count);
             if (isNaN(pages) || pages <= 0) {
-                setToast({ message: 'Поле "Кількість сторінок справи" має бути числом більшим за 0.', type: 'error' });
-                return ;
-
+                return 'Поле "Кількість сторінок справи" має бути числом більшим за 0.';
             }
         }
 
         if (formData.inventory_start_page) {
             const page = parseInt(formData.inventory_start_page);
             if (isNaN(page) || page <= 0) {
-                setToast({ message: 'Поле "Сторінка початку інвентарю" має бути числом більшим за 0.', type: 'error' });
-                return ;
+                return 'Поле "Сторінка початку інвентарю" має бути числом більшим за 0.';
             }
         }
 
         const cyrillicRegex = /^[А-ЩЬЮЯЄІЇҐа-щьюяєіїґʼ'"0-9\s.,:!?()\/«»\-—]+$/u;
         if (formData.case_title && !cyrillicRegex.test(formData.case_title.trim())) {
-             setToast({ message:  'Поле "Назва справи" може містити лише кириличні символи, апостроф та пробіли.', type: 'error' });
-            return;
+            return 'Поле "Назва справи" може містити лише кириличні символи, апостроф та пробіли.';
         }
 
         return null;

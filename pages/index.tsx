@@ -259,6 +259,8 @@ export default function Home() {
       </main>
 
       <FooterDonate />
+      {/* 
+      // Поки вимкну кнопку AI асистента 
       { <div className="fixed bottom-2 right-4 z-50 flex flex-col items-end pointer-events-auto">
         <button
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow-lg mb-2"
@@ -272,7 +274,7 @@ export default function Home() {
             <ChatAI isOpen={isChatOpen} />
           </div>
         )}
-      </div> }
+      </div> } */}
 
     </>
   );

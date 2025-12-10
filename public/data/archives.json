@@ -486,5 +486,13 @@
     "full_name_ukr": "російський державний історичний архів",
     "full_name_native": "российский государственный исторический архив",
     "site": "https://fgurgia.ru/"
+  },
+  {
+    "id": "3f9e2c1a-7b4d-4a8f-9c2e-1d2b3c4f5a6b",
+    "short_name": "ВКМ",
+    "country": "Україна",
+    "full_name_ukr": "Волинський краєзнавчий музей",
+    "full_name_native": "Волинський краєзнавчий музей",
+    "site": "https://volynmuseum.com/"
   }
 ]

@@ -25,48 +25,71 @@ export default function MessagesPage() {
 
   async function connectTelegram() {
     if (!user) return
-
-    const token = crypto.randomUUID()
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({ telegram_link_token: token })
-      .eq('user_id', user.id)
-      .select('user_id')
-
-    if (error || !data || data.length === 0) {
+  
+    try {
+      const token = crypto.randomUUID()
+  
+      // Спочатку перевіряємо, чи існує профіль
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('user_id, telegram_link_token')
+        .eq('user_id', user.id)
+        .single()
+  
+      if (fetchError) {
+        console.error('Помилка отримання профілю:', fetchError)
+        setToast({
+          message: `❌ Помилка: ${fetchError.message}`,
+          type: 'error'
+        })
+        return
+      }
+  
+      if (!existingProfile) {
+        setToast({
+          message: '❌ Профіль користувача не знайдено',
+          type: 'error'
+        })
+        return
+      }
+  
+      // Оновлюємо токен
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ telegram_link_token: token })
+        .eq('user_id', user.id)
+        .select('telegram_link_token')
+        .single()
+  
+      if (error) {
+        console.error('Помилка оновлення токену:', error)
+        setToast({
+          message: `❌ Помилка оновлення: ${error.message}`,
+          type: 'error'
+        })
+        return
+      }
+  
+      if (!data) {
+        setToast({
+          message: '❌ Не вдалося оновити токен',
+          type: 'error'
+        })
+        return
+      }
+  
+      console.log('Токен успішно створено:', data.telegram_link_token)
+  
+      const telegramUrl = `https://t.me/inventarium_bot?start=${token}`
+      window.open(telegramUrl, '_blank')
+      setToast({ message: '✅ Посилання для Telegram згенеровано', type: 'success' })
+    } catch (err) {
+      console.error('Неочікувана помилка:', err)
       setToast({
-        message: '❌ Профіль користувача не знайдено або немає доступу',
+        message: '❌ Неочікувана помилка при генерації токену',
         type: 'error'
       })
-      return
     }
-
-    const telegramUrl = `https://t.me/inventarium_bot?start=${token}`
-    window.open(telegramUrl, '_blank')
-    setToast({ message: '✅ Посилання для Telegram згенеровано', type: 'success' })
-  }
-
-  if (userLoading || loading) {
-    return (
-      <>
-        <Header />
-        <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex items-center justify-center">
-          <p>Завантаження...</p>
-        </main>
-      </>
-    )
-  }
-
-  if (error) {
-    return (
-      <>
-        <Header />
-        <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-red-600 dark:text-red-400 flex items-center justify-center">
-          <p>{error}</p>
-        </main>
-      </>
-    )
   }
 
   return (

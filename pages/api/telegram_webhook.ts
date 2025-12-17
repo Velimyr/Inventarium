@@ -12,8 +12,9 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-    console.log("start process");
-      if (req.method !== 'POST') {
+  console.log("start process")
+  
+  if (req.method !== 'POST') {
     return res.status(405).end()
   }
 
@@ -36,20 +37,42 @@ export default async function handler(
     return res.status(200).json({ ok: true })
   }
 
-  const { data, error } = await supabase
+  console.log('Шукаємо токен:', token)
+
+  // Спочатку знаходимо user_id за токеном
+  const { data: profile, error: fetchError } = await supabase
     .from('profiles')
-    .update({
-      telegram_chat_id: chatId,
-      telegram_link_token: null
-    })
-    .eq('telegram_link_token', token)
     .select('user_id')
+    .eq('telegram_link_token', token)
     .single()
 
-  if (error || !data) {
+  console.log('Знайдений профіль:', { profile, fetchError })
+
+  if (fetchError || !profile) {
+    console.error('Помилка пошуку профілю:', fetchError)
     await sendTelegramMessage(chatId, '❌ Посилання недійсне або застаріле')
     return res.status(200).json({ ok: true })
   }
+
+  // Викликаємо функцію для оновлення
+  const { error: rpcError } = await supabase.rpc('link_telegram', {
+    p_user_id: profile.user_id,
+    p_chat_id: chatId
+  })
+
+  console.log('Результат RPC:', { rpcError })
+
+  if (rpcError) {
+    console.error('Помилка при виклику link_telegram:', rpcError)
+    await sendTelegramMessage(chatId, '❌ Помилка при підключенні')
+    return res.status(200).json({ ok: true })
+  }
+
+  // Очищуємо токен після успішного підключення
+  await supabase
+    .from('profiles')
+    .update({ telegram_link_token: null })
+    .eq('user_id', profile.user_id)
 
   await sendTelegramMessage(
     chatId,

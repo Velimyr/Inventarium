@@ -28,13 +28,17 @@ export default function MessagesPage() {
 
     const token = crypto.randomUUID()
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .update({ telegram_link_token: token })
       .eq('user_id', user.id)
+      .select('user_id')
 
-    if (error) {
-      setToast({ message: '❌ Не вдалося згенерувати посилання', type: 'error' })
+    if (error || !data || data.length === 0) {
+      setToast({
+        message: '❌ Профіль користувача не знайдено або немає доступу',
+        type: 'error'
+      })
       return
     }
 

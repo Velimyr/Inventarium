@@ -92,6 +92,71 @@ export default function MessagesPage() {
     }
   }
 
+  async function sendTestMessage() {
+    if (!user) return
+
+    try {
+      // Отримуємо telegram_chat_id користувача
+      const { data: profile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('telegram_chat_id')
+        .eq('user_id', user.id)
+        .single()
+
+      if (fetchError || !profile || !profile.telegram_chat_id) {
+        setToast({
+          message: '❌ Telegram не підключено. Спочатку підключіть Telegram.',
+          type: 'error'
+        })
+        return
+      }
+
+      // Відправляємо тестове повідомлення через API
+      const response = await fetch('/api/send-telegram-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatId: profile.telegram_chat_id,
+          message: '🔔 Тестове повідомлення з Inventarium!\n\nПереглянути запис: https://inventarium.org.ua/record/c1169e63-c053-4d2f-bc91-4f56cf8e4816'
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Помилка відправки повідомлення')
+      }
+
+      setToast({ message: '✅ Тестове повідомлення відправлено в Telegram', type: 'success' })
+    } catch (err) {
+      console.error('Помилка відправки тестового повідомлення:', err)
+      setToast({
+        message: '❌ Не вдалося відправити повідомлення',
+        type: 'error'
+      })
+    }
+  }
+
+  if (userLoading || loading) {
+    return (
+      <>
+        <Header />
+        <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex items-center justify-center">
+          <p>Завантаження...</p>
+        </main>
+      </>
+    )
+  }
+
+  if (error) {
+    return (
+      <>
+        <Header />
+        <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-red-600 dark:text-red-400 flex items-center justify-center">
+          <p>{error}</p>
+        </main>
+      </>
+    )
+  }
+
   return (
     <>
       <Header />
@@ -119,13 +184,19 @@ export default function MessagesPage() {
             </table>
           </div>
 
-          {/* Кнопка Telegram */}
-          <div className="mt-6">
+          {/* Кнопки Telegram */}
+          <div className="mt-6 flex gap-4">
             <button
               onClick={connectTelegram}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               Отримувати сповіщення в Telegram
+            </button>
+            <button
+              onClick={sendTestMessage}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Відправити тестове повідомлення
             </button>
           </div>
         </div>

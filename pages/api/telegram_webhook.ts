@@ -29,24 +29,25 @@ export default async function handler(
     return res.status(200).json({ ok: true })
   }
 
-  const [, userId] = text.split(' ')
+  const [, token] = text.split(' ')
 
-  if (!userId) {
+  if (!token) {
     await sendTelegramMessage(chatId, '❌ Невірне посилання')
     return res.status(200).json({ ok: true })
   }
 
-  // 🔑 ВИКЛИК RPC
-  const { error } = await supabase.rpc('link_telegram', {
-    p_user_id: userId,
-    p_chat_id: chatId,
-  })
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      telegram_chat_id: chatId,
+      telegram_link_token: null
+    })
+    .eq('telegram_link_token', token)
+    .select('user_id')
+    .single()
 
-  if (error) {
-    await sendTelegramMessage(
-      chatId,
-      '❌ Помилка підключення Telegram'
-    )
+  if (error || !data) {
+    await sendTelegramMessage(chatId, '❌ Посилання недійсне або застаріле')
     return res.status(200).json({ ok: true })
   }
 

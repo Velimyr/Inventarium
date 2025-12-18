@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import Toast from '../components/Toast';
@@ -6,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { useUser } from '../contexts/UserContext';
 import SubscriptionNotifier from '../components/SubscriptionNotifier';
 import regionStructure from '../public/data/region_structure.json';
+import { sendNotification } from '../components/notifications'
 // Отримати код населеного пункту за шляхом
 const getSettlementCodeByPath = (
   structure: any,
@@ -48,6 +50,7 @@ export default function AdminPage() {
   const [originalCoords, setOriginalCoords] = useState<{ latitude: any; longitude: any }>({ latitude: '', longitude: '' });
   const [notifyAfterSave, setNotifyAfterSave] = useState(false);
   const [savedRecordInfo, setSavedRecordInfo] = useState<any | null>(null);
+
 
   useEffect(() => {
     // Чекаємо, поки юзер завантажиться
@@ -126,7 +129,7 @@ export default function AdminPage() {
   const saveRecord = async () => {
     try {
 
-       const matchQuery: Record<string, any> = {
+      const matchQuery: Record<string, any> = {
         current_region: formData.current_region,
         current_district: formData.current_district,
         current_community: formData.current_community,
@@ -137,32 +140,32 @@ export default function AdminPage() {
         case_signature: formData.case_signature,
       };
 
-       // Додаткова умова для інвентарного року
-        let existing;
-        if (formData.inventory_year) {
-            // Якщо рік вказано — шукаємо запис із точно таким самим роком
-            ({ data: existing } = await supabase
-                .from('records')
-                .select('id')
-                .match({ ...matchQuery, inventory_year: formData.inventory_year})
-                .maybeSingle());
-        } else {
-            // Якщо рік НЕ вказано — шукаємо записи, де inventory_year IS NULL або ''
-            ({ data: existing } = await supabase
-                .from('records')
-                .select('id')
-                .match(matchQuery)
-                .is('inventory_year', null)
-                .maybeSingle());
-        }
+      // Додаткова умова для інвентарного року
+      let existing;
+      if (formData.inventory_year) {
+        // Якщо рік вказано — шукаємо запис із точно таким самим роком
+        ({ data: existing } = await supabase
+          .from('records')
+          .select('id')
+          .match({ ...matchQuery, inventory_year: formData.inventory_year })
+          .maybeSingle());
+      } else {
+        // Якщо рік НЕ вказано — шукаємо записи, де inventory_year IS NULL або ''
+        ({ data: existing } = await supabase
+          .from('records')
+          .select('id')
+          .match(matchQuery)
+          .is('inventory_year', null)
+          .maybeSingle());
+      }
 
-        if (existing) {            
-            setToast({
-                message: `Такий інвентар уже існує. Спробуйте пошукати його в реєстрі інвентарів`,
-                type: 'error',
-            });
-            return;
-        }
+      if (existing) {
+        setToast({
+          message: `Такий інвентар уже існує. Спробуйте пошукати його в реєстрі інвентарів`,
+          type: 'error',
+        });
+        return;
+      }
 
 
       const { is_ukrainian_archive, ...recordToInsert } = formData;
@@ -217,16 +220,28 @@ export default function AdminPage() {
         });
       }
       const { error: deleteError } = await supabase
-       .from('records_unverified')
-       .delete()
-       .eq('id', formData.id);
+        .from('records_unverified')
+        .delete()
+        .eq('id', formData.id);
 
       if (deleteError) {
-       console.error('Delete error:', deleteError);
-       setToast({ message: `Помилка видалення: ${deleteError.message}`, type: 'error' });
+        console.error('Delete error:', deleteError);
+        setToast({ message: `Помилка видалення: ${deleteError.message}`, type: 'error' });
       } else {
-       setToast({ message: '✅ Інвентар підтверджено і збережено', type: 'success' });
-     }
+        const recordUrl = `${window.location.origin}/record/${formData.id}`
+
+        const messageText =
+          `Ваш інвентар успішно підтверджено адміністратором.\n\n` +
+          `[Переглянути інвентар можна тут](${recordUrl})`
+
+        await sendNotification({
+          fromUserId: user.id,
+          toUserId: formData.created_by,
+          messageType: 'approved',
+          messageText
+        })
+        setToast({ message: '✅ Інвентар підтверджено і збережено', type: 'success' });
+      }
 
       const updatedRecords = records.filter((_, i) => i !== index);
       setRecords(updatedRecords);
@@ -253,49 +268,75 @@ export default function AdminPage() {
     }
   };
 
-  const rejectRecord = async () => {
-    const confirmed = window.confirm('Ви впевнені, що хочете відхилити цей інвентар? Це призведе до його видалення.');
 
-    if (!confirmed) {
-      return;
-    }
+  const rejectRecord = async () => {
+    const confirmed = window.confirm(
+      'Ви впевнені, що хочете відхилити цей інвентар? Це призведе до його видалення.'
+    )
+
+    if (!confirmed) return
+
+    // ⬇️ запитуємо причину
+    const reason = window.prompt(
+      'Вкажіть причину відхилення (необовʼязково):'
+    )
 
     try {
-      const { error } = await supabase.from('records_unverified').delete().eq('id', formData.id);
+      const { error } = await supabase
+        .from('records_unverified')
+        .delete()
+        .eq('id', formData.id)
 
       if (error) {
-        alert('❌ Помилка при відхиленні');
-        console.error(error);
-        return;
+        alert('❌ Помилка при відхиленні')
+        console.error(error)
+        return
       }
 
-      alert('❌ Запис відхилено та видалено');
+      // ⬇️ формуємо текст повідомлення
+      let messageText = 'Ваш інвентар відхилено адміністратором.'
 
-      const updatedRecords = records.filter((_, i) => i !== index);
-      setRecords(updatedRecords);
+      if (reason && reason.trim().length > 0) {
+        messageText += `\n\nПричина:\n${reason.trim()}`
+      }
+
+      await sendNotification({
+        fromUserId: user.id,
+        toUserId: formData.created_by,
+        messageType: 'reject',
+        messageText
+      })
+
+      alert('❌ Запис відхилено та видалено')
+
+      const updatedRecords = records.filter((_, i) => i !== index)
+      setRecords(updatedRecords)
 
       if (updatedRecords.length === 0) {
-        setIndex(0);
-        setFormData({});
+        setIndex(0)
+        setFormData({})
         setToast({
           message: '🎉 Усі інвентарі оброблено! Записів більше не залишилось.',
           type: 'success',
-        });
+        })
       } else {
-        const nextIndex = index >= updatedRecords.length ? updatedRecords.length - 1 : index;
-        setIndex(nextIndex);
-        setFormData(updatedRecords[nextIndex]);
+        const nextIndex =
+          index >= updatedRecords.length
+            ? updatedRecords.length - 1
+            : index
+
+        setIndex(nextIndex)
+        setFormData(updatedRecords[nextIndex])
         setOriginalCoords({
           latitude: updatedRecords[nextIndex].latitude,
           longitude: updatedRecords[nextIndex].longitude,
-        });
+        })
       }
     } catch (err) {
-      alert('❌ Помилка при відхиленні');
-      console.error(err);
+      alert('❌ Помилка при відхиленні')
+      console.error(err)
     }
-  };
-
+  }
   if (loading) {
     return (
       <>

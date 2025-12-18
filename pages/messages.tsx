@@ -3,6 +3,7 @@ import Header from '../components/header'
 import { useUser } from '../contexts/UserContext'
 import { supabase } from '../lib/supabaseClient'
 import Toast from '../components/Toast'
+import ReactMarkdown from 'react-markdown'
 
 interface Message {
   message_id: string
@@ -80,16 +81,41 @@ export default function MessagesPage() {
 
   function getMessageTypeLabel(type: string): string {
     switch (type) {
-      case 'approve':
-        return 'Ваш інвентар підтверджено'
-      case 'edit_approve':
-        return 'Ваше редагування інвентарю підтверджено'
-      case 'other':
-        return 'Загальне повідомлення'
-      default:
-        return 'Загальне повідомлення'
+        case 'approved':
+            return 'Ваш інвентар підтверджено'
+          case 'reject':
+            return 'Ваш інвентар відхилено'
+          case 'edit_approve':
+            return 'Ваше редагування інвентарю підтверджено'
+          case 'edit_reject':
+            return 'Ваше редагування інвентарю відхилено'
+          case 'other':
+            return 'Загальне повідомлення'
+          default:
+            return 'Загальне повідомлення'
     }
   }
+
+function MessageItem({ message }: { message: any }) {
+  return (
+    <div className="prose prose-sm dark:prose-invert">
+      <ReactMarkdown
+        components={{
+          a: ({ node, ...props }) => (
+            <a
+              {...props}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            />
+          ),
+        }}
+      >
+        {message.message_text}
+      </ReactMarkdown>
+    </div>
+  )
+}
 
   function formatDate(dateString: string): string {
     const date = new Date(dateString)
@@ -367,7 +393,22 @@ export default function MessagesPage() {
                       <td className="px-4 py-2">
                         {getMessageTypeLabel(msg.message_type)}
                       </td>
-                      <td className="px-4 py-2">{msg.message_text}</td>
+                      <td className="px-4 py-2">
+                        <ReactMarkdown
+                          components={{
+                            a: ({ node, ...props }) => (
+                              <a
+                                {...props}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 underline"
+                              />
+                            ),
+                          }}
+                        >
+                          {msg.message_text}
+                        </ReactMarkdown>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -419,7 +460,20 @@ export default function MessagesPage() {
                   </button>
                   {expandedCard === msg.message_id && (
                     <div className="px-4 pb-3 border-t border-gray-300 dark:border-gray-700 pt-3">
-                      <p className="text-sm">{msg.message_text}</p>
+                      <ReactMarkdown
+                        components={{
+                          a: ({ node, ...props }) => (
+                            <a
+                              {...props}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 underline"
+                            />
+                          ),
+                        }}
+                      >
+                        {msg.message_text}
+                      </ReactMarkdown>
                     </div>
                   )}
                 </div>

@@ -228,8 +228,9 @@ export default function AdminPage() {
         console.error('Delete error:', deleteError);
         setToast({ message: `Помилка видалення: ${deleteError.message}`, type: 'error' });
       } else {
-        const recordUrl = `${window.location.origin}/record/${formData.id}`
 
+        //Відправка повідомлення користувачеві про успішне підтвердження інвентаря
+        const recordUrl = `${window.location.origin}/record/${formData.id}`
         const messageText =
           `Ваш інвентар успішно підтверджено адміністратором.\n\n` +
           `[Переглянути інвентар можна тут](${recordUrl})`
@@ -293,7 +294,7 @@ export default function AdminPage() {
         return
       }
 
-      // ⬇️ формуємо текст повідомлення
+      //Відправка повідомлення користувачеві про відхилення інвентаря
       let messageText = 'Ваш інвентар відхилено адміністратором.'
 
       if (reason && reason.trim().length > 0) {

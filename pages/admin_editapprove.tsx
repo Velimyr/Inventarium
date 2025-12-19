@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
+import { sendNotification } from '../components/notifications'
 
 export default function ReviewEditedRecordsPage() {
     const { user, loading: userLoading } = useUser();
@@ -171,9 +172,6 @@ export default function ReviewEditedRecordsPage() {
         const fieldsToUpdate = confirmFields[recordEdit.id];
         if (!fieldsToUpdate) return;
 
-        console.log("recordEdit.inventory_start_page =", recordEdit.inventory_start_page);
-        console.log("fieldsToUpdate.inventory_start_page =", fieldsToUpdate["inventory_start_page"]);
-
         const updateData: Record<string, any> = { id: recordEdit.id };
         Object.entries(fieldsToUpdate).forEach(([field, checked]) => {
             if (checked && field !== 'approved' && field !== 'email' && field !== 'is_ukrainian_archive' && field !== 'comment' && field !== 'json_full_data') {
@@ -201,6 +199,18 @@ export default function ReviewEditedRecordsPage() {
                 return;
             }
 
+            // Отримуємо user_id редактора за email
+            const { data: editorProfile, error: profileError } = await supabase
+                .from('profiles')
+                .select('user_id')
+                .eq('email', recordEdit.email)
+                .single();
+
+            if (profileError || !editorProfile) {
+                console.error('Не вдалося знайти профіль редактора:', profileError);
+                // Продовжуємо видалення навіть якщо не знайшли профіль
+            }
+
             // Видаляємо цей запис з records_edit
             const { error: deleteError } = await supabase
                 .from('records_edit')
@@ -211,6 +221,21 @@ export default function ReviewEditedRecordsPage() {
                 console.error(deleteError);
                 setToast({ message: '❌ Помилка при видаленні запису змін', type: 'error' });
                 return;
+            }
+
+            // Відправка повідомлення користувачеві про успішне підтвердження редагування інвентаря
+            if (editorProfile) {
+                const recordUrl = `${window.location.origin}/record/${recordEdit.id}`;
+                const messageText =
+                    `Ваше редагування інвентарю успішно підтверджено адміністратором.\n\n` +
+                    `[Переглянути інвентар можна тут](${recordUrl})`;
+                
+                await sendNotification({
+                    fromUserId: user.id, // адмін (хто підтверджує)
+                    toUserId: editorProfile.user_id, // редактор (кому відправляємо)
+                    messageType: 'edit_approve',
+                    messageText
+                });
             }
 
             setToast({ message: '✅ Запис успішно підтверджено', type: 'success' });
@@ -234,7 +259,21 @@ export default function ReviewEditedRecordsPage() {
             return;
         }
 
+        const reason = window.prompt('Вкажіть причину відхилення (необов\'язково):');
+
         try {
+            // Отримуємо user_id редактора за email
+            const { data: editorProfile, error: profileError } = await supabase
+                .from('profiles')
+                .select('user_id')
+                .eq('email', recordEdit.email)
+                .single();
+
+            if (profileError || !editorProfile) {
+                console.error('Не вдалося знайти профіль редактора:', profileError);
+                // Продовжуємо видалення навіть якщо не знайшли профіль
+            }
+
             const { error: deleteError } = await supabase
                 .from('records_edit')
                 .delete()
@@ -244,6 +283,22 @@ export default function ReviewEditedRecordsPage() {
                 console.error(deleteError);
                 setToast({ message: '❌ Помилка при видаленні запису змін', type: 'error' });
                 return;
+            }
+
+            // Відправка повідомлення користувачеві про відхилення редагування
+            if (editorProfile) {
+                let messageText = 'Ваше редагування інвентарю відхилено адміністратором.';
+
+                if (reason && reason.trim().length > 0) {
+                    messageText += `\n\nПричина:\n${reason.trim()}`;
+                }
+
+                await sendNotification({
+                    fromUserId: user.id, // адмін (хто відхиляє)
+                    toUserId: editorProfile.user_id, // редактор (кому відправляємо)
+                    messageType: 'edit_reject',
+                    messageText
+                });
             }
 
             setToast({ message: '❌ Запис змін відхилено і видалено', type: 'success' });

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
+import { sendNotification } from '../components/notifications'
 
 
 
@@ -508,6 +509,38 @@ export default function AddInventoryPage() {
             setToast({ message: 'Помилка збереження даних: ' + insertError, type: 'error' });
         } else {
             setSuccess(true);
+
+            //Відправка повідомлення адміністраторам про новий інвентар
+            // Отримуємо список адміністраторів
+            const { data: admins, error: adminError } = await supabase
+                .from('admin_users')
+                .select('id');
+
+            if (!adminError && admins && admins.length > 0) {
+                const messageText =
+                    `Новий інвентар очікує на перевірку.\n\n` +
+                    `**Дані інвентаря:**\n\n` +
+                    `Область: ${formData.current_region}\n` +
+                    `Район: ${formData.current_district}\n` +
+                    `Громада: ${formData.current_community}\n` +
+                    `Населений пункт: ${formData.current_settlement_type} ${formData.current_settlement_name}\n\n` +
+                    `Email автора: ${formData.email}`;
+
+                // Відправляємо повідомлення всім адмінам
+                for (const admin of admins) {
+                    try {
+                        await sendNotification({
+                            fromUserId: user?.id || 'system', // від користувача
+                            toUserId: admin.id, // кожному адміну
+                            messageType: 'new', // використовуємо тип 'other' для загальних повідомлень
+                            messageText
+                        });
+                    } catch (err) {
+                        console.error('Помилка відправки повідомлення адміну:', err);
+                    }
+                }
+            }
+
             setToast({ message: 'Інвентар успішно додано до перевірки.', type: 'success' });
         }
     };

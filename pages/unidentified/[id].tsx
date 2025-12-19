@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabaseClient';
 import Header from '../../components/header';
 import { useUser } from '../../contexts/UserContext';
 import Link from 'next/link';
+import { sendNotification } from '../../components/notifications'
 
 const MapSelector = dynamic(() => import('../../components/MapSelector'), { ssr: false });
 
@@ -498,6 +499,33 @@ export default function NotIdentifyDetails() {
 
         // Оновлюємо локальний стан
         setRecord({ ...record, status: 'review' });
+
+        //Відправка повідомлення адміністраторам про новий інвентар
+            // Отримуємо список адміністраторів
+            const { data: admins, error: adminError } = await supabase
+                .from('admin_users')
+                .select('id');
+
+            if (!adminError && admins && admins.length > 0) {
+                const recordUrl = `${window.location.origin}/unidentified/${id}`
+                const messageText =
+                    `Новий інвентар ідентифіковано, він очікує на перевірку.\n\n` +
+                    `[Переглянути щойно ідентифікований інвентар](${recordUrl})`
+
+                // Відправляємо повідомлення всім адмінам
+                for (const admin of admins) {
+                    try {
+                        await sendNotification({
+                            fromUserId: user?.id || 'system', // від користувача
+                            toUserId: admin.id, // кожному адміну
+                            messageType: 'new_identified', // використовуємо тип 'other' для загальних повідомлень
+                            messageText
+                        });
+                    } catch (err) {
+                        console.error('Помилка відправки повідомлення адміну:', err);
+                    }
+                }
+            }
         setToast({ message: 'Ідентифікацію завершено. Очікуйте підтвердження адміністратором', type: 'success' });
     };
 

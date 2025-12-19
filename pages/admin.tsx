@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { useUser } from '../contexts/UserContext';
-import { set } from 'date-fns';
 
 export default function AdminDashboard() {
   const { user, loading: userLoading } = useUser();
@@ -151,7 +150,7 @@ export default function AdminDashboard() {
               </button>
             </section>
 
-              <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
+            <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
               <div>
                 <h2 className="text-xl font-semibold mb-2">К-ть редагованих інвентарів</h2>
                 <p className="text-4xl font-bold mb-4">{editCount ?? '—'}</p>
@@ -167,7 +166,7 @@ export default function AdminDashboard() {
               </button>
             </section>
 
-              <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
+            <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
               <div>
                 <h2 className="text-xl font-semibold mb-2">К-ть ідентифікованих інвентарів</h2>
                 <p className="text-4xl font-bold mb-4">{identifiedCount ?? '—'}</p>
@@ -180,6 +179,24 @@ export default function AdminDashboard() {
                 type="button"
               >
                 Почати обробку інвентарів
+              </button>
+            </section>
+
+            <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Розсилка повідомлень</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Відправити повідомлення користувачам системи
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  window.location.href = '/admin_send_messages';
+                }}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition-colors"
+                type="button"
+              >
+                Відкрити розсилку
               </button>
             </section>
           </div>

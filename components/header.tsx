@@ -2,15 +2,16 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Bell } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 
 type Theme = 'light' | 'dark';
 
 export default function Header() {
   const [theme, setTheme] = useState<Theme>('light');
-  const { user, loading } = useUser(); // ✅ контекст замість useState
+  const { user, loading } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const saved = localStorage.getItem('theme') as Theme | null;
@@ -19,6 +20,49 @@ export default function Header() {
       document.documentElement.classList.toggle('dark', saved === 'dark');
     }
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
+
+    // Завантажуємо кількість непрочитаних повідомлень
+    const fetchUnreadCount = async () => {
+      const { count, error } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('to_user_id', user.id)
+        .eq('is_read', false);
+
+      if (!error && count !== null) {
+        setUnreadCount(count);
+      }
+    };
+
+    fetchUnreadCount();
+
+    // Підписка на зміни в таблиці messages
+    const channel = supabase
+      .channel('messages-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `to_user_id=eq.${user.id}`
+        },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const toggleTheme = () => {
     const newTheme: Theme = theme === 'light' ? 'dark' : 'light';
@@ -34,6 +78,12 @@ export default function Header() {
   const signOut = async () => {
     await supabase.auth.signOut();
     location.reload();
+  };
+
+  const getUnreadBadge = () => {
+    if (unreadCount === 0) return null;
+    if (unreadCount > 99) return '99+';
+    return unreadCount.toString();
   };
 
   return (
@@ -68,8 +118,6 @@ export default function Header() {
             <li><Link href="/stats" className="hover:underline">Мій внесок</Link></li>
             <li><Link href="/help" className="hover:underline">Документація</Link></li>
             <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
-            {/* <li><Link href="/volunteer" className="hover:underline">Долучитися</Link></li>
-            <li><Link href="/feedback" className="hover:underline">Відгук</Link></li> */}
           </ul>
 
           {/* Мобільне меню */}
@@ -93,23 +141,13 @@ export default function Header() {
               <li><Link href="/stats" className="hover:underline">Мій внесок</Link></li>
               <li><Link href="/help" className="hover:underline">Документація</Link></li>
               <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
-              {/* <li><Link href="/volunteer" className="hover:underline">Долучитися</Link></li>
-              <li><Link href="/feedback" className="hover:underline">Відгук</Link></li> */}
             </ul>
           )}
         </nav>
       </div>
 
       {/* Тема + юзер */}
-      <div
-        className="
-    flex 
-    items-center justify-between
-    space-x-4    /* горизонтальний відступ між кнопками на мобільній */
-    sm:flex-col sm:items-end sm:space-x-0 sm:space-y-2
-    w-full sm:w-auto
-  "
-      >
+      <div className="flex items-center justify-between space-x-4 sm:flex-col sm:items-end sm:space-x-0 sm:space-y-2 w-full sm:w-auto">
         {/* Перемикач тем */}
         <button
           onClick={toggleTheme}
@@ -153,7 +191,22 @@ export default function Header() {
             <div className="italic text-gray-500 dark:text-gray-400">Завантаження…</div>
           ) : user ? (
             <div className="flex items-center justify-between sm:flex-col sm:items-end sm:space-y-1">
-              <span className="truncate max-w-[60%] sm:max-w-full">👤 {user.email}</span>
+              <div className="flex items-center space-x-3">
+                {/* Іконка повідомлень */}
+                <Link href="/messages" className="relative">
+                  <Bell 
+                    size={24} 
+                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer" 
+                  />
+                  {getUnreadBadge() && (
+                    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+                      {getUnreadBadge()}
+                    </span>
+                  )}
+                </Link>
+                
+                <span className="truncate max-w-[60%] sm:max-w-full">👤 {user.email}</span>
+              </div>
               <button
                 onClick={signOut}
                 className="ml-4 sm:ml-0 px-2 py-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition"

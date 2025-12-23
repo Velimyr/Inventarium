@@ -1,3 +1,4 @@
+// pages/_app.tsx
 import '../styles/globals.css';
 import type { AppProps } from 'next/app';
 import 'leaflet/dist/leaflet.css';
@@ -6,8 +7,19 @@ import { Analytics } from '@vercel/analytics/react';
 import Head from 'next/head';
 import { useEffect } from 'react';
 import { UserProvider } from '../contexts/UserContext';
+import { useRouter } from 'next/router';
 
 export default function App({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+  const maintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true';
+
+  useEffect(() => {
+    // Перенаправлення на сторінку maintenance
+    if (maintenanceMode && router.pathname !== '/maintenance') {
+      router.replace('/maintenance');
+    }
+  }, [maintenanceMode, router]);
+
   useEffect(() => {
     // 🧠 Іконки Leaflet ініціалізуємо тільки на клієнті
     (async () => {

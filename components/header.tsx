@@ -116,7 +116,7 @@ export default function Header() {
             <li><Link href="/map" className="hover:underline">Карта</Link></li>
             <li><Link href="/add_inventory" className="hover:underline">Додати інвентар</Link></li>
             <li><Link href="/stats" className="hover:underline">Мій внесок</Link></li>
-            <li><Link href="/help" className="hover:underline">Документація</Link></li>
+            <li><Link href="/help" className="hover:underline">Посібники</Link></li>
             <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
           </ul>
 
@@ -139,7 +139,7 @@ export default function Header() {
           {mobileMenuOpen && (
             <ul className="flex flex-col mt-2 space-y-2 text-lg text-gray-700 dark:text-gray-300 sm:hidden">
               <li><Link href="/stats" className="hover:underline">Мій внесок</Link></li>
-              <li><Link href="/help" className="hover:underline">Документація</Link></li>
+              <li><Link href="/help" className="hover:underline">Посібники</Link></li>
               <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
             </ul>
           )}

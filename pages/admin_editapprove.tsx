@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
-import { sendNotification } from '../components/notifications'
+import { sendNotification } from '../components/notifications';
+import { FileText, Check, X, ChevronLeft, ChevronRight, ExternalLink, Mail } from 'lucide-react';
 
 export default function ReviewEditedRecordsPage() {
     const { user, loading: userLoading } = useUser();
@@ -84,7 +85,6 @@ export default function ReviewEditedRecordsPage() {
                 return;
             }
 
-            // Фільтруємо записи, які мають хоч одне поле, окрім id, не null/undefined
             const filteredEdits = (edits || []).filter((rec) =>
                 Object.entries(rec).some(([key, val]) => key !== 'id' && val !== null && val !== undefined && key !== 'email')
             );
@@ -114,7 +114,6 @@ export default function ReviewEditedRecordsPage() {
             });
             setRecordsOriginal(originalsMap);
 
-            // Ініціалізуємо стан чекбоксів — всі поля по замовчуванню true
             const initialConfirmFields: Record<string, Record<string, boolean>> = {};
             filteredEdits.forEach((rec) => {
                 initialConfirmFields[rec.id] = {};
@@ -132,22 +131,6 @@ export default function ReviewEditedRecordsPage() {
 
         fetchData();
     }, [isAdmin]);
-
-    // приховуємо поля якщо вони не мінялися
-    const filteredRecordsEdit = recordsEdit
-        .map(edit => {
-            const original = recordsOriginal[edit.id] || {};
-            const diffFields: Record<string, any> = {};
-            Object.keys(edit).forEach((key) => {
-                if (key === 'id' || key === 'email') return;
-                if (edit[key] !== original[key]) {
-                    diffFields[key] = edit[key];
-                }
-            });
-            if (Object.keys(diffFields).length === 0) return null; // якщо нічого не змінилося
-            return { ...edit, diffFields };
-        })
-        .filter(Boolean); // видаляємо null
 
     const handleCheckboxChange = (recordId: string, field: string) => {
         setConfirmFields((prev) => ({
@@ -180,15 +163,12 @@ export default function ReviewEditedRecordsPage() {
             }
         });
 
-        // Якщо нічого не вибрано
-        if (Object.keys(updateData).length <= 1) { // тільки id
+        if (Object.keys(updateData).length <= 1) {
             setToast({ message: 'ℹ️ Оберіть хоча б одне поле для підтвердження', type: 'error' });
             return;
         }
 
         try {
-            // Оновлюємо record в records (реальний)
-            console.log(updateData);
             const { error: updateError } = await supabase
                 .from('records')
                 .upsert([updateData], { onConflict: 'id' });
@@ -199,7 +179,6 @@ export default function ReviewEditedRecordsPage() {
                 return;
             }
 
-            // Отримуємо user_id редактора за email
             const { data: editorProfile, error: profileError } = await supabase
                 .from('profiles')
                 .select('user_id')
@@ -208,10 +187,8 @@ export default function ReviewEditedRecordsPage() {
 
             if (profileError || !editorProfile) {
                 console.error('Не вдалося знайти профіль редактора:', profileError);
-                // Продовжуємо видалення навіть якщо не знайшли профіль
             }
 
-            // Видаляємо цей запис з records_edit
             const { error: deleteError } = await supabase
                 .from('records_edit')
                 .delete()
@@ -223,16 +200,15 @@ export default function ReviewEditedRecordsPage() {
                 return;
             }
 
-            // Відправка повідомлення користувачеві про успішне підтвердження редагування інвентаря
             if (editorProfile) {
                 const recordUrl = `${window.location.origin}/record/${recordEdit.id}`;
                 const messageText =
                     `Ваше редагування інвентарю успішно підтверджено адміністратором.\n\n` +
                     `[Переглянути інвентар можна тут](${recordUrl})`;
-                
+
                 await sendNotification({
-                    fromUserId: user.id, // адмін (хто підтверджує)
-                    toUserId: editorProfile.user_id, // редактор (кому відправляємо)
+                    fromUserId: user.id,
+                    toUserId: editorProfile.user_id,
                     messageType: 'edit_approve',
                     messageText
                 });
@@ -240,7 +216,6 @@ export default function ReviewEditedRecordsPage() {
 
             setToast({ message: '✅ Запис успішно підтверджено', type: 'success' });
 
-            // Оновлюємо локальний стан — видаляємо цей запис
             const newRecordsEdit = recordsEdit.filter((r) => r.id !== recordEdit.id);
             setRecordsEdit(newRecordsEdit);
             setIndex((idx) => (idx >= newRecordsEdit.length ? newRecordsEdit.length - 1 : idx));
@@ -262,7 +237,6 @@ export default function ReviewEditedRecordsPage() {
         const reason = window.prompt('Вкажіть причину відхилення (необов\'язково):');
 
         try {
-            // Отримуємо user_id редактора за email
             const { data: editorProfile, error: profileError } = await supabase
                 .from('profiles')
                 .select('user_id')
@@ -271,7 +245,6 @@ export default function ReviewEditedRecordsPage() {
 
             if (profileError || !editorProfile) {
                 console.error('Не вдалося знайти профіль редактора:', profileError);
-                // Продовжуємо видалення навіть якщо не знайшли профіль
             }
 
             const { error: deleteError } = await supabase
@@ -285,7 +258,6 @@ export default function ReviewEditedRecordsPage() {
                 return;
             }
 
-            // Відправка повідомлення користувачеві про відхилення редагування
             if (editorProfile) {
                 let messageText = 'Ваше редагування інвентарю відхилено адміністратором.';
 
@@ -294,8 +266,8 @@ export default function ReviewEditedRecordsPage() {
                 }
 
                 await sendNotification({
-                    fromUserId: user.id, // адмін (хто відхиляє)
-                    toUserId: editorProfile.user_id, // редактор (кому відправляємо)
+                    fromUserId: user.id,
+                    toUserId: editorProfile.user_id,
                     messageType: 'edit_reject',
                     messageText
                 });
@@ -303,7 +275,6 @@ export default function ReviewEditedRecordsPage() {
 
             setToast({ message: '❌ Запис змін відхилено і видалено', type: 'success' });
 
-            // Оновлюємо локальний стан — видаляємо цей запис
             const newRecordsEdit = recordsEdit.filter((r) => r.id !== recordEdit.id);
             setRecordsEdit(newRecordsEdit);
             setIndex((idx) => (idx >= newRecordsEdit.length ? newRecordsEdit.length - 1 : idx));
@@ -317,9 +288,9 @@ export default function ReviewEditedRecordsPage() {
         return (
             <>
                 <Header />
-                <main className="min-h-screen flex justify-center items-center p-6 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-                    <p>Завантаження...</p>
-                </main>
+                <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+                    <p className="text-gray-900 dark:text-white text-[16px]">Завантаження...</p>
+                </div>
             </>
         );
     }
@@ -328,9 +299,9 @@ export default function ReviewEditedRecordsPage() {
         return (
             <>
                 <Header />
-                <main className="min-h-screen flex justify-center items-center p-6 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-                    <p>⛔ Ви не авторизовані</p>
-                </main>
+                <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+                    <p className="text-gray-900 dark:text-white text-[16px]">⛔ Ви не авторизовані</p>
+                </div>
             </>
         );
     }
@@ -339,9 +310,9 @@ export default function ReviewEditedRecordsPage() {
         return (
             <>
                 <Header />
-                <main className="min-h-screen flex justify-center items-center p-6 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-                    <p>⛔ У вас немає доступу до цієї сторінки</p>
-                </main>
+                <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+                    <p className="text-gray-900 dark:text-white text-[16px]">⛔ У вас немає доступу до цієї сторінки</p>
+                </div>
             </>
         );
     }
@@ -350,9 +321,9 @@ export default function ReviewEditedRecordsPage() {
         return (
             <>
                 <Header />
-                <main className="min-h-screen flex justify-center items-center p-6 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-                    <p>Немає змін для перевірки</p>
-                </main>
+                <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+                    <p className="text-gray-900 dark:text-white text-[16px]">Немає змін для перевірки</p>
+                </div>
             </>
         );
     }
@@ -370,144 +341,194 @@ export default function ReviewEditedRecordsPage() {
         .map(([field]) => [field, recordOriginal[field]])
         .filter(([key]) => key !== 'email');
 
-
-
     return (
         <>
             <Header />
-            <main className="min-h-screen p-6 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-6">
-                    {/* Ліва таблиця - Оригінал */}
-                    <section className="flex-1 bg-gray-100 dark:bg-gray-800 p-4 rounded shadow overflow-auto max-h-[80vh]">
-                        <h2 className="text-xl font-semibold mb-4">Оригінальний запис</h2>
-                        <table className="w-full border-collapse border border-gray-300 dark:border-gray-700">
-                            <thead>
-                                <tr className="bg-gray-200 dark:bg-gray-700">
-                                    <th className="border border-gray-300 dark:border-gray-600 px-3 py-1 text-left">Поле</th>
-                                    <th className="border border-gray-300 dark:border-gray-600 px-3 py-1 text-left">Значення</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {originalFields.map(([field, val]) => (
-                                    <tr key={field} className="border border-gray-300 dark:border-gray-700">
-                                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-1 font-medium">{fieldLabels[field] || field}</td>
-                                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-1">{val ?? '—'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        <a
-                            href={`/record/${recordEdit.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 underline mb-4 inline-block"
-                        >
-                            🔗 Відкрити запис у новому вікні
-                        </a>
+            <div className="min-h-screen bg-white dark:bg-[#111827]">
+                <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+                    {/* Page Title */}
+                    <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px] lg:mb-[30px]">
+                        Перегляд редагованих записів
+                    </h1>
+
+                    {/* Two Column Layout */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-[20px] mb-[20px]">
+                        {/* Left Column - Original */}
+                        <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] max-h-[70vh] overflow-auto">
+                            <div className="flex items-center gap-[10px] mb-[15px]">
+                                <FileText className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                                    Оригінальний запис
+                                </h2>
+                            </div>
+
+                            <div className="overflow-x-auto mb-[15px]">
+                                <table className="w-full border-collapse border border-gray-300 dark:border-[#374151]">
+                                    <thead>
+                                        <tr className="bg-gray-100 dark:bg-[#111827]">
+                                            <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[14px] font-semibold">
+                                                Поле
+                                            </th>
+                                            <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[14px] font-semibold">
+                                                Значення
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {originalFields.map(([field, val]) => (
+                                            <tr key={field} className="border-b border-gray-200 dark:border-[#374151]">
+                                                <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px] font-medium">
+                                                    {fieldLabels[field] || field}
+                                                </td>
+                                                <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
+                                                    {val ?? '—'}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <a
+                                href={`/record/${recordEdit.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-[8px] text-[#2563EB] hover:text-[#1D4ED8] text-[14px] underline"
+                            >
+                                <ExternalLink className="w-4 h-4" strokeWidth={2} />
+                                Відкрити запис у новому вікні
+                            </a>
+                        </section>
+
+                        {/* Right Column - Changes */}
+                        <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] max-h-[70vh] overflow-auto">
+                            <div className="flex items-center gap-[10px] mb-[15px]">
+                                <FileText className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                                    Запис із змінами
+                                </h2>
+                            </div>
+
+                            <div className="overflow-x-auto mb-[15px]">
+                                <table className="w-full border-collapse border border-gray-300 dark:border-[#374151]">
+                                    <thead>
+                                        <tr className="bg-gray-100 dark:bg-[#111827]">
+                                            <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[14px] font-semibold">
+                                                Поле
+                                            </th>
+                                            <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[14px] font-semibold">
+                                                Значення
+                                            </th>
+                                            <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-center text-gray-900 dark:text-white text-[14px] font-semibold">
+                                                Підтвердити
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {editFields.map(([field, val]) => (
+                                            <tr key={field} className="border-b border-gray-200 dark:border-[#374151]">
+                                                <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px] font-medium">
+                                                    {fieldLabels[field] || field}
+                                                </td>
+                                                <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
+                                                    {val?.toString() ?? '—'}
+                                                </td>
+                                                <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={confirmFields[recordEdit.id]?.[field] ?? true}
+                                                        onChange={() => handleCheckboxChange(recordEdit.id, field)}
+                                                        className="w-4 h-4 rounded border-gray-300 dark:border-[#374151] text-[#2563EB] focus:ring-[#2563EB] cursor-pointer"
+                                                        aria-label={`Підтвердити поле ${field}`}
+                                                    />
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="flex items-center gap-[8px] text-[14px]">
+                                <Mail className="w-4 h-4 text-gray-700 dark:text-white" strokeWidth={2} />
+                                <span className="text-gray-700 dark:text-white font-semibold">Email редактора:</span>
+                                {recordEdit?.email ? (
+                                    <a
+                                        href={`mailto:${recordEdit.email}`}
+                                        className="text-[#2563EB] hover:text-[#1D4ED8] underline"
+                                    >
+                                        {recordEdit.email}
+                                    </a>
+                                ) : (
+                                    <span className="text-gray-500">—</span>
+                                )}
+                            </div>
+                        </section>
+                    </div>
+
+                    {/* Comment Section */}
+                    <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] mb-[20px]">
+                        <h3 className="text-gray-900 dark:text-[#F3F4F6] text-[16px] lg:text-[18px] font-semibold mb-[10px]">
+                            Коментар редактора інвентарю
+                        </h3>
+                        <p className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] whitespace-pre-wrap">
+                            {recordEdit?.comment ? recordEdit.comment : '—'}
+                        </p>
                     </section>
 
-                    {/* Права таблиця - Зміни */}
-                    <section className="flex-1 bg-gray-100 dark:bg-gray-800 p-4 rounded shadow overflow-auto max-h-[80vh]">
-                        <h2 className="text-xl font-semibold mb-4">Запис із змінами</h2>
-                        <table className="w-full border-collapse border border-gray-300 dark:border-gray-700">
-                            <thead>
-                                <tr className="bg-gray-200 dark:bg-gray-700">
-                                    <th className="border border-gray-300 dark:border-gray-600 px-3 py-1 text-left">Поле</th>
-                                    <th className="border border-gray-300 dark:border-gray-600 px-3 py-1 text-left">Значення</th>
-                                    <th className="border border-gray-300 dark:border-gray-600 px-3 py-1 text-center">Підтвердити</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {editFields.map(([field, val]) => (
-                                    <tr key={field} className="border border-gray-300 dark:border-gray-700">
-                                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-1 font-medium">{fieldLabels[field] || field}</td>
-                                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-1">{val?.toString() ?? '—'}</td>
-                                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-1 text-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={confirmFields[recordEdit.id]?.[field] ?? true}
-                                                onChange={() => handleCheckboxChange(recordEdit.id, field)}
-                                                aria-label={`Підтвердити поле ${field}`}
-                                            />
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        <div className="mt-4 text-sm text-gray-700 dark:text-gray-300">
-                            <span className="font-semibold">Email редактора:</span>{' '}
-                            {recordEdit?.email ? (
-                                <a
-                                    href={`mailto:${recordEdit.email}`}
-                                    className="text-blue-600 dark:text-blue-400 underline"
-                                >
-                                    {recordEdit.email}
-                                </a>
-                            ) : (
-                                <span className="text-gray-500">—</span>
-                            )}
+                    {/* Navigation and Actions */}
+                    <div className="flex flex-col lg:flex-row gap-[15px] lg:items-center lg:justify-between">
+                        {/* Navigation Buttons */}
+                        <div className="flex gap-[10px]">
+                            <button
+                                type="button"
+                                onClick={() => goToRecord(index - 1)}
+                                disabled={index === 0}
+                                className="flex items-center gap-[8px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <ChevronLeft className="w-5 h-5 text-gray-900 dark:text-white" strokeWidth={2} />
+                                <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px]">Попередній</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => goToRecord(index + 1)}
+                                disabled={index === recordsEdit.length - 1}
+                                className="flex items-center gap-[8px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px]">Наступний</span>
+                                <ChevronRight className="w-5 h-5 text-gray-900 dark:text-white" strokeWidth={2} />
+                            </button>
                         </div>
-                    </section>
-                </div>
 
-                {/* Коментар редактора інвентарю */}
-                <div className="max-w-7xl mx-auto mt-6 bg-gray-50 dark:bg-gray-800 p-4 rounded shadow">
-                    <h3 className="text-lg font-semibold mb-2">Коментар редактора інвентарю</h3>
-                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                        {recordEdit?.comment ? recordEdit.comment : '—'}
-                    </p>
-                </div>
-
-                {/* Навігація */}
-                <div className="flex flex-col sm:flex-row sm:justify-between max-w-7xl mx-auto mt-6 gap-2 sm:gap-4">
-                    {/* Кнопки навігації */}
-                    <div className="flex flex-col sm:flex-row gap-2">
-                        <button
-                            type="button"
-                            onClick={() => goToRecord(index - 1)}
-                            disabled={index === 0}
-                            className="w-full sm:w-auto px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            ⬅ Попередній
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => goToRecord(index + 1)}
-                            disabled={index === recordsEdit.length - 1}
-                            className="w-full sm:w-auto px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Наступний ➡
-                        </button>
-                    </div>
-
-                    {/* Кнопки підтвердження/відхилення */}
-                    <div className="flex flex-col sm:flex-row gap-2 sm:ml-auto">
-                        <button
-                            type="button"
-                            onClick={saveRecord}
-                            className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                        >
-                            ✅ Підтвердити
-                        </button>
-                        <button
-                            type="button"
-                            onClick={rejectRecord}
-                            className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                        >
-                            ❌ Відхилити
-                        </button>
+                        {/* Action Buttons */}
+                        <div className="flex gap-[10px]">
+                            <button
+                                type="button"
+                                onClick={saveRecord}
+                                className="flex items-center gap-[8px] px-[15px] h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
+                            >
+                                <Check className="w-5 h-5 text-white" strokeWidth={2} />
+                                <span className="text-white text-[14px] lg:text-[16px] font-medium">Підтвердити</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={rejectRecord}
+                                className="flex items-center gap-[8px] px-[15px] h-[40px] rounded bg-red-600 hover:bg-red-700 transition-colors"
+                            >
+                                <X className="w-5 h-5 text-white" strokeWidth={2} />
+                                <span className="text-white text-[14px] lg:text-[16px] font-medium">Відхилити</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-
-                {toast && (
-                    <Toast
-                        message={toast.message}
-                        type={toast.type}
-                        onClose={() => setToast(null)}
-                    />
-                )}
-            </main>
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </>
     );
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { useUser } from '../contexts/UserContext';
+import { BarChart3, Crown, FileText, Clock, Bell, Trophy } from 'lucide-react';
 
 export default function StatsPage() {
   const { user, loading: userLoading } = useUser();
@@ -75,9 +76,9 @@ export default function StatsPage() {
     return (
       <>
         <Header />
-        <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex items-center justify-center">
-          <p>Завантаження...</p>
-        </main>
+        <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+          <p className="text-gray-900 dark:text-white text-[16px]">Завантаження...</p>
+        </div>
       </>
     );
   }
@@ -86,9 +87,11 @@ export default function StatsPage() {
     return (
       <>
         <Header />
-        <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex items-center justify-center">
-          <p className="text-lg text-center">🔐 Щоб переглянути статистику, увійдіть у систему.</p>
-        </main>
+        <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+          <p className="text-gray-900 dark:text-white text-[16px] lg:text-[18px] text-center px-4">
+            🔐 Щоб переглянути статистику, увійдіть у систему.
+          </p>
+        </div>
       </>
     );
   }
@@ -96,85 +99,119 @@ export default function StatsPage() {
   return (
     <>
       <Header />
-      <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-        <div className="max-w-screen-lg mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Мій внесок в "Інвентаріум"</h1>
+      <div className="min-h-screen bg-white dark:bg-[#111827]">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+          {/* Page Title */}
+          <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px] lg:mb-[30px]">
+            Мій внесок в "Інвентаріум"
+          </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-[20px]">
             {/* Загальна кількість інвентарів */}
-            <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
-              <h2 className="text-xl font-semibold mb-2">Кількість інвентарів у реєстрі</h2>
-              <p className="text-4xl font-bold">{approvedCount ?? '—'}</p>
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col items-center justify-center min-h-[200px]">
+              <div className="flex items-center justify-center gap-[10px] mb-[15px]">
+                <BarChart3 className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold text-center">
+                  Кількість інвентарів у реєстрі
+                </h2>
+              </div>
+              <p className="text-gray-900 dark:text-white text-[32px] lg:text-[40px] font-bold text-center">
+                {approvedCount ?? '—'}
+              </p>
             </section>
 
             {/* Звання користувача */}
-            <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800 flex items-center">
-              <div className="mr-4 text-4xl">
-                <div className="mr-4 w-8 h-8">
-                  {isAdmin ? (
-                    <img src="/images/crown-admin.svg" alt="Admin Crown" className="w-full h-full" />
-                  ) : hasContributed ? (
-                    <img src="/images/crown-researcher.svg" alt="Researcher Crown" className="w-full h-full" />
-                  ) : (
-                    <img src="/images/crown-user.svg" alt="User Crown" className="w-full h-full" />
-                  )}
-                </div>
-
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col items-center justify-center min-h-[200px]">
+              <div className="w-12 h-12 mb-[15px] flex items-center justify-center">
+                {isAdmin ? (
+                  <img src="/images/crown-admin.svg" alt="Admin Crown" className="w-full h-full" />
+                ) : hasContributed ? (
+                  <img src="/images/crown-researcher.svg" alt="Researcher Crown" className="w-full h-full" />
+                ) : (
+                  <img src="/images/crown-user.svg" alt="User Crown" className="w-full h-full" />
+                )}
               </div>
-              <div>
-                <h2 className="text-xl font-semibold mb-2">Моє звання</h2>
-                <p className="text-lg font-medium">
-                  {isAdmin
-                    ? 'Володар інвентарів'
-                    : hasContributed
-                      ? 'Інвентарний детектив'
-                      : 'Архівний турист'}
-                </p>
-              </div>
+              <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold mb-[10px] text-center">
+                Моє звання
+              </h2>
+              <p className="text-gray-900 dark:text-white text-[16px] lg:text-[18px] font-medium text-center">
+                {isAdmin
+                  ? 'Володар інвентарів'
+                  : hasContributed
+                    ? 'Інвентарний детектив'
+                    : 'Архівний турист'}
+              </p>
             </section>
 
             {/* Кількість внесених записів */}
-            <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
-              <h2 className="text-xl font-semibold mb-2">Додані мною інвентарі</h2>
-              <p className="text-4xl font-bold">{userApprovedCount ?? '—'}</p>
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col items-center justify-center min-h-[200px]">
+              <div className="flex items-center justify-center gap-[10px] mb-[15px]">
+                <FileText className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold text-center">
+                  Додані мною інвентарі
+                </h2>
+              </div>
+              <p className="text-gray-900 dark:text-white text-[32px] lg:text-[40px] font-bold text-center">
+                {userApprovedCount ?? '—'}
+              </p>
             </section>
 
             {/* Кількість записів в очікуванні */}
-            <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
-              <h2 className="text-xl font-semibold mb-2">Очікують підтвердження адміністратором</h2>
-              <p className="text-4xl font-bold mb-4">{userUnverifiedCount ?? '—'}</p>
-               <a
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col items-center justify-center min-h-[200px]">
+              <div className="flex items-center justify-center gap-[10px] mb-[15px]">
+                <Clock className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold text-center">
+                  Очікують підтвердження адміністратором
+                </h2>
+              </div>
+              <p className="text-gray-900 dark:text-white text-[32px] lg:text-[40px] font-bold mb-[15px] text-center">
+                {userUnverifiedCount ?? '—'}
+              </p>
+              <a
                 href="/edit_drafts"
-                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+                className="inline-flex items-center justify-center gap-[8px] px-[15px] h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
               >
-                Редагувати
+                <span className="text-white text-[14px] lg:text-[16px] font-medium">Редагувати</span>
               </a>
             </section>
 
             {/* Кількість підписок */}
-            <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
-              <h2 className="text-xl font-semibold mb-2">Мої підписки</h2>
-              <p className="text-4xl font-bold mb-4">{userSubscriptionsCount ?? '—'}</p>
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col items-center justify-center min-h-[200px]">
+              <div className="flex items-center justify-center gap-[10px] mb-[15px]">
+                <Bell className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold text-center">
+                  Мої підписки
+                </h2>
+              </div>
+              <p className="text-gray-900 dark:text-white text-[32px] lg:text-[40px] font-bold mb-[15px] text-center">
+                {userSubscriptionsCount ?? '—'}
+              </p>
               <a
                 href="/subscriptions"
-                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+                className="inline-flex items-center justify-center gap-[8px] px-[15px] h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
               >
-                Дивитися підписки
+                <span className="text-white text-[14px] lg:text-[16px] font-medium">Дивитися підписки</span>
               </a>
             </section>
 
-             <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
-              <h2 className="text-xl font-semibold mb-4">Інвентарний марафон</h2>
+            {/* Інвентарний марафон */}
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col items-center justify-center min-h-[200px]">
+              <div className="flex items-center justify-center gap-[10px] mb-[15px]">
+                <Trophy className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold text-center">
+                  Інвентарний марафон
+                </h2>
+              </div>
               <a
                 href="/marathon1"
-                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+                className="inline-flex items-center justify-center gap-[8px] px-[15px] h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
               >
-                Детальніше
+                <span className="text-white text-[14px] lg:text-[16px] font-medium">Детальніше</span>
               </a>
-            </section> 
+            </section>
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 }

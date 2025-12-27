@@ -1,9 +1,10 @@
-// pages/add_settlement.tsx
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Header from '../components/header';
 import Toast from '../components/Toast';
 import emailjs from 'emailjs-com';
+import { ChevronDown, Plus, Send, AlertTriangle, Trash2 } from 'lucide-react';
+import { useUser } from '../contexts/UserContext';
 
 const MapSelector = dynamic(() => import('../components/MapSelector'), { ssr: false });
 
@@ -24,6 +25,7 @@ interface NestedStructure {
 }
 
 export default function AddSettlementPage() {
+    const { user, loading: userLoading } = useUser();
     const [regionStructure, setRegionStructure] = useState<NestedStructure | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [addedSettlements, setAddedSettlements] = useState<typeof formData[]>([]);
@@ -46,7 +48,6 @@ export default function AddSettlementPage() {
     const [communities, setCommunities] = useState<string[]>([]);
     const [settlementTypes, setSettlementTypes] = useState<string[]>([]);
 
-    // ==== 1. Завантаження даних через fetch ====
     useEffect(() => {
         fetch('/data/region_structure.json')
             .then(res => res.json())
@@ -54,7 +55,13 @@ export default function AddSettlementPage() {
             .catch(err => console.error('Failed to load region_structure.json', err));
     }, []);
 
-    // ==== Каскадне оновлення select ====
+    // Підтягування email користувача
+    useEffect(() => {
+        if (!userLoading && user?.email && !formData.email) {
+            setFormData(prev => ({ ...prev, email: user.email }));
+        }
+    }, [user, userLoading]);
+
     useEffect(() => {
         if (formData.region && regionStructure?.[formData.region]) {
             setDistricts(Object.keys(regionStructure[formData.region]));
@@ -107,7 +114,6 @@ export default function AddSettlementPage() {
         setAddedSettlements(prev => prev.filter((_, idx) => idx !== index));
     };
 
-    // ==== Додавання нового населеного пункту ====
     const handleSubmit = () => {
         if (
             !formData.region ||
@@ -131,7 +137,6 @@ export default function AddSettlementPage() {
             return;
         }
 
-        // Перевірка дубліката
         const exists = regionStructure?.[formData.region]?.[formData.district]?.[formData.community]?.some(
             s => s.name.toLowerCase() === formData.settlementName.toLowerCase() && s.type === formData.settlementType
         );
@@ -141,10 +146,8 @@ export default function AddSettlementPage() {
             return;
         }
 
-        // Генерація коду (тут просто умовно)
         const newCode = 'GNRT' + Math.floor(Math.random() * 1e8).toString().padStart(8, '0');
 
-        // Додаємо у локальну структуру
         if (!regionStructure) return;
         const updatedStructure = { ...regionStructure };
         if (!updatedStructure[formData.region][formData.district][formData.community]) {
@@ -160,10 +163,7 @@ export default function AddSettlementPage() {
         });
 
         setRegionStructure(updatedStructure);
-
-        // ==== 2. Додаємо запис у таблицю під картою ====
         setAddedSettlements(prev => [...prev, { ...formData }]);
-
         setToast({ message: 'Населений пункт додано', type: 'success' });
 
         setFormData((prev) => ({
@@ -178,22 +178,19 @@ export default function AddSettlementPage() {
             comment: '',
             isNonExistent: false,
         }));
+    };
 
-    }
     const handleSend = async () => {
-        // 1. Перевірка email
         if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             setToast({ message: 'Будь ласка, введіть коректний email.', type: 'error' });
             return;
         }
 
-        // 2. Беремо готову структуру (з усіма доданими пунктами)
         if (addedSettlements.length === 0) {
             setToast({ message: 'Немає нових населених пунктів для відправки.', type: 'error' });
             return;
         }
 
-        // Формуємо структуру тільки з нових пунктів
         const payload: NestedStructure = {};
         const settlements: any[] = [];
 
@@ -210,7 +207,6 @@ export default function AddSettlementPage() {
                 lon: parseFloat(s.longitude),
             });
 
-            // Зберігаємо також додаткову інформацію
             settlements.push({
                 region: s.region,
                 district: s.district,
@@ -227,19 +223,18 @@ export default function AddSettlementPage() {
         setToast({ message: 'Зачекайте, дані відправляються...', type: 'success' });
         try {
             await emailjs.send(
-                'service_kdqzv9e',       // service ID
-                'template_qdlf2p8',      // template ID
+                'service_kdqzv9e',
+                'template_qdlf2p8',
                 {
                     email: formData.email,
                     json: JSON.stringify(payload, null, 2),
                     settlements: JSON.stringify(settlements, null, 2),
                 },
-                'WBCc_TP1lGiy8DVtF'      // public key
+                'WBCc_TP1lGiy8DVtF'
             );
 
             setToast({ message: 'Ваші дані відправлено і буде перевірено адміністратором.', type: 'success' });
 
-            // очищаємо форму (крім email)
             setFormData(prev => ({
                 ...prev,
                 region: '',
@@ -253,155 +248,360 @@ export default function AddSettlementPage() {
                 comment: '',
                 isNonExistent: false,
             }));
-            setAddedSettlements([]); // чистимо таблицю
-
+            setAddedSettlements([]);
 
         } catch (err: any) {
             console.error('Помилка при надсиланні:', err);
-            if (err.text) console.error('Текст помилки EmailJS:', err.text);
-            if (err.status) console.error('Статус:', err.status);
             setToast({ message: 'Сталася помилка під час відправки даних.', type: 'error' });
         }
-
     };
-
-
-
 
     return (
         <>
             <Header />
-            <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-                <div className="max-w-screen-lg mx-auto flex flex-col gap-6">
-                    <h1 className="text-2xl font-bold mb-4">Додати населений пункт</h1>
+            <div className="min-h-screen bg-white dark:bg-[#111827]">
+                <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+                    <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[10px]">
+                        Додати населений пункт
+                    </h1>
 
-                     <div className="w-full max-w-[1000px] mx-auto mb-4">
-                            <p className="text-base font-semibold text-yellow-700 dark:text-yellow-400">
-                                ⚠️ Зверніть увагу: Ви повинні додати потрібні населені пункти вибираючи адмін поділ з випадаючих списків, заповнюючи назву і обираючи на карті локацію. 
-                                Ви можете додати стільки населених пунктів скільки потрібно, після цього ввести свій email і відправити на перевірку адміністратору.
-                                Додані, але не відправлені на перевірку пункти не будуть оброблені!
-                            </p>
+                    <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80 mb-[30px]">
+                        Додайте населений пункт, який відсутній у базі
+                    </p>
+
+                    {/* Warning Banner */}
+                    <div className="flex items-start gap-[10px] p-[10px] rounded bg-[#FEF3C7] dark:bg-[#EAB308] mb-[20px]">
+                        <AlertTriangle className="w-4 h-4 text-[#92400E] dark:text-[#451A03] flex-shrink-0 mt-0.5" strokeWidth={1.6} />
+                        <p className="text-[#92400E] dark:text-[#451A03] text-[14px] lg:text-[16px] font-medium">
+                            Ви повинні додати потрібні населені пункти вибираючи адмін поділ з випадаючих списків, заповнюючи назву і обираючи на карті локацію. 
+                            Ви можете додати стільки населених пунктів скільки потрібно, після цього ввести свій email і відправити на перевірку адміністратору.
+                            Додані, але не відправлені на перевірку пункти не будуть оброблені!
+                        </p>
+                    </div>
+
+                    {/* Form Section */}
+                    <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#111827] mb-[20px]">
+                        <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold mb-[15px]">
+                            Адміністративний поділ
+                        </h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-[15px] mb-[15px]">
+                            <FormSelect
+                                name="region"
+                                value={formData.region}
+                                onChange={handleChange}
+                                placeholder="Оберіть область"
+                            >
+                                {regionStructure && Object.keys(regionStructure).map(r => (
+                                    <option key={r} value={r}>{r}</option>
+                                ))}
+                            </FormSelect>
+
+                            <FormSelect
+                                name="district"
+                                value={formData.district}
+                                onChange={handleChange}
+                                placeholder="Оберіть район"
+                                disabled={!districts.length}
+                            >
+                                {districts.map(d => <option key={d} value={d}>{d}</option>)}
+                            </FormSelect>
+
+                            <FormSelect
+                                name="community"
+                                value={formData.community}
+                                onChange={handleChange}
+                                placeholder="Оберіть громаду"
+                                disabled={!communities.length}
+                            >
+                                {communities.map(c => <option key={c} value={c}>{c}</option>)}
+                            </FormSelect>
                         </div>
 
-                    {/* Каскадні select */}
-                    <select name="region" value={formData.region} onChange={handleChange} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 p-3 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Область</option>
-                        {regionStructure && Object.keys(regionStructure).map(r => <option key={r} value={r}>{r}</option>)}
+                        <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-[15px] mb-[15px]">
+                            <FormSelect
+                                name="settlementType"
+                                value={formData.settlementType}
+                                onChange={handleChange}
+                                placeholder="Тип населеного пункту"
+                                disabled={!settlementTypes.length}
+                            >
+                                {settlementTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                            </FormSelect>
 
-                    </select>
+                            <FormInput
+                                name="settlementName"
+                                value={formData.settlementName}
+                                onChange={handleChange}
+                                placeholder="Назва населеного пункту"
+                            />
+                        </div>
 
-                    <select name="district" value={formData.district} onChange={handleChange} disabled={!districts.length} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 p-3 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Район</option>
-                        {districts.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
+                        <div className="mb-[15px]">
+                            <FormTextarea
+                                name="comment"
+                                value={formData.comment}
+                                onChange={handleChange}
+                                placeholder="Коментар (необов'язково)"
+                            />
+                        </div>
 
-                    <select name="community" value={formData.community} onChange={handleChange} disabled={!communities.length} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 p-3 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Громада</option>
-                        {communities.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                        <label className="flex items-center gap-[10px] cursor-pointer">
+                            <input
+                                type="checkbox"
+                                name="isNonExistent"
+                                checked={formData.isNonExistent}
+                                onChange={handleChange}
+                                className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-[#2563EB] focus:ring-2 focus:ring-[#2563EB]"
+                            />
+                            <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] font-medium">
+                                Неіснуючий населений пункт
+                            </span>
+                        </label>
+                    </section>
 
-                    <select name="settlementType" value={formData.settlementType} onChange={handleChange} disabled={!settlementTypes.length} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 p-3 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Тип населеного пункту</option>
-                        {settlementTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
+                    {/* Map Section */}
+                    <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#111827] mb-[20px]">
+                        <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold mb-[15px]">
+                            Карта
+                        </h2>
 
-                    <input type="text" name="settlementName" placeholder="Назва населеного пункту" value={formData.settlementName} onChange={handleChange} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 p-3 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80 mb-[15px]">
+                            Оберіть точку на карті для населеного пункту
+                        </p>
 
-                    {/* Нові поля */}
-                    <textarea 
-                        name="comment" 
-                        placeholder="Коментар (необов'язково)" 
-                        value={formData.comment} 
-                        onChange={handleChange} 
-                        rows={3}
-                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 p-3 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input 
-                            type="checkbox" 
-                            name="isNonExistent" 
-                            checked={formData.isNonExistent} 
-                            onChange={handleChange}
-                            className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                        <MapSelector
+                            latitude={formData.latitude}
+                            longitude={formData.longitude}
+                            onPositionChange={(lat, lng) => setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }))}
                         />
-                        <span className="text-sm font-medium">Неіснуючий населений пункт</span>
-                    </label>
+                    </section>
 
-                    {/* Карта */}
-                    <MapSelector latitude={formData.latitude} longitude={formData.longitude} onPositionChange={(lat, lng) => setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }))} />
-                    <button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded transition">Додати</button>
+                    {/* Add Button */}
+                    <div className="flex flex-wrap items-center gap-[15px] mb-[30px]">
+                        <button
+                            onClick={handleSubmit}
+                            className="flex items-center gap-[10px] px-[15px] h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
+                        >
+                            <Plus className="w-4 h-4 text-white" strokeWidth={1.6} />
+                            <span className="text-white text-[14px] lg:text-[16px] font-medium">
+                                Додати до списку
+                            </span>
+                        </button>
+                    </div>
 
-                    {/* --- Таблиця для ПК --- */}                    
-                    <div className="mt-6 w-full overflow-x-auto border rounded shadow hidden sm:block">                    
-                        <table className="w-full min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead className="bg-gray-50 dark:bg-gray-800">
-                                <tr>
-                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Область</th>
-                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Район</th>
-                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Громада</th>
-                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Назва населеного пункту</th>
-                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Тип</th>
-                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Широта</th>
-                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Довгота</th>
-                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Коментар</th>
-                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">Неіснуючий</th>
-                                    <th className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200">Дія</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                    {/* Added Settlements Table */}
+                    {addedSettlements.length > 0 && (
+                        <>
+                            <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[20px] lg:text-[24px] font-bold mb-[15px]">
+                                Додані населені пункти ({addedSettlements.length})
+                            </h2>
+
+                            {/* Desktop Table */}
+                            <div className="hidden lg:block overflow-x-auto mb-[20px]">
+                                <div className="border border-gray-300 dark:border-[#374151] rounded-lg overflow-hidden">
+                                    <div className="flex min-w-full bg-gray-100 dark:bg-[#1F2937]">
+                                        <div className="w-[150px] border-r border-gray-300 dark:border-[#374151] p-[10px]">
+                                            <span className="text-gray-900 dark:text-white text-[14px] font-semibold">Область</span>
+                                        </div>
+                                        <div className="w-[150px] border-r border-gray-300 dark:border-[#374151] p-[10px]">
+                                            <span className="text-gray-900 dark:text-white text-[14px] font-semibold">Район</span>
+                                        </div>
+                                        <div className="w-[170px] border-r border-gray-300 dark:border-[#374151] p-[10px]">
+                                            <span className="text-gray-900 dark:text-white text-[14px] font-semibold">Громада</span>
+                                        </div>
+                                        <div className="flex-1 border-r border-gray-300 dark:border-[#374151] p-[10px]">
+                                            <span className="text-gray-900 dark:text-white text-[14px] font-semibold">Населений пункт</span>
+                                        </div>
+                                        <div className="w-[100px] border-r border-gray-300 dark:border-[#374151] p-[10px]">
+                                            <span className="text-gray-900 dark:text-white text-[14px] font-semibold">Тип</span>
+                                        </div>
+                                        <div className="w-[100px] p-[10px]">
+                                            <span className="text-gray-900 dark:text-white text-[14px] font-semibold">Дії</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="divide-y divide-gray-200 dark:divide-[#374151]">
+                                        {addedSettlements.map((s, idx) => (
+                                            <div key={idx} className="flex min-w-full hover:bg-gray-50 dark:hover:bg-[#1F2937] transition-colors">
+                                                <div className="w-[150px] border-r border-gray-200 dark:border-[#374151] p-[10px]">
+                                                    <span className="text-gray-900 dark:text-white text-[13px] break-words">{s.region}</span>
+                                                </div>
+                                                <div className="w-[150px] border-r border-gray-200 dark:border-[#374151] p-[10px]">
+                                                    <span className="text-gray-900 dark:text-white text-[13px] break-words">{s.district}</span>
+                                                </div>
+                                                <div className="w-[170px] border-r border-gray-200 dark:border-[#374151] p-[10px]">
+                                                    <span className="text-gray-900 dark:text-white text-[13px] break-words">{s.community}</span>
+                                                </div>
+                                                <div className="flex-1 border-r border-gray-200 dark:border-[#374151] p-[10px]">
+                                                    <span className="text-gray-900 dark:text-white text-[13px] break-words">{s.settlementName}</span>
+                                                    {s.isNonExistent && (
+                                                        <span className="ml-2 text-red-600 dark:text-red-400 text-[12px] whitespace-nowrap">(неіснуючий)</span>
+                                                    )}
+                                                </div>
+                                                <div className="w-[100px] border-r border-gray-200 dark:border-[#374151] p-[10px]">
+                                                    <span className="text-gray-900 dark:text-white text-[13px] break-words">{s.settlementType}</span>
+                                                </div>
+                                                <div className="w-[100px] p-[10px] flex items-center justify-center">
+                                                    <button
+                                                        onClick={() => handleRemove(idx)}
+                                                        className="p-2 rounded hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                                                    >
+                                                        <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" strokeWidth={1.6} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Mobile Cards */}
+                            <div className="lg:hidden space-y-4 mb-[20px]">
                                 {addedSettlements.map((s, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-100 dark:hover:bg-gray-800">
-                                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.region}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.district}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.community}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.settlementName}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.settlementType}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.latitude}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.longitude}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.comment || '-'}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{s.isNonExistent ? 'Так' : 'Ні'}</td>
-                                        <td className="px-4 py-2">
+                                    <div key={idx} className="p-4 border border-gray-300 dark:border-[#374151] rounded-lg bg-gray-50 dark:bg-[#1F2937]">
+                                        <div className="space-y-2">
+                                            <p className="text-gray-900 dark:text-white text-[14px] font-semibold">
+                                                {s.settlementType} {s.settlementName}
+                                                {s.isNonExistent && (
+                                                    <span className="ml-2 text-red-600 dark:text-red-400 text-[12px]">(неіснуючий)</span>
+                                                )}
+                                            </p>
+                                            <p className="text-gray-700 dark:text-gray-300 text-[13px]">
+                                                {s.region}, {s.district}, {s.community}
+                                            </p>
+                                            {s.comment && (
+                                                <p className="text-gray-600 dark:text-gray-400 text-[12px]">
+                                                    Коментар: {s.comment}
+                                                </p>
+                                            )}
                                             <button
                                                 onClick={() => handleRemove(idx)}
-                                                className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1 rounded transition"
+                                                className="flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-[12px] font-medium transition-colors"
                                             >
+                                                <Trash2 className="w-3 h-3" strokeWidth={1.6} />
                                                 Видалити
                                             </button>
-                                        </td>
-                                    </tr>
+                                        </div>
+                                    </div>
                                 ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            </div>
 
-                    {/* --- Мобільна версія: картки --- */}
-                    <div className="block sm:hidden space-y-4 mt-4">
-                        {addedSettlements.map((s, idx) => (
-                            <div key={idx} className="border rounded p-3 bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                                <div className="text-sm font-medium">{s.region}</div>
-                                <div className="text-sm font-medium">{s.district}</div>
-                                <div className="text-sm font-medium">{s.community}</div>
-                                <div className="text-sm font-medium">{s.settlementType}, {s.settlementName}</div>
-                                <div className="text-xs">Координати: {s.latitude}, {s.longitude}</div>
-                                {s.comment && <div className="text-xs mt-1">Коментар: {s.comment}</div>}
-                                {s.isNonExistent && <div className="text-xs mt-1 text-red-600 dark:text-red-400">⚠️ Неіснуючий населений пункт</div>}
+                            {/* Email and Send Section */}
+                            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#111827] mb-[20px]">
+                                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold mb-[15px]">
+                                    Контактні дані
+                                </h2>
+
+                                <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80 mb-[15px]">
+                                    Вкажіть email для зв'язку у разі необхідності уточнення інформації
+                                </p>
+
+                                <FormInput
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    placeholder="your.email@example.com"
+                                />
+                            </section>
+
+                            {/* Send Button */}
+                            <div className="flex flex-wrap items-center gap-[15px]">
                                 <button
-                                    onClick={() => handleRemove(idx)}
-                                    className="mt-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1 rounded transition"
+                                    onClick={handleSend}
+                                    className="flex items-center gap-[10px] px-[15px] h-[40px] rounded bg-[#14AE5C] hover:bg-[#0F8A4A] transition-colors"
                                 >
-                                    Видалити
+                                    <Send className="w-4 h-4 text-white" strokeWidth={1.6} />
+                                    <span className="text-white text-[14px] lg:text-[16px] font-medium">
+                                        Відправити на перевірку
+                                    </span>
                                 </button>
                             </div>
-                        ))}
-                    </div>
-
-
-                    <input type="text" name="email" placeholder="Ваш E-mail" value={formData.email} onChange={handleChange} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 p-3 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button onClick={handleSend} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded transition">Відправити на перевірку</button>
+                        </>
+                    )}
                 </div>
-                {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} duration={4000} />}
-            </main>
+            </div>
+
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} duration={4000} />}
         </>
+    );
+}
+
+// Form Components
+function FormSelect({ 
+    name, 
+    value, 
+    onChange, 
+    placeholder, 
+    disabled, 
+    children 
+}: { 
+    name: string; 
+    value: string; 
+    onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; 
+    placeholder: string; 
+    disabled?: boolean;
+    children?: React.ReactNode;
+}) {
+    return (
+        <div className="relative">
+            <select
+                name={name}
+                value={value}
+                onChange={onChange}
+                disabled={disabled}
+                className="w-full px-[10px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937] text-gray-900 dark:text-[#F3F4F6] text-[13px] lg:text-[14px] outline-none focus:border-[#2563EB] transition-colors appearance-none pr-[35px] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                <option value="">{placeholder}</option>
+                {children}
+            </select>
+            <ChevronDown className="absolute right-[10px] top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600 dark:text-[#F3F4F6] pointer-events-none" strokeWidth={2} />
+        </div>
+    );
+}
+
+function FormInput({ 
+    name, 
+    value, 
+    onChange, 
+    placeholder 
+}: { 
+    name: string; 
+    value: string; 
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; 
+    placeholder: string; 
+}) {
+    return (
+        <input
+            type="text"
+            name={name}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            className="w-full px-[10px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-[13px] lg:text-[14px] outline-none focus:border-[#2563EB] transition-colors"
+        />
+    );
+}
+
+function FormTextarea({ 
+    name, 
+    value, 
+    onChange, 
+    placeholder 
+}: { 
+    name: string; 
+    value: string; 
+    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; 
+    placeholder: string; 
+}) {
+    return (
+        <textarea
+            name={name}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            rows={3}
+            className="w-full p-[10px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-[13px] lg:text-[14px] outline-none focus:border-[#2563EB] transition-colors resize-none"
+        />
     );
 }

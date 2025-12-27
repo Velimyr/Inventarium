@@ -4,6 +4,8 @@ import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
 import { supabase } from '../lib/supabaseClient';
+import { Save, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 
 const UnidentifiedInventoryForm = dynamic(
     () => import('../components/UnidentifiedInventoryForm'),
@@ -28,7 +30,6 @@ export default function AddUnidentifiedInventoryPage() {
         email: '',
     });
 
-
     const fieldLabels: { [key: string]: string } = {
         email: 'Email',
         case_signature: 'Шифр справи',
@@ -43,7 +44,6 @@ export default function AddUnidentifiedInventoryPage() {
         scans_url: 'Посилання на скани',
         notes: 'Примітки',
     };
-
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -71,7 +71,7 @@ export default function AddUnidentifiedInventoryPage() {
         for (const field of requiredFields) {
             if (!formData[field]) {
                 const label = fieldLabels[field] || field;
-                return `Поле "${label}" обов’язкове.`;
+                return `Поле "${label}" обов'язкове.`;
             }
         }
 
@@ -116,7 +116,7 @@ export default function AddUnidentifiedInventoryPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const validationError = await validate(); // асинхронна валідація
+        const validationError = await validate();
         if (validationError) {
             setToast({ message: validationError, type: 'error' });
             return;
@@ -174,30 +174,44 @@ export default function AddUnidentifiedInventoryPage() {
         }
     };
 
-
     return (
         <>
             <Header />
-            <main className="p-6 w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex justify-center">
-                <div className="max-w-2xl w-full">
-                    <h1 className="text-2xl font-bold mb-6">Додати новий неідентифікований інвентар</h1>
+            <div className="min-h-screen bg-white dark:bg-[#111827]">
+                <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+                    {/* Page Title */}
+                    <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px] lg:mb-[30px]">
+                        Додати новий неідентифікований інвентар
+                    </h1>
 
                     <UnidentifiedInventoryForm
                         data={formData}
                         onChange={setFormData}
                     />
 
-                    <div className="flex gap-4 mt-4">
-                        <button
-                            type="button"
-                            onClick={handleSubmit}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded mt-4"
-                        >
-                            Зберегти
-                        </button>
-                    </div>
+                    {/* Action Buttons Section */}
+                    <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#111827]">
+                        <div className="flex flex-wrap items-center gap-[15px]">
+                            <button 
+                                onClick={handleSubmit}
+                                className="flex items-center gap-[10px] px-[15px] h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
+                            >
+                                <Save className="w-4 h-4 text-white" strokeWidth={1.6} />
+                                <span className="text-white text-[14px] lg:text-[16px] font-medium">
+                                    Зберегти інвентар
+                                </span>
+                            </button>
+                            <Link href="/unidentified">
+                                <button className="flex items-center gap-[10px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors">
+                                    <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium">
+                                        Скасувати додавання
+                                    </span>
+                                </button>
+                            </Link>
+                        </div>
+                    </section>
                 </div>
-            </main>
+            </div>
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </>

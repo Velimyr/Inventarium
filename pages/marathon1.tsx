@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { useUser } from '../contexts/UserContext';
+import { Trophy, Medal, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Leader {
   user_id: string;
@@ -155,26 +156,39 @@ export default function MarathonPage() {
   return (
     <>
       <Header />
-      <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-        <div className="max-w-screen-lg mx-auto">
-          <h1 className="text-3xl font-bold mb-2">Перший Інвентарний Марафон</h1>
-          <p className="mb-6 text-gray-600 dark:text-gray-300">Дата проведення: серпень 2025 року</p>
+      <div className="min-h-screen bg-white dark:bg-[#111827]">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+          {/* Page Title */}
+          <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[10px]">
+            Перший Інвентарний Марафон
+          </h1>
+          <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80 mb-[20px] lg:mb-[30px]">
+            Дата проведення: серпень 2025 року
+          </p>
 
-          <section className="mb-6">
+          {/* Rules Section */}
+          <section className="mb-[20px]">
             <button
               onClick={() => setShowRules(!showRules)}
-              className="w-full text-left font-semibold text-lg bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-4 py-2 rounded"
+              className="w-full flex items-center justify-between p-[15px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors"
             >
-              Правила Інвентарного марафону {showRules ? '▲' : '▼'}
+              <span className="text-gray-900 dark:text-[#F3F4F6] text-[16px] lg:text-[18px] font-semibold">
+                Правила Інвентарного марафону
+              </span>
+              {showRules ? (
+                <ChevronUp className="w-5 h-5 text-gray-900 dark:text-white" strokeWidth={2} />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-900 dark:text-white" strokeWidth={2} />
+              )}
             </button>
             {showRules && (
-              <div className="mt-2 bg-gray-100 dark:bg-gray-800 p-4 rounded space-y-4 text-gray-900 dark:text-gray-100">
+              <div className="mt-[10px] p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] space-y-[15px] text-gray-900 dark:text-white text-[14px] lg:text-[16px]">
                 <p><strong>Перший Інвентарний Марафон</strong> <br /> Проходить з 1 серпня по 31 серпня 2025 року.</p>
                 <p>Завдання учасників — знайти в архівах та бібліотеках якомога більше інвентарів і додати їх до реєстру <strong>Інвентаріум</strong>.</p>
-                <br />
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg mt-4">Умови зарахування інвентарів:</h3>
-                  <div className="space-y-3">
+
+                <div className="space-y-[15px]">
+                  <h3 className="text-[16px] lg:text-[18px] font-semibold">Умови зарахування інвентарів:</h3>
+                  <div className="space-y-[10px]">
                     <div>
                       <p><strong>Авторизація на сайті:</strong></p>
                       <p>Щоб інвентар був зарахований, його потрібно додати, будучи авторизованим користувачем сайту Інвентаріум. Якщо інвентар додано без входу в акаунт — він не враховується у статистиці марафону.</p>
@@ -192,7 +206,7 @@ export default function MarathonPage() {
                         <li>В одному інвентарі є згадки про 10 сіл чи містечок.</li>
                         <li>Якщо ви додасте до реєстру 10 окремих записів для кожного з них — отримаєте 10 балів у марафоні.</li>
                       </ul>
-                      <p>Однаково зараховуються як записи з типом “місце”, так і з типом “регіон”.</p>
+                      <p>Однаково зараховуються як записи з типом "місце", так і з типом "регіон".</p>
                     </div>
 
                     <div>
@@ -201,13 +215,13 @@ export default function MarathonPage() {
                     </div>
                   </div>
                 </div>
-                <br />
-                <h3 className="font-semibold text-lg mt-4">Бонуси та винагороди:</h3>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-6 my-4">
+
+                <h3 className="text-[16px] lg:text-[18px] font-semibold">Бонуси та винагороди:</h3>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-6">
                   <div className="sm:w-2/3">
                     <p>
                       Усі, хто додасть хоча б один запис, отримають запрошення на закриту онлайн-зустріч —
-                      <strong> “Генеалогічну балачку”</strong> з Сергієм Фазульяновим та Віктором Долецьким.
+                      <strong> "Генеалогічну балачку"</strong> з Сергієм Фазульяновим та Віктором Долецьким.
                     </p>
                     <p className="mt-2">
                       Під час зустрічі ви дізнаєтесь про генеалогічні джерела, архівний пошук і зможете поставити свої запитання.
@@ -221,8 +235,7 @@ export default function MarathonPage() {
                     />
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row items-start gap-6 my-4">
-                  {/* Ліва частина — текст */}
+                <div className="flex flex-col sm:flex-row items-start gap-6">
                   <div className="sm:w-2/3">
                     <p>
                       Також серед учасників, які додадуть <strong>щонайменше 10 записів</strong>, ми розіграємо призи:
@@ -234,7 +247,6 @@ export default function MarathonPage() {
                     </p>
                   </div>
 
-                  {/* Права частина — зображення в один ряд */}
                   <div className="sm:w-1/3 flex gap-4 justify-center">
                     <div className="flex flex-col items-center">
                       <img
@@ -242,7 +254,7 @@ export default function MarathonPage() {
                         alt="Футболка Інвентаріум"
                         className="w-full max-w-[150px] h-[220px] object-contain rounded shadow-md"
                       />
-                      <span className="mt-2 font-medium text-center">Футболка “Інвентаріум”</span>
+                      <span className="mt-2 font-medium text-center">Футболка "Інвентаріум"</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <img
@@ -250,63 +262,88 @@ export default function MarathonPage() {
                         alt="Книга Люди без облич"
                         className="w-full max-w-[150px] h-[220px] object-contain rounded shadow-md"
                       />
-                      <span className="mt-2 font-medium text-center">Книга “Люди без облич”</span>
+                      <span className="mt-2 font-medium text-center">Книга "Люди без облич"</span>
                     </div>
                   </div>
                 </div>
-                <p className="font-semibold mt-4">
+                <p className="font-semibold">
                   Долучайтесь до Першого Інвентарного Марафону, шукайте й додавайте інвентарі — та вигравайте призи!
                 </p>
               </div>
             )}
           </section>
 
-          <section className="mb-6 bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
-            <h2 className="text-xl font-semibold mb-4">Моя участь</h2>
-            <div className="mb-2">
-              <p className="text-gray-600 dark:text-gray-300">Мої інвентарі в марафоні</p>
-              <p className="text-3xl font-bold">{myStats ? myStats.total : '—'}</p>
+          {/* My Participation */}
+          <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] mb-[20px]">
+            <div className="flex items-center gap-[10px] mb-[15px]">
+              <Medal className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+              <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                Моя участь
+              </h2>
             </div>
-            <div>
-              <p className="text-gray-600 dark:text-gray-300">Моя позиція в марафоні</p>
-              <p className="text-3xl font-bold">{myStats ? myStats.position : '—'}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[20px]">
+              <div>
+                <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80 mb-[5px]">
+                  Мої інвентарі в марафоні
+                </p>
+                <p className="text-gray-900 dark:text-white text-[28px] lg:text-[32px] font-bold">
+                  {myStats ? myStats.total : '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80 mb-[5px]">
+                  Моя позиція в марафоні
+                </p>
+                <p className="text-gray-900 dark:text-white text-[28px] lg:text-[32px] font-bold">
+                  {myStats ? myStats.position : '—'}
+                </p>
+              </div>
             </div>
           </section>
 
-          <section className="bg-card rounded-2xl shadow p-6 bg-white dark:bg-gray-800">
-            <h2 className="text-xl font-semibold mb-4">Таблиця лідерів</h2>
+          {/* Leaderboard */}
+          <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
+            <div className="flex items-center gap-[10px] mb-[15px]">
+              <Trophy className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+              <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                Таблиця лідерів
+              </h2>
+            </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full text-left">
+              <table className="min-w-full">
                 <thead>
-                  <tr>
-                    <th className="py-2 px-4">#</th>
-                    <th className="py-2 px-4">Імʼя</th>
-                    <th className="py-2 px-4">Підтверджено</th>
-                    <th className="py-2 px-4">Очікує</th>
-                    <th className="py-2 px-4">Всього</th>
+                  <tr className="border-b border-gray-300 dark:border-[#374151]">
+                    <th className="py-[10px] px-[10px] text-left text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold">#</th>
+                    <th className="py-[10px] px-[10px] text-left text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold">Імʼя</th>
+                    <th className="py-[10px] px-[10px] text-left text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold">Підтверджено</th>
+                    <th className="py-[10px] px-[10px] text-left text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold">Очікує</th>
+                    <th className="py-[10px] px-[10px] text-left text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold">Всього</th>
                   </tr>
                 </thead>
                 <tbody>
                   {leaders.map((u, i) => (
                     <tr
                       key={u.user_id}
-                      className={`${u.user_id === user?.id
-                        ? 'font-semibold bg-blue-50 dark:bg-blue-900'
-                        : leaders.indexOf(u) < 3
-                          ? 'bg-yellow-100 dark:bg-yellow-900'
-                          : ''
-                        }`}
+                      className={`border-b border-gray-200 dark:border-[#374151] ${
+                        u.user_id === user?.id
+                          ? 'bg-blue-100 dark:bg-blue-900 font-semibold'
+                          : i < 3
+                            ? 'bg-yellow-100 dark:bg-yellow-900'
+                            : ''
+                      }`}
                     >
-                      <td className="py-2 px-4">{i + 1}</td>
-                      <td className="py-2 px-4 flex items-center gap-2">
-                        {i === 0 && '🥇'}
-                        {i === 1 && '🥈'}
-                        {i === 2 && '🥉'}
-                        <span>{u.name}</span>
+                      <td className="py-[10px] px-[10px] text-gray-900 dark:text-white text-[13px] lg:text-[14px]">{i + 1}</td>
+                      <td className="py-[10px] px-[10px] text-gray-900 dark:text-white text-[13px] lg:text-[14px]">
+                        <div className="flex items-center gap-2">
+                          {i === 0 && '🥇'}
+                          {i === 1 && '🥈'}
+                          {i === 2 && '🥉'}
+                          <span>{u.name}</span>
+                        </div>
                       </td>
-                      <td className="py-2 px-4">{u.approved}</td>
-                      <td className="py-2 px-4">{u.unverified}</td>
-                      <td className="py-2 px-4">{u.total}</td>
+                      <td className="py-[10px] px-[10px] text-gray-900 dark:text-white text-[13px] lg:text-[14px]">{u.approved}</td>
+                      <td className="py-[10px] px-[10px] text-gray-900 dark:text-white text-[13px] lg:text-[14px]">{u.unverified}</td>
+                      <td className="py-[10px] px-[10px] text-gray-900 dark:text-white text-[13px] lg:text-[14px]">{u.total}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -314,7 +351,7 @@ export default function MarathonPage() {
             </div>
           </section>
         </div>
-      </main>
+      </div>
     </>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { useUser } from '../contexts/UserContext';
+import { BarChart3, FileText, Bell, Edit, Search, Send, ArrowRight } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { user, loading: userLoading } = useUser();
@@ -15,7 +16,6 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Якщо юзер ще завантажується — нічого не робимо
     if (userLoading) return;
 
     if (!user) {
@@ -53,14 +53,13 @@ export default function AdminDashboard() {
 
       const { count: editCount } = await supabase
         .from('records_edit')
-        .select('*', { count: 'exact', head: true })        
+        .select('*', { count: 'exact', head: true });
 
       const { count: identifiedCount } = await supabase
         .from('records_notidentify')
-        .select('*', { count: 'exact', head: true })        
-        .eq('status', 'review')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'review');
 
-        
       setApprovedCount(approved ?? 0);
       setUnverifiedCount(unverified ?? 0);
       setPendingSubscriptions(subscriptionCount ?? 0);
@@ -76,9 +75,9 @@ export default function AdminDashboard() {
     return (
       <>
         <Header />
-        <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex items-center justify-center">
-          <p>Завантаження...</p>
-        </main>
+        <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+          <p className="text-gray-900 dark:text-white text-[16px]">Завантаження...</p>
+        </div>
       </>
     );
   }
@@ -87,9 +86,9 @@ export default function AdminDashboard() {
     return (
       <>
         <Header />
-        <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-red-600 dark:text-red-400 flex items-center justify-center">
-          <p>{error}</p>
-        </main>
+        <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+          <p className="text-red-600 dark:text-red-400 text-[16px]">{error}</p>
+        </div>
       </>
     );
   }
@@ -97,95 +96,150 @@ export default function AdminDashboard() {
   return (
     <>
       <Header />
-      <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-        <div className="max-w-screen-lg mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Адмін-панель</h1>
+      <div className="min-h-screen bg-white dark:bg-[#111827]">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+          {/* Page Title */}
+          <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px] lg:mb-[30px]">
+            Адмін-панель
+          </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
+          {/* Dashboard Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-[20px]">
+            {/* Статистика інвентарів */}
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
               <div>
-              <h2 className="text-xl font-semibold mb-2">К-ть інвентарів в реєстрі</h2>
-              <p className="text-4xl font-bold">{approvedCount ?? '—'}</p>
+                <div className="flex items-center gap-[10px] mb-[15px]">
+                  <BarChart3 className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                  <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                    К-ть інвентарів в реєстрі
+                  </h2>
+                </div>
+                <p className="text-gray-900 dark:text-white text-[32px] lg:text-[40px] font-bold">
+                  {approvedCount ?? '—'}
+                </p>
               </div>
               <button
                 onClick={() => {
                   window.location.href = '/admin_stats';
                 }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
+                className="flex items-center justify-center gap-[8px] w-full h-[40px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded transition-colors mt-[15px]"
                 type="button"
               >
-                Статистика
+                <span className="text-[14px] lg:text-[16px] font-medium">Статистика</span>
+                <ArrowRight className="w-5 h-5" strokeWidth={2} />
               </button>
             </section>
 
-            <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
+            {/* Необроблені інвентарі */}
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
               <div>
-                <h2 className="text-xl font-semibold mb-2">К-ть необроблених інвентарів</h2>
-                <p className="text-4xl font-bold mb-4">{unverifiedCount ?? '—'}</p>
+                <div className="flex items-center gap-[10px] mb-[15px]">
+                  <FileText className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                  <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                    К-ть необроблених інвентарів
+                  </h2>
+                </div>
+                <p className="text-gray-900 dark:text-white text-[32px] lg:text-[40px] font-bold">
+                  {unverifiedCount ?? '—'}
+                </p>
               </div>
               <button
                 onClick={() => {
                   window.location.href = '/admin_approve';
                 }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
+                className="flex items-center justify-center gap-[8px] w-full h-[40px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded transition-colors mt-[15px]"
                 type="button"
               >
-                Почати обробку інвентарів
+                <span className="text-[14px] lg:text-[16px] font-medium">Почати обробку інвентарів</span>
+                <ArrowRight className="w-5 h-5" strokeWidth={2} />
               </button>
             </section>
 
-            <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
+            {/* Непідтверджені підписки */}
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
               <div>
-                <h2 className="text-xl font-semibold mb-2">Непідтверджені підписки</h2>
-                <p className="text-4xl font-bold mb-4">{pendingSubscriptions ?? '—'}</p>
+                <div className="flex items-center gap-[10px] mb-[15px]">
+                  <Bell className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                  <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                    Непідтверджені підписки
+                  </h2>
+                </div>
+                <p className="text-gray-900 dark:text-white text-[32px] lg:text-[40px] font-bold">
+                  {pendingSubscriptions ?? '—'}
+                </p>
               </div>
               <button
                 onClick={() => {
                   window.location.href = '/admin_subscription';
                 }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
+                className="flex items-center justify-center gap-[8px] w-full h-[40px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded transition-colors mt-[15px]"
                 type="button"
               >
-                Почати обробку підписок
+                <span className="text-[14px] lg:text-[16px] font-medium">Почати обробку підписок</span>
+                <ArrowRight className="w-5 h-5" strokeWidth={2} />
               </button>
             </section>
 
-            <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
+            {/* Редаговані інвентарі */}
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
               <div>
-                <h2 className="text-xl font-semibold mb-2">К-ть редагованих інвентарів</h2>
-                <p className="text-4xl font-bold mb-4">{editCount ?? '—'}</p>
+                <div className="flex items-center gap-[10px] mb-[15px]">
+                  <Edit className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                  <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                    К-ть редагованих інвентарів
+                  </h2>
+                </div>
+                <p className="text-gray-900 dark:text-white text-[32px] lg:text-[40px] font-bold">
+                  {editCount ?? '—'}
+                </p>
               </div>
               <button
                 onClick={() => {
                   window.location.href = '/admin_editapprove';
                 }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
+                className="flex items-center justify-center gap-[8px] w-full h-[40px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded transition-colors mt-[15px]"
                 type="button"
               >
-                Почати обробку інвентарів
+                <span className="text-[14px] lg:text-[16px] font-medium">Почати обробку інвентарів</span>
+                <ArrowRight className="w-5 h-5" strokeWidth={2} />
               </button>
             </section>
 
-            <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
+            {/* Ідентифіковані інвентарі */}
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
               <div>
-                <h2 className="text-xl font-semibold mb-2">К-ть ідентифікованих інвентарів</h2>
-                <p className="text-4xl font-bold mb-4">{identifiedCount ?? '—'}</p>
+                <div className="flex items-center gap-[10px] mb-[15px]">
+                  <Search className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                  <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                    К-ть ідентифікованих інвентарів
+                  </h2>
+                </div>
+                <p className="text-gray-900 dark:text-white text-[32px] lg:text-[40px] font-bold">
+                  {identifiedCount ?? '—'}
+                </p>
               </div>
               <button
                 onClick={() => {
                   window.location.href = '/admin_unidentified';
                 }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
+                className="flex items-center justify-center gap-[8px] w-full h-[40px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded transition-colors mt-[15px]"
                 type="button"
               >
-                Почати обробку інвентарів
+                <span className="text-[14px] lg:text-[16px] font-medium">Почати обробку інвентарів</span>
+                <ArrowRight className="w-5 h-5" strokeWidth={2} />
               </button>
             </section>
 
-            <section className="bg-card rounded-2xl shadow p-6 flex flex-col justify-between bg-white dark:bg-gray-800">
+            {/* Розсилка повідомлень */}
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
               <div>
-                <h2 className="text-xl font-semibold mb-2">Розсилка повідомлень</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <div className="flex items-center gap-[10px] mb-[15px]">
+                  <Send className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                  <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                    Розсилка повідомлень
+                  </h2>
+                </div>
+                <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80">
                   Відправити повідомлення користувачам системи
                 </p>
               </div>
@@ -193,15 +247,16 @@ export default function AdminDashboard() {
                 onClick={() => {
                   window.location.href = '/admin_send_messages';
                 }}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition-colors"
+                className="flex items-center justify-center gap-[8px] w-full h-[40px] bg-green-600 hover:bg-green-700 text-white rounded transition-colors mt-[15px]"
                 type="button"
               >
-                Відкрити розсилку
+                <span className="text-[14px] lg:text-[16px] font-medium">Відкрити розсилку</span>
+                <ArrowRight className="w-5 h-5" strokeWidth={2} />
               </button>
             </section>
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 }

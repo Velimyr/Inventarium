@@ -5,7 +5,8 @@ import Header from '../../components/header';
 import Toast from '../../components/Toast';
 import dynamic from 'next/dynamic';
 import { useUser } from '../../contexts/UserContext';
-import isEqual from 'lodash.isequal';
+import { Save } from 'lucide-react';
+import Link from 'next/link';
 
 const EditableInventoryForm = dynamic(() => import('../../components/EditableInventoryForm'), {
     ssr: false,
@@ -96,40 +97,10 @@ export default function EditSingleRecordPage() {
             return;
         }
 
-        /*
-        const updatedFields: any = {};
-
-         for (const key in formData) {
-            if (key === 'email') continue;
-
-            const original = normalize(originalData[key]);
-            const current = normalize(formData[key]);
-
-            if (original === "" && current === "") {
-                continue; // обидва пусті → пропускаємо
-            }
-
-            if (original === current) {
-                continue; // однакові → пропускаємо
-            }
-
-            // якщо користувач стер значення → зберігаємо як ""
-            updatedFields[key] = current;
-        } 
-
-        // Якщо змінили archive / fonds / series / record — додаємо case_signature (з форми)
-        const importantFields = ['archive', 'fonds', 'series', 'record'];
-        const changedImportantField = importantFields.some((field) => field in updatedFields);
-        if (changedImportantField) {
-            updatedFields['case_signature'] = formData['case_signature'];
-        }
-        */
-
         // --- Email ---
         const emailFromForm = typeof formData.email === 'string' ? formData.email.trim() : null;
         const emailFromUser = typeof user?.email === 'string' ? user.email.trim() : null;
         const emailToSave = emailFromForm || emailFromUser || null;
-
 
         if (!isValidEmail(emailToSave)) {
             setToast({ message: '❌ Потрібен валідний email (введіть коректну адресу)', type: 'error' });
@@ -149,8 +120,6 @@ export default function EditSingleRecordPage() {
             'case_signature',
             'inventory_year',
         ];
-
-
 
         const matchQuery: any = {};
         for (const field of keyFields) {
@@ -182,9 +151,6 @@ export default function EditSingleRecordPage() {
                 return;
             }
         }
-
-
-        //console.log(updatedFields)
         // Виконуємо upsert у таблицю records_edit
         const sanitizedFormData: any = {};
         for (const key in formData) {
@@ -213,53 +179,82 @@ export default function EditSingleRecordPage() {
         }
     };
 
-
     return (
         <>
             <Header />
-            <main className="p-6 min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-                <div className="max-w-2xl mx-auto">
-                    <h1 className="text-2xl font-bold mb-6">✏️ Редагування запису</h1>
+            <div className="min-h-screen bg-white dark:bg-[#111827]">
+                <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+                    {/* Page Title */}
+                    <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[10px]">
+                        ✏️ Редагування запису
+                    </h1>
+                    
+                    <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80 mb-[30px]">
+                        Внесіть зміни до запису про інвентар
+                    </p>
 
                     {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
                     {loading ? (
-                        <p>Завантаження...</p>
+                        <div className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
+                            <p className="text-gray-900 dark:text-[#F3F4F6] text-[14px]">Завантаження...</p>
+                        </div>
                     ) : !record ? (
-                        <p className="text-red-600">⛔ Запис не знайдено</p>
+                        <div className="p-[20px] rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+                            <p className="text-red-600 dark:text-red-400 text-[14px]">⛔ Запис не знайдено</p>
+                        </div>
                     ) : (
                         <>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Внесіть зміни до запису про інвентар</p>
                             <EditableInventoryForm 
                                 key={id as string}
                                 data={formData} 
                                 onChange={setFormData} 
                                 onSubmit={saveRecord} 
                             />
-                            <div className="mt-6">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+
+                            {/* Comment Section */}
+                            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#111827] mb-[20px]">
+                                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold mb-[15px]">
+                                    Пояснення змін
+                                </h2>
+
+                                <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80 mb-[15px]">
                                     Опишіть детально чому ви вважаєте що саме такі зміни потрібно внести в інвентар
-                                </label>
+                                </p>
+
                                 <textarea
                                     value={comment}
                                     onChange={(e) => setComment(e.target.value)}
-                                    className="w-full border border-gray-300 dark:border-gray-600 rounded p-2 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                                    placeholder="Наприклад: Виправлення помилки в назві населеного пункту, оновлення шифру справи..."
                                     rows={4}
                                     required
+                                    className="w-full p-[10px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-[13px] lg:text-[14px] outline-none focus:border-[#2563EB] transition-colors resize-none"
                                 />
-                            </div>
-                            <div className="mt-6 flex justify-end">
-                                <button
+                            </section>
+
+                            {/* Action Buttons */}
+                            <div className="flex flex-wrap items-center gap-[15px]">
+                                <button 
                                     onClick={saveRecord}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    className="flex items-center gap-[10px] px-[15px] h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
                                 >
-                                    💾 Зберегти зміни
+                                    <Save className="w-4 h-4 text-white" strokeWidth={1.6} />
+                                    <span className="text-white text-[14px] lg:text-[16px] font-medium">
+                                        Зберегти зміни
+                                    </span>
                                 </button>
+                                <Link href={`/record/${id}`}>
+                                    <button className="flex items-center gap-[10px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors">
+                                        <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium">
+                                            Скасувати редагування
+                                        </span>
+                                    </button>
+                                </Link>
                             </div>
                         </>
                     )}
                 </div>
-            </main>
+            </div>
         </>
     );
 }

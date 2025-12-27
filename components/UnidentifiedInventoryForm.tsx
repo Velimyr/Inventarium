@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Toast from './Toast';
 import Link from 'next/link';
+import { ChevronDown } from 'lucide-react';
 
 const MapSelector = dynamic(() => import('./MapSelector'), { ssr: false });
 
@@ -18,7 +19,7 @@ interface UnidentifiedInventoryFormProps {
   duplicateWarning?: string | null;
 }
 
-export default function UnidentifiedInventoryFormForm({
+export default function UnidentifiedInventoryForm({
   data,
   onChange,
   onSubmit,
@@ -108,172 +109,270 @@ export default function UnidentifiedInventoryFormForm({
 
   return (
     <>
-      <main className="p-6 w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex justify-center">
-        <div className="max-w-2xl w-full">
-          {duplicateUrl && (
-            <p className="text-yellow-600 mb-4">
-              Такий інвентар уже існує.{' '}
-              <a href={duplicateUrl} className="underline">
-                Переглянути
+      {duplicateUrl && (
+        <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#111827] mb-[20px]">
+          <p className="text-yellow-600 dark:text-yellow-400 text-[14px] lg:text-[16px]">
+            Такий інвентар уже існує.{' '}
+            <a href={duplicateUrl} className="underline hover:opacity-80">
+              Переглянути
+            </a>
+          </p>
+        </section>
+      )}
+
+      {/* Archive Case Information Section */}
+      <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#111827] mb-[20px]">
+        <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold mb-[15px]">
+          Інформація про архівну справу
+        </h2>
+
+        {/* Ukrainian Archive Selector */}
+        <div className="mb-[15px]">
+          <FormSelect
+            name="is_ukrainian_archive"
+            value={formData.is_ukrainian_archive}
+            onChange={handleChange}
+            placeholder="Справа знаходиться в українському архіві?"
+          >
+            <option value="Так">Так</option>
+            <option value="Ні">Ні</option>
+          </FormSelect>
+        </div>
+
+        {formData.is_ukrainian_archive === 'Так' ? (
+          <>
+            {/* Row 1: Archive, Fund, Description, Case */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-[15px] mb-[15px]">
+              <FormSelect
+                name="archive"
+                value={formData.archive}
+                onChange={handleChange}
+                placeholder="Оберіть архів"
+              >
+                {archives.map(({ short_name, full_name_ukr }) => (
+                  <option key={short_name} value={short_name}>
+                    {short_name} - {full_name_ukr}
+                  </option>
+                ))}
+              </FormSelect>
+              <FormInput
+                name="fonds"
+                value={formData.fonds}
+                onChange={handleChange}
+                placeholder="Фонд"
+              />
+              <FormInput
+                name="series"
+                value={formData.series}
+                onChange={handleChange}
+                placeholder="Опис"
+              />
+              <FormInput
+                name="record"
+                value={formData.record}
+                onChange={handleChange}
+                placeholder="Справа"
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80 mb-[15px]">
+              <a
+                href="/archives"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:opacity-100"
+              >
+                Список назв архівів та їх скорочень
               </a>
             </p>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-8">
-
-            {/* Блок 1: Архівна справа */}
-            <section className="space-y-4">
-              <h2 className="text-xl font-semibold">Інформація про архівну справу</h2>
-              <div>
-                <label className="block mb-1">Справа знаходиться в українському архіві?</label>
-                <select
-                  name="is_ukrainian_archive"
-                  value={formData.is_ukrainian_archive}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-                >
-                  <option value="Так">Так</option>
-                  <option value="Ні">Ні</option>
-                </select>
-              </div>
-
-              {formData.is_ukrainian_archive === 'Так' ? (
-                <div className="flex flex-col gap-4">
-                  <select
-                    value={formData.archive}
-                    onChange={(e) =>
-                      setFormData((fd) => ({ ...fd, archive: e.target.value }))
-                    }
-                    className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600 w-full"
-                  >
-                    <option value="">Оберіть архів</option>
-                    {archives.map(({ short_name, full_name_ukr }) => (
-                      <option key={short_name} value={short_name}>
-                        {short_name} - {full_name_ukr}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    name="fonds"
-                    value={formData.fonds}
-                    onChange={handleChange}
-                    placeholder="Фонд"
-                    className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-                  />
-                  <input
-                    name="series"
-                    value={formData.series}
-                    onChange={handleChange}
-                    placeholder="Опис"
-                    className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-                  />
-                  <input
-                    name="record"
-                    value={formData.record}
-                    onChange={handleChange}
-                    placeholder="Справа"
-                    className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-                  />
-                </div>
-              ) : (
-                <>
-                  <div className="mb-2">
-                    <a
-                      href="/archives"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 underline hover:text-blue-800"
-                    >
-                      Список назв архівів та їх скорочень
-                    </a>
-                  </div>
-                  <input
-                    name="case_signature"
-                    value={formData.case_signature}
-                    onChange={handleChange}
-                    placeholder="Шифр справи"
-                    className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-                  />
-                </>
-              )}
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Вказуйте назву справи українською мовою, навіть якщо в оригіналі вона вказана іншою мовою
-              </p>
-              <input
-                name="case_title"
-                value={formData.case_title}
+            <div className="mb-[15px]">
+              <FormInput
+                name="case_signature"
+                value={formData.case_signature}
                 onChange={handleChange}
-                placeholder="Назва справи"
-                className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
+                placeholder="Шифр справи"
               />
-              <div className="flex gap-4 flex-wrap">
-                <input
-                  name="case_date"
-                  value={formData.case_date}
-                  onChange={handleChange}
-                  placeholder="Дати справи"
-                  className="flex-1 min-w-[150px] p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-                />
-                <input
-                  name="pages_count"
-                  value={formData.pages_count}
-                  onChange={handleChange}
-                  placeholder="Кількість сторінок справи"
-                  className="flex-1 min-w-[150px] p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-                />
-              </div>
-              <input
-                name="additional_case_signature"
-                value={formData.additional_case_signature}
-                onChange={handleChange}
-                placeholder="Шифр додаткової справи (якщо є)"
-                className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-              />
-            </section>
+            </div>
+          </>
+        )}
 
-            {/* Блок 2: Інформація про інвентар */}
-            <section className="space-y-4">
-              <h2 className="text-xl font-semibold">Інформація про інвентар</h2>
-              <div className="flex gap-4 flex-wrap">
-                <input
-                  name="inventory_year"
-                  value={formData.inventory_year}
-                  onChange={handleChange}
-                  placeholder="Рік складання інвентарю (напр. 1750)"
-                  className="flex-1 min-w-[150px] p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-                />
-                {duplicateWarning && (
-                  <p className="text-red-600 text-sm mt-1">{duplicateWarning}</p>
-                )}               
-              </div>
-              <input
-                name="scans_url"
-                value={formData.scans_url}
-                onChange={handleChange}
-                placeholder="Посилання на скани справи"
-                className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-              />
-              <textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-                placeholder="Примітки"
-                className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-                rows={3}
-              />
-            </section>
+        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80 mb-[15px]">
+          Вказуйте назву справи українською мовою, навіть якщо в оригіналі вона вказана іншою мовою
+        </p>
 
-            <input
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Email для зв'язку"
-              className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-            />
-          </form>
+        {/* Case Name - full width */}
+        <div className="mb-[15px]">
+          <FormInput
+            name="case_title"
+            value={formData.case_title}
+            onChange={handleChange}
+            placeholder="Назва справи"
+          />
         </div>
-      </main>
+
+        {/* Row: Case Dates, Pages Count */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[15px] mb-[15px]">
+          <FormInput
+            name="case_date"
+            value={formData.case_date}
+            onChange={handleChange}
+            placeholder="Дати справи"
+          />
+          <FormInput
+            name="pages_count"
+            value={formData.pages_count}
+            onChange={handleChange}
+            placeholder="Кількість сторінок справи"
+          />
+        </div>
+
+        {/* Additional Signature */}
+        <FormInput
+          name="additional_case_signature"
+          value={formData.additional_case_signature}
+          onChange={handleChange}
+          placeholder="Шифр додаткової справи (якщо є)"
+        />
+      </section>
+
+      {/* Inventory Information Section */}
+      <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#111827] mb-[20px]">
+        <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold mb-[15px]">
+          Інформація про інвентар
+        </h2>
+
+        {/* Row 1: Year */}
+        <div className="mb-[15px]">
+          <FormInput
+            name="inventory_year"
+            value={formData.inventory_year}
+            onChange={handleChange}
+            placeholder="Рік складання інвентарю, наприклад 1750"
+          />
+          {duplicateWarning && (
+            <p className="text-red-600 text-[13px] mt-1">{duplicateWarning}</p>
+          )}
+        </div>
+
+        {/* Scans Link - full width */}
+        <div className="mb-[15px]">
+          <FormInput
+            name="scans_url"
+            value={formData.scans_url}
+            onChange={handleChange}
+            placeholder="Посилання на скани справи"
+          />
+        </div>
+
+        {/* Notes Textarea */}
+        <FormTextarea
+          name="notes"
+          value={formData.notes}
+          onChange={handleChange}
+          placeholder="Примітки"
+        />
+      </section>
+
+      {/* Contact Information Section */}
+      <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#111827] mb-[20px]">
+        <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold mb-[15px]">
+          Контактні дані
+        </h2>
+
+        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80 mb-[15px]">
+          Ця інформація не буде опублікована на сайті, вона потрібна лише для адміністратора у випадку необхідності уточнення інформації про інвентар
+        </p>
+
+        <FormInput
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          placeholder="roman.test@gmail.com"
+        />
+      </section>
+
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </>
+  );
+}
+
+// Reusable Form Components
+function FormSelect({ 
+  name, 
+  value, 
+  onChange, 
+  placeholder, 
+  disabled, 
+  children 
+}: { 
+  name: string; 
+  value: string; 
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; 
+  placeholder: string; 
+  disabled?: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <select
+        name={name}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        className="w-full px-[10px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937] text-gray-900 dark:text-[#F3F4F6] text-[13px] lg:text-[14px] outline-none focus:border-[#2563EB] transition-colors appearance-none pr-[35px] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <option value="">{placeholder}</option>
+        {children}
+      </select>
+      <ChevronDown className="absolute right-[10px] top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600 dark:text-[#F3F4F6] pointer-events-none" strokeWidth={2} />
+    </div>
+  );
+}
+
+function FormInput({ 
+  name, 
+  value, 
+  onChange, 
+  placeholder 
+}: { 
+  name: string; 
+  value: string; 
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; 
+  placeholder: string; 
+}) {
+  return (
+    <input
+      type="text"
+      name={name}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className="w-full px-[10px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-[13px] lg:text-[14px] outline-none focus:border-[#2563EB] transition-colors"
+    />
+  );
+}
+
+function FormTextarea({ 
+  name, 
+  value, 
+  onChange, 
+  placeholder 
+}: { 
+  name: string; 
+  value: string; 
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; 
+  placeholder: string; 
+}) {
+  return (
+    <textarea
+      name={name}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      rows={4}
+      className="w-full p-[10px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-[13px] lg:text-[14px] outline-none focus:border-[#2563EB] transition-colors resize-none"
+    />
   );
 }

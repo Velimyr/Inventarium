@@ -4,6 +4,7 @@ import { useUser } from '../contexts/UserContext'
 import { supabase } from '../lib/supabaseClient'
 import Toast from '../components/Toast'
 import ReactMarkdown from 'react-markdown'
+import { Mail, CheckCheck, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface Message {
     message_id: string
@@ -275,9 +276,9 @@ export default function MessagesPage() {
         return (
             <>
                 <Header />
-                <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex items-center justify-center">
-                    <p>Завантаження...</p>
-                </main>
+                <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+                    <p className="text-gray-900 dark:text-white text-[16px]">Завантаження...</p>
+                </div>
             </>
         )
     }
@@ -286,9 +287,9 @@ export default function MessagesPage() {
         return (
             <>
                 <Header />
-                <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-red-600 dark:text-red-400 flex items-center justify-center">
-                    <p>{error}</p>
-                </main>
+                <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+                    <p className="text-red-600 dark:text-red-400 text-[16px]">{error}</p>
+                </div>
             </>
         )
     }
@@ -296,26 +297,29 @@ export default function MessagesPage() {
     return (
         <>
             <Header />
-            <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-                <div className="max-w-screen-lg mx-auto">
-                    {/* Заголовок і кнопки */}
-                    <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                        <h1 className="text-3xl font-bold">Мої повідомлення</h1>
+            <div className="min-h-screen bg-white dark:bg-[#111827]">
+                <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+                    {/* Header with buttons */}
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-[20px] lg:mb-[30px]">
+                        <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold">
+                            Мої повідомлення
+                        </h1>
 
-                        <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="flex flex-wrap items-center gap-[10px]">
                             <button
                                 onClick={connectTelegram}
                                 disabled={isTelegramLinked}
                                 title={isTelegramLinked ? 'Telegram прив\'язаний' : 'Прив\'язати Telegram'}
-                                className={`px-3 py-2 rounded flex items-center gap-2 ${isTelegramLinked
-                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 cursor-not-allowed'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                                    }`}
+                                className={`flex items-center gap-[8px] px-[15px] h-[40px] rounded transition-colors ${
+                                    isTelegramLinked
+                                        ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 cursor-not-allowed'
+                                        : 'bg-[#2563EB] text-white hover:bg-[#1D4ED8]'
+                                }`}
                             >
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z" />
                                 </svg>
-                                <span className="text-sm">
+                                <span className="text-[14px] lg:text-[16px] font-medium">
                                     {isTelegramLinked ? 'Прив\'язаний' : 'Прив\'язати'}
                                 </span>
                             </button>
@@ -323,70 +327,65 @@ export default function MessagesPage() {
                             <button
                                 onClick={markAllAsRead}
                                 title="Прочитати все"
-                                className="px-3 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 flex items-center justify-center"
+                                className="flex items-center justify-center w-[40px] h-[40px] rounded bg-gray-600 dark:bg-gray-700 hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
                             >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
+                                <CheckCheck className="w-5 h-5 text-white" strokeWidth={2} />
                             </button>
                         </div>
                     </div>
 
-                    {/* Десктопна таблиця */}
-                    <div className="hidden md:block overflow-x-auto">
-                        <table className="min-w-full border border-gray-300 dark:border-gray-700">
-                            <thead className="bg-gray-100 dark:bg-gray-800">
-                                <tr>
-                                    <th className="px-4 py-2 text-left w-40">Дата</th>
-                                    <th className="px-4 py-2 text-left w-64">Тип</th>
-                                    <th className="px-4 py-2 text-left">Повідомлення</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                    {/* Desktop Table */}
+                    <div className="hidden lg:block overflow-x-auto mb-[20px]">
+                        <div className="min-w-full border border-gray-300 dark:border-[#374151] rounded-lg overflow-hidden">
+                            {/* Table Header */}
+                            <div className="grid grid-cols-[180px_250px_1fr] border-b border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937]">
+                                <div className="p-[10px] border-r border-gray-200 dark:border-[#374151]">
+                                    <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] font-semibold">Дата</span>
+                                </div>
+                                <div className="p-[10px] border-r border-gray-200 dark:border-[#374151]">
+                                    <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] font-semibold">Тип</span>
+                                </div>
+                                <div className="p-[10px]">
+                                    <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] font-semibold">Повідомлення</span>
+                                </div>
+                            </div>
+
+                            {/* Table Body */}
+                            <div className="divide-y divide-gray-200 dark:divide-[#374151]">
                                 {messages.length === 0 ? (
-                                    <tr className="border-t border-gray-300 dark:border-gray-700">
-                                        <td colSpan={3} className="px-4 py-2 text-gray-500 text-center">
+                                    <div className="p-[20px] text-center">
+                                        <p className="text-gray-500 dark:text-gray-400 text-[14px] lg:text-[16px]">
                                             Повідомлень поки немає
-                                        </td>
-                                    </tr>
+                                        </p>
+                                    </div>
                                 ) : (
                                     messages.map((msg) => {
                                         const { short, hasMore } = truncateToFirstLine(msg.message_text)
                                         const isExpanded = expandedRow === msg.message_id
 
                                         return (
-                                            <tr
+                                            <div
                                                 key={msg.message_id}
                                                 onClick={() => handleRowClick(msg.message_id, msg.is_read)}
-                                                className={`border-t border-gray-300 dark:border-gray-700 cursor-pointer transition-colors ${!msg.is_read
-                                                    ? 'bg-blue-100 dark:bg-blue-900/40 font-bold hover:bg-blue-200 dark:hover:bg-blue-900/60'
-                                                    : 'hover:bg-gray-50 dark:hover:bg-gray-800 opacity-60'
-                                                    }`}
+                                                className={`grid grid-cols-[180px_250px_1fr] cursor-pointer transition-colors ${
+                                                    !msg.is_read
+                                                        ? 'bg-blue-100 dark:bg-blue-900 font-semibold hover:bg-blue-200 dark:hover:bg-blue-800'
+                                                        : 'hover:bg-gray-50 dark:hover:bg-[#1F2937] opacity-60'
+                                                }`}
                                             >
-                                                <td className="px-4 py-3 whitespace-nowrap align-top">
-                                                    {formatDate(msg.event_date)}
-                                                </td>
-                                                <td className="px-4 py-3 align-top">
-                                                    {getMessageTypeLabel(msg.message_type)}
-                                                </td>
-                                                <td className="px-4 py-3">
+                                                <div className="p-[10px] border-r border-gray-200 dark:border-[#374151] flex items-start">
+                                                    <span className="text-gray-900 dark:text-white text-[13px] lg:text-[14px]">
+                                                        {formatDate(msg.event_date)}
+                                                    </span>
+                                                </div>
+                                                <div className="p-[10px] border-r border-gray-200 dark:border-[#374151] flex items-start">
+                                                    <span className="text-gray-900 dark:text-white text-[13px] lg:text-[14px]">
+                                                        {getMessageTypeLabel(msg.message_type)}
+                                                    </span>
+                                                </div>
+                                                <div className="p-[10px]">
                                                     {isExpanded ? (
-                                                        <ReactMarkdown
-                                                            components={{
-                                                                a: ({ node, ...props }) => (
-                                                                    <a
-                                                                        {...props}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="text-blue-600 dark:text-blue-400 underline"
-                                                                    />
-                                                                ),
-                                                            }}
-                                                        >
-                                                            {msg.message_text}
-                                                        </ReactMarkdown>
-                                                    ) : (
-                                                        <div>
+                                                        <div className="text-gray-900 dark:text-white text-[13px] lg:text-[14px]">
                                                             <ReactMarkdown
                                                                 components={{
                                                                     a: ({ node, ...props }) => (
@@ -394,7 +393,24 @@ export default function MessagesPage() {
                                                                             {...props}
                                                                             target="_blank"
                                                                             rel="noopener noreferrer"
-                                                                            className="text-blue-600 dark:text-blue-400 underline"
+                                                                            className="text-[#2563EB] hover:text-[#1D4ED8] underline"
+                                                                        />
+                                                                    ),
+                                                                }}
+                                                            >
+                                                                {msg.message_text}
+                                                            </ReactMarkdown>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-gray-900 dark:text-white text-[13px] lg:text-[14px]">
+                                                            <ReactMarkdown
+                                                                components={{
+                                                                    a: ({ node, ...props }) => (
+                                                                        <a
+                                                                            {...props}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="text-[#2563EB] hover:text-[#1D4ED8] underline"
                                                                         />
                                                                     ),
                                                                 }}
@@ -406,59 +422,54 @@ export default function MessagesPage() {
                                                             )}
                                                         </div>
                                                     )}
-                                                </td>
-                                            </tr>
+                                                </div>
+                                            </div>
                                         )
                                     })
                                 )}
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Мобільні картки */}
-                    <div className="md:hidden space-y-3">
+                    {/* Mobile Cards */}
+                    <div className="block lg:hidden space-y-4 mb-[20px]">
                         {messages.length === 0 ? (
-                            <div className="border border-gray-300 dark:border-gray-700 rounded p-4 text-center text-gray-500">
-                                Повідомлень поки немає
+                            <div className="p-[20px] border border-gray-300 dark:border-[#374151] rounded-lg bg-gray-50 dark:bg-[#1F2937] text-center">
+                                <p className="text-gray-500 dark:text-gray-400 text-[14px]">
+                                    Повідомлень поки немає
+                                </p>
                             </div>
                         ) : (
                             messages.map((msg) => (
                                 <div
                                     key={msg.message_id}
-                                    className={`border rounded overflow-hidden transition-all ${!msg.is_read
-                                        ? 'border-blue-400 dark:border-blue-600 bg-blue-100 dark:bg-blue-900/40 shadow-md'
-                                        : 'border-gray-300 dark:border-gray-700 opacity-60'
-                                        }`}
+                                    className={`border rounded-lg overflow-hidden transition-all ${
+                                        !msg.is_read
+                                            ? 'border-blue-400 dark:border-blue-600 bg-blue-100 dark:bg-blue-900 shadow-md'
+                                            : 'border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] opacity-60'
+                                    }`}
                                 >
                                     <button
                                         onClick={() => handleCardClick(msg.message_id, msg.is_read)}
-                                        className="w-full px-4 py-3 flex justify-between items-center text-left"
+                                        className="w-full p-[15px] flex justify-between items-center text-left"
                                     >
                                         <div className="flex-1">
-                                            <div className={`text-sm ${!msg.is_read ? 'font-bold' : 'font-medium'}`}>
+                                            <div className={`text-[14px] ${!msg.is_read ? 'font-bold' : 'font-medium'} text-gray-900 dark:text-white`}>
                                                 {getMessageTypeLabel(msg.message_type)}
                                             </div>
-                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            <div className="text-[12px] text-gray-600 dark:text-gray-400 mt-1">
                                                 {formatDate(msg.event_date)}
                                             </div>
                                         </div>
-                                        <svg
-                                            className={`w-5 h-5 transition-transform ${expandedCard === msg.message_id ? 'rotate-180' : ''
-                                                }`}
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M19 9l-7 7-7-7"
-                                            />
-                                        </svg>
+                                        <ChevronDown
+                                            className={`w-5 h-5 text-gray-900 dark:text-white transition-transform ${
+                                                expandedCard === msg.message_id ? 'rotate-180' : ''
+                                            }`}
+                                            strokeWidth={2}
+                                        />
                                     </button>
                                     {expandedCard === msg.message_id && (
-                                        <div className="px-4 pb-3 border-t border-gray-300 dark:border-gray-700 pt-3">
+                                        <div className="px-[15px] pb-[15px] border-t border-gray-300 dark:border-[#374151] pt-[15px]">
                                             <ReactMarkdown
                                                 components={{
                                                     a: ({ node, ...props }) => (
@@ -466,10 +477,10 @@ export default function MessagesPage() {
                                                             {...props}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="text-blue-600 dark:text-blue-400 underline"
+                                                            className="text-[#2563EB] hover:text-[#1D4ED8] underline"
                                                         />
                                                     ),
-                                                    p: ({ node, ...props }) => <p className="text-sm mb-2" {...props} />,
+                                                    p: ({ node, ...props }) => <p className="text-[13px] mb-2 text-gray-900 dark:text-white" {...props} />,
                                                 }}
                                             >
                                                 {msg.message_text}
@@ -481,36 +492,38 @@ export default function MessagesPage() {
                         )}
                     </div>
 
-                    {/* Пагінація */}
-                    <div className="flex justify-between items-center mt-6 max-w-md mx-auto">
+                    {/* Pagination */}
+                    <div className="flex items-center justify-between p-[15px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#111827]">
                         <button
-                            className="px-4 py-2 rounded bg-gray-700 text-gray-100 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="flex items-center gap-[10px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={page === 0 || loading}
                             onClick={() => {
                                 setPage(prev => Math.max(prev - 1, 0))
                                 window.scrollTo({ top: 0, behavior: 'smooth' })
                             }}
                         >
-                            Попередня
+                            <ChevronLeft className="w-5 h-5 text-gray-900 dark:text-white" strokeWidth={2} />
+                            <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px]">Назад</span>
                         </button>
 
-                        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                        <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium">
                             Сторінка {page + 1}
                         </span>
 
                         <button
-                            className="px-4 py-2 rounded bg-gray-700 text-gray-100 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="flex items-center gap-[10px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={messages.length < PAGE_SIZE || loading}
                             onClick={() => {
                                 setPage(prev => prev + 1)
                                 window.scrollTo({ top: 0, behavior: 'smooth' })
                             }}
                         >
-                            Наступна
+                            <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px]">Вперед</span>
+                            <ChevronRight className="w-5 h-5 text-gray-900 dark:text-white" strokeWidth={2} />
                         </button>
                     </div>
                 </div>
-            </main>
+            </div>
             {toast && (
                 <Toast
                     message={toast.message}

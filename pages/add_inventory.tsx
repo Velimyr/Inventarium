@@ -5,48 +5,18 @@ import { supabase } from '../lib/supabaseClient';
 import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
-import { sendNotification } from '../components/notifications'
-
-
+import { sendNotification } from '../components/notifications';
+import { Save, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
     ssr: false,
 });
 
-const MapSelector = dynamic(() => import('../components/MapSelector'), { ssr: false });
-
-type Settlement = {
-    name: string;
-    code: string;
-    type: string;
-    lat: number | null;
-    lon: number | null;
-};
-
-type NestedStructure = {
-    [region: string]: {
-        [district: string]: {
-            [community: string]: Settlement[];
-        };
-    };
-};
-
 export default function AddInventoryPage() {
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const router = useRouter();
     const { user, loading } = useUser();
-
-    // Дані з JSON
-    const [nestedData, setNestedData] = useState<NestedStructure | null>(null);
-
-    // Для каскадних списків
-    const [districts, setDistricts] = useState<string[]>([]);
-    const [communities, setCommunities] = useState<string[]>([]);
-    const [settlements, setSettlements] = useState<Settlement[]>([]);
-    const [settlementTypes, setSettlementTypes] = useState<string[]>([]); // Витягнемо унікальні типи поселень для вибраного ОТГ
-
-    // Перемикач для ручного вводу
-    const [manualEntry, setManualEntry] = useState(false);
 
     const [formData, setFormData] = useState<any>({
         current_region: '',
@@ -79,8 +49,10 @@ export default function AddInventoryPage() {
         email: '',
     });
 
-    //Перевірка дублів за inventory_year + суч. адмін.поділ
     const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [duplicateUrl, setDuplicateUrl] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
 
     useEffect(() => {
         const checkDuplicateYear = async () => {
@@ -134,24 +106,6 @@ export default function AddInventoryPage() {
         formData.archive
     ]);
 
-
-
-    // Завантажуємо region_structure.json при монтуванні
-    useEffect(() => {
-        async function fetchNestedData() {
-            try {
-                const res = await fetch('/data/region_structure.json');
-                if (!res.ok) throw new Error('Не вдалось завантажити структуру');
-                const data: NestedStructure = await res.json();
-                setNestedData(data);
-            } catch (e) {
-                console.error('Error loading nested structure:', e);
-            }
-        }
-        fetchNestedData();
-    }, []);
-    // Підвантажуємо мейл
-
     useEffect(() => {
         if (!loading && user?.email) {
             setFormData((prev: any) => {
@@ -162,156 +116,6 @@ export default function AddInventoryPage() {
             });
         }
     }, [user, loading]);
-    // Оновлюємо districts при зміні current_region
-    useEffect(() => {
-        if (nestedData && formData.current_region && !manualEntry) {
-            const regionData = nestedData[formData.current_region];
-            if (regionData) {
-                const dists = Object.keys(regionData);
-                setDistricts(dists);
-            } else {
-                setDistricts([]);
-            }
-            // Очищаємо нижчі рівні
-            setFormData((fd: any) => ({
-                ...fd,
-                current_district: '',
-                current_community: '',
-                current_settlement_type: '',
-                current_settlement_name: '',
-                latitude: '',
-                longitude: '',
-            }));
-            setCommunities([]);
-            setSettlements([]);
-            setSettlementTypes([]);
-        }
-    }, [formData.current_region, nestedData, manualEntry]);
-
-    // Оновлюємо communities при зміні current_district
-    useEffect(() => {
-        if (
-            nestedData &&
-            formData.current_region &&
-            formData.current_district &&
-            !manualEntry
-        ) {
-            const communitiesData = nestedData[formData.current_region]?.[formData.current_district];
-            if (communitiesData) {
-                const comms = Object.keys(communitiesData);
-                setCommunities(comms);
-            } else {
-                setCommunities([]);
-            }
-            // Очищаємо нижчі рівні
-            setFormData((fd: any) => ({
-                ...fd,
-                current_community: '',
-                current_settlement_type: '',
-                current_settlement_name: '',
-                latitude: '',
-                longitude: '',
-            }));
-            setSettlements([]);
-            setSettlementTypes([]);
-        }
-    }, [formData.current_district, formData.current_region, nestedData, manualEntry]);
-
-    // Оновлюємо settlements при зміні current_community
-    useEffect(() => {
-        if (
-            nestedData &&
-            formData.current_region &&
-            formData.current_district &&
-            formData.current_community &&
-            !manualEntry
-        ) {
-            const settlementsData =
-                nestedData[formData.current_region]?.[formData.current_district]?.[formData.current_community];
-            if (settlementsData) {
-                setSettlements(settlementsData);
-                // Визначаємо унікальні типи населених пунктів
-                const types = Array.from(new Set(settlementsData.map((s) => s.type)));
-                setSettlementTypes(types);
-            } else {
-                setSettlements([]);
-                setSettlementTypes([]);
-            }
-            // Очищаємо вибір типу і назви населеного пункту
-            setFormData((fd: any) => ({
-                ...fd,
-                current_settlement_type: '',
-                current_settlement_name: '',
-                //latitude: '',
-                //longitude: '',
-            }));
-        }
-    }, [formData.current_community, formData.current_district, formData.current_region, nestedData, manualEntry]);
-
-    // Оновлюємо current_settlement_name при зміні типу, щоб очистити непотрібні значення
-    useEffect(() => {
-        if (!manualEntry && formData.current_settlement_type) {
-            // Фільтруємо settlements за типом, якщо тип вибрано, і якщо вибрана назва не відповідає типу — очищуємо її
-            const filtered = settlements.filter((s) => s.type === formData.current_settlement_type);
-            if (!filtered.some((s) => s.name === formData.current_settlement_name)) {
-                setFormData((fd: any) => ({ ...fd, current_settlement_name: '' }));
-            }
-        }
-    }, [formData.current_settlement_type, settlements, formData.current_settlement_name, manualEntry]);
-
-    // Обробка зміни форми
-    const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-    ) => {
-        const { name, value, type, checked } = e.target as any;
-
-        // Якщо змінюємо manualEntry (checkbox)
-        if (name === 'manualEntry') {
-            setManualEntry(checked);
-            if (checked) {
-                // Очистити каскадні значення щоб не було конфлікту
-                setFormData((fd: any) => ({
-                    ...fd,
-                    current_region: '',
-                    current_district: '',
-                    current_community: '',
-                    current_settlement_type: '',
-                    current_settlement_name: '',
-                    latitude: '',
-                    longitude: '',
-                }));
-                // Очистити списки
-                setDistricts([]);
-                setCommunities([]);
-                setSettlements([]);
-                setSettlementTypes([]);
-            } else {
-                // При відключенні manualEntry — можна очистити координати (або ні, за бажанням)
-                setFormData((fd: any) => ({
-                    ...fd,
-                    latitude: '',
-                    longitude: '',
-                }));
-            }
-            return;
-        }
-
-        // Оновлюємо звичайні поля
-        const updated = { ...formData, [name]: value };
-
-        // Формуємо case_signature, якщо потрібно
-        if (
-            updated.is_ukrainian_archive === 'Так' &&
-            updated.archive &&
-            updated.fonds &&
-            updated.series &&
-            updated.record
-        ) {
-            updated.case_signature = `${updated.archive} ${updated.fonds}-${updated.series}-${updated.record}`;
-        }
-
-        setFormData(updated);
-    };
 
     const validate = () => {
         const requiredFields = [
@@ -343,8 +147,6 @@ export default function AddInventoryPage() {
             old_settlement_name: 'Назва населеного пункту (на момент складання інвентаря)'
         };
 
-
-        // Валідація: якщо заповнені старі адмін. поля — мають містити мінімум два слова
         const twoWordsRegex = /^\S+\s+\S+/;
 
         if (formData.old_province && !twoWordsRegex.test(formData.old_province.trim())) {
@@ -359,7 +161,6 @@ export default function AddInventoryPage() {
             return 'Поле "Ключ (Староство)" має містити мінімум два слова. Вказуйте повну назву, наприклад "Махнівський ключ" замість "Махнівський"';
         }
 
-
         if (formData.is_ukrainian_archive === 'Так') {
             requiredFields.push('archive', 'fonds', 'series', 'record');
         } else {
@@ -369,7 +170,7 @@ export default function AddInventoryPage() {
         for (const field of requiredFields) {
             if (!formData[field]) {
                 const label = fieldLabels[field] || field;
-                return `Поле "${label}" обов’язкове.`;
+                return `Поле "${label}" обов'язкове.`;
             }
         }
 
@@ -439,17 +240,14 @@ export default function AddInventoryPage() {
             case_signature: formData.case_signature,
         };
 
-        // Додаткова умова для інвентарного року
         let existing;
         if (formData.inventory_year) {
-            // Якщо рік вказано — шукаємо запис із точно таким самим роком
             ({ data: existing } = await supabase
                 .from('records')
                 .select('id')
                 .match({ ...matchQuery, inventory_year: formData.inventory_year.trim() })
                 .maybeSingle());
         } else {
-            // Якщо рік НЕ вказано — шукаємо записи, де inventory_year IS NULL або ''
             ({ data: existing } = await supabase
                 .from('records')
                 .select('id')
@@ -510,8 +308,6 @@ export default function AddInventoryPage() {
         } else {
             setSuccess(true);
 
-            //Відправка повідомлення адміністраторам про новий інвентар
-            // Отримуємо список адміністраторів
             const { data: admins, error: adminError } = await supabase
                 .from('admin_users')
                 .select('id');
@@ -526,13 +322,12 @@ export default function AddInventoryPage() {
                     `Населений пункт: ${formData.current_settlement_type} ${formData.current_settlement_name}\n\n` +
                     `Email автора: ${formData.email}`;
 
-                // Відправляємо повідомлення всім адмінам
                 for (const admin of admins) {
                     try {
                         await sendNotification({
-                            fromUserId: user?.id || 'system', // від користувача
-                            toUserId: admin.id, // кожному адміну
-                            messageType: 'new', // використовуємо тип 'other' для загальних повідомлень
+                            fromUserId: user?.id || 'system',
+                            toUserId: admin.id,
+                            messageType: 'new',
                             messageText
                         });
                     } catch (err) {
@@ -545,46 +340,64 @@ export default function AddInventoryPage() {
         }
     };
 
-    const [error, setError] = useState<string | null>(null);
-    const [duplicateUrl, setDuplicateUrl] = useState<string | null>(null);
-    const [success, setSuccess] = useState(false);
-
     return (
         <>
             <Header />
-            <main className="p-6 w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex justify-center">
-                <div className="max-w-2xl w-full">
-                    <h1 className="text-2xl font-bold mb-6">Додати до реєстру новий інвентар інвентар</h1>
+            <div className="min-h-screen bg-white dark:bg-[#111827]">
+                <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+                    {/* Page Title */}
+                    <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[10px]">
+                        Додати новий інвентар до реєстру
+                    </h1>
 
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Перед додаванням інвентарю,{' '}
+                    {/* Instruction Link */}
+                    <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80 mb-[30px]">
+                        Перед додаванням, будь ласка,{' '}
                         <a
                             href="https://telegra.ph/%D0%86nstrukc%D1%96ya-po-robot%D1%96-z-%D0%86nventar%D1%96um-06-27"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="underline hover:text-blue-600 dark:hover:text-blue-400"
+                            className="underline hover:opacity-100"
                         >
-                            ознайомтеся з інструкцією
-                        </a>.
+                            ознайомтесь з інструкцією
+                        </a>
                     </p>
+
                     <EditableInventoryForm
                         data={formData}
                         onChange={setFormData}
                         duplicateWarning={duplicateWarning}
                     />
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Зверніть увагу, доданий вами інвентар буде опубліковано в реєстрі лише після перевірки адміністратором!</p>
 
-                    <div className="flex gap-4 mt-4">
-                        <button
-                            type="button"
+                    {/* Warning Banner */}
+                    <div className="flex items-center gap-[10px] p-[10px] rounded bg-[#FEF3C7] dark:bg-[#EAB308] mb-[20px]">
+                        <AlertTriangle className="w-4 h-4 text-[#92400E] dark:text-[#451A03] flex-shrink-0" strokeWidth={1.6} />
+                        <p className="text-[#92400E] dark:text-[#451A03] text-[14px] lg:text-[16px] font-medium">
+                            Зверніть увагу, що доданий вами інвентар буде опубліковано в реєстрі лише після перевірки адміністратором
+                        </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap items-center gap-[15px]">
+                        <button 
                             onClick={handleSubmit}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded mt-4"
+                            className="flex items-center gap-[10px] px-[15px] h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
                         >
-                            Зберегти
+                            <Save className="w-4 h-4 text-white" strokeWidth={1.6} />
+                            <span className="text-white text-[14px] lg:text-[16px] font-medium">
+                                Зберегти інвентар
+                            </span>
                         </button>
+                        <Link href="/">
+                            <button className="flex items-center gap-[10px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors">
+                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium">
+                                    Скасувати додавання
+                                </span>
+                            </button>
+                        </Link>
                     </div>
                 </div>
-            </main>
+            </div>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </>
     );

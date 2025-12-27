@@ -1,30 +1,15 @@
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
 import Header from '../../components/header';
-import { Dialog } from '@headlessui/react';
-import { useEffect, useState, Fragment } from 'react';
-import emailjs from 'emailjs-com';
+import { useEffect, useState } from 'react';
+import { ExternalLink, MapPin, Search, Edit3, AlertTriangle, Map, RotateCcw, FileText, Clock } from "lucide-react";
 
 export default function RecordPage() {
-
     const router = useRouter();
     const { id } = router.query;
 
     const [record, setRecord] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
-
-    // Стани для модального вікна і форми
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [reportText, setReportText] = useState('');
-    const [reportName, setReportName] = useState('');
-    const [reportContacts, setReportContacts] = useState('');
-    const [submitted, setSubmitted] = useState(false);
-
-    // Валідація форми (усі поля обов’язкові)
-    const isFormValid =
-        reportText.trim() !== '' &&
-        reportName.trim() !== '' &&
-        reportContacts.trim() !== '';
 
     useEffect(() => {
         if (id) fetchRecord();
@@ -33,35 +18,12 @@ export default function RecordPage() {
     const fetchRecord = async () => {
         setLoading(true);
         const { data, error } = await supabase.from('records').select(`
-    id,
-    case_title,
-    case_signature,
-    case_date,
-    inventory_year,
-    inventory_start_page,
-    pages_count,
-    additional_case_signature,
-    notes,
-    scans_url,
-    latitude,
-    longitude,
-    created_at,
-    mark_type,
-    archive,
-    fonds,
-    series,
-    record,
-    old_province,
-    old_district,
-    old_community,
-    old_settlement_type,
-    old_settlement_name,
-    current_region,
-    current_district,
-    current_community,
-    current_settlement_type,
-    current_settlement_name
-  `).eq('id', id).single();
+            id, case_title, case_signature, case_date, inventory_year, inventory_start_page,
+            pages_count, additional_case_signature, notes, scans_url, latitude, longitude,
+            created_at, mark_type, archive, fonds, series, record, old_province, old_district,
+            old_community, old_settlement_type, old_settlement_name, current_region,
+            current_district, current_community, current_settlement_type, current_settlement_name
+        `).eq('id', id).single();
         if (error) {
             console.error('Помилка:', error);
             setRecord(null);
@@ -71,47 +33,8 @@ export default function RecordPage() {
         setLoading(false);
     };
 
-    const sendErrorReport = async () => {
-        if (!isFormValid) return;
-
-        try {
-            await emailjs.send(
-                'service_kdqzv9e',       // твій service ID
-                'template_qdlf2p8',      // твій template ID
-                {
-                    message: reportText,
-                    name: reportName,
-                    contacts: reportContacts,
-                    record_id: record?.id,
-                    url: window.location.href,
-                },
-                'WBCc_TP1lGiy8DVtF'     // твій public key (user ID)
-            );
-            setSubmitted(true);
-            setTimeout(() => {
-                setIsModalOpen(false);
-                setReportText('');
-                setReportName('');
-                setReportContacts('');
-                setSubmitted(false);
-            }, 2000);
-        } catch (err) {
-            console.error('Помилка надсилання:', err);
-            alert('Сталася помилка під час надсилання повідомлення.');
-        }
-    };
-
-
-
-    if (loading) return <p className="p-4">Завантаження...</p>;
-    if (!record) return <p className="p-4">Запис не знайдено</p>;
-
-    const formatRow = (label: string, value: any) => (
-        <tr key={label}>
-            <td className="border p-2 font-medium">{label}</td>
-            <td className="border p-2">{value ?? '-'}</td>
-        </tr>
-    );
+    if (loading) return <p className="p-4 text-gray-900 dark:text-white">Завантаження...</p>;
+    if (!record) return <p className="p-4 text-gray-900 dark:text-white">Запис не знайдено</p>;
 
     const fullLocationOld = [
         record.old_province,
@@ -120,9 +43,7 @@ export default function RecordPage() {
         record.old_settlement_type && record.old_settlement_name
             ? `${record.old_settlement_type} ${record.old_settlement_name}`
             : null,
-    ]
-        .filter(Boolean)
-        .join(', ');
+    ].filter(Boolean).join(', ');
 
     const fullLocationCurrent = [
         record.current_region ? `${record.current_region} область` : null,
@@ -131,171 +52,50 @@ export default function RecordPage() {
         record.current_settlement_type && record.current_settlement_name
             ? `${record.current_settlement_type} ${record.current_settlement_name}`
             : null,
-    ]
-        .filter(Boolean)
-        .join(', ');
+    ].filter(Boolean).join(', ');
+
+    const currentSettlementDisplay = record.current_settlement_name
+        ? `${record.current_settlement_name}, ${record.current_settlement_type || 'населений пункт'}`
+        : '-';
+
+    const oldSettlementDisplay = record.old_settlement_name
+        ? `${record.old_settlement_name}, ${record.old_settlement_type || 'населений пункт'}`
+        : '-';
 
     return (
         <>
             <Header />
-            <main className="p-4 w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
-                <div className="flex flex-col items-center px-4">
-                    <h1 className="text-2xl font-bold mb-6 text-center">
+            <main className="min-h-screen bg-white dark:bg-[#111827]">
+                <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+                    {/* Page Title */}
+                    <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px] lg:mb-[29px]">
                         {record.case_title || 'Інвентарний опис'}
                     </h1>
-                    {record.mark_type === 0 && (
-                        <div className="w-full max-w-[1000px] mx-auto mb-4">
-                            <p className="text-base font-semibold text-yellow-700 dark:text-yellow-400">
-                                ⚠️ Зверніть увагу: даний інвентар відноситься до певної області навколо вказаного в інвентарі населеного пункту.
-                                Тобто у справі потенційно можуть знаходитися інвентарі по навколишнім населеним пунктам, а не лише по тому, що вказаний в записі.
-                            </p>
-                        </div>
-                    )}
-                    <div className="overflow-auto max-w-full hidden sm:block">
-                        {/* Десктоп версія: таблиця */}
-                        <table className="min-w-[1000px] border border-gray-300 table-auto mx-auto">
-                            <tbody>
-                                {formatRow('Сучасний адмінподіл', fullLocationCurrent)}
-                                {formatRow('Адмінподіл на час створення', fullLocationOld)}
-                                {formatRow('Рік складання інвентарю', record.inventory_year)}
-                                {formatRow('Сигнатура справи',
-                                    record.case_signature ? (
-                                        <div className="flex items-center gap-2">
-                                            <span>{record.case_signature}</span>
-                                            <button
-                                                onClick={() => router.push(`/case?case_signature=${encodeURIComponent(record.case_signature)}`)}
-                                                className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                                            >
-                                                Переглянути всі записи справи
-                                            </button>
-                                        </div>
-                                    ) : '-'
-                                )}
-                                {formatRow('Назва справи', record.case_title)}
-                                {formatRow('Дата справи', record.case_date)}
-                                {formatRow('Кількість сторінок', record.pages_count)}
-                                {formatRow('Початкова сторінка інвентарю', record.inventory_start_page)}
-                                {formatRow('Додаткова сигнатура', record.additional_case_signature)}
-                                {formatRow('Примітки', record.notes)}
-                                {formatRow('Дата створення', new Date(record.created_at).toLocaleString())}
-                                {formatRow(
-                                    'Посилання на скани',
-                                    record.scans_url ? (
-                                        <>
-                                            <a
-                                                href={record.scans_url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="text-blue-600 underline"
-                                            >
-                                                Переглянути
-                                            </a>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">(Для доступу можливо буде потрібен VPN)</p>
-                                        </>
-                                    ) : (
-                                        '-'
-                                    )
-                                )}
-                                {formatRow(
-                                    'Карта',
-                                    record.latitude && record.longitude ? (
-                                        <a
-                                            href={`https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=16/${record.latitude}/${record.longitude}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="text-blue-600 underline"
-                                        >
-                                            Відкрити на мапі
-                                        </a>
-                                    ) : (
-                                        '-'
-                                    )
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
 
-                    {/* Мобільна версія: картка */}
-                    <div className="block sm:hidden w-full border rounded p-4 shadow bg-white dark:bg-gray-800 space-y-4">
-                        {[
-                            ['Сучасний адмінподіл', fullLocationCurrent],
-                            ['Адмінподіл на час створення', fullLocationOld],
-                            ['Рік складання інвентарю', record.inventory_year],
-                            [
-                                'Сигнатура справи',
-                                record.case_signature ? (
-                                    <div className="flex flex-col gap-2">
-                                        <span>{record.case_signature}</span>
-                                        <button
-                                            onClick={() => router.push(`/case?case_signature=${encodeURIComponent(record.case_signature)}`)}
-                                            className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 w-full"
-                                        >
-                                            Переглянути всі записи справи
-                                        </button>
-                                    </div>
-                                ) : '-',
-                            ],
-                            ['Назва справи', record.case_title],
-                            ['Дата справи', record.case_date],
-                            ['Кількість сторінок', record.pages_count],
-                            ['Початкова сторінка інвентарю', record.inventory_start_page],
-                            ['Додаткова сигнатура', record.additional_case_signature],
-                            ['Примітки', record.notes],
-                            ['Дата створення', new Date(record.created_at).toLocaleString()],
-                            [
-                                'Посилання на скани',
-                                record.scans_url ? (
-                                    <>
-                                        <a
-                                            href={record.scans_url}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="text-blue-600 underline"
-                                        >
-                                            Переглянути
-                                        </a>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">(Для доступу можливо буде потрібен VPN)</p>
-                                    </>
-                                ) : (
-                                    '-'
-                                ),
-                            ],
-                            [
-                                'Карта',
-                                record.latitude && record.longitude ? (
-                                    <a
-                                        href={`https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=16/${record.latitude}/${record.longitude}`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-blue-600 underline"
-                                    >
-                                        Відкрити на мапі
-                                    </a>
-                                ) : (
-                                    '-'
-                                ),
-                            ],
-                        ].map(([label, value], i) => (
-                            <div key={i}>
-                                <div className="text-xs font-semibold mb-1">{label}</div>
-                                <div className="text-sm">{value || '-'}</div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:gap-4">
-                        <button
-                            onClick={() => router.back()}
-                            className="px-4 py-2 bg-gray-300 dark:bg-gray-700 rounded hover:bg-gray-400 dark:hover:bg-gray-600 w-full sm:w-auto"
-                        >
-                            ⬅ Повернутися до списку
-                        </button>
-                        <button
-                            onClick={() => router.push(`/edit/${record.id}`)}
-                            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 w-full sm:w-auto"
-                        >
-                            🚫 Виправити помилку в інвентарі
-                        </button>
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap items-center gap-[10px] lg:gap-[15px] mb-[20px]">
+                        {record.scans_url && (
+                            <a
+                                href={record.scans_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8]"
+                            >
+                                <ExternalLink className="w-4 h-4 text-white flex-shrink-0" strokeWidth={1.6} />
+                                <span className="text-white text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Переглянути скани</span>
+                            </a>
+                        )}
+                        {record.latitude && record.longitude && (
+                            <a
+                                href={`https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=16/${record.latitude}/${record.longitude}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151]"
+                            >
+                                <MapPin className="w-4 h-4 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={1.6} />
+                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Відкрити на карті</span>
+                            </a>
+                        )}
                         {record.archive && record.fonds && record.series && record.record && (
                             <button
                                 onClick={() => {
@@ -305,96 +105,159 @@ export default function RecordPage() {
                                     const url = `https://inspector.duckarchive.com/search?q=${encodeURIComponent(query)}`;
                                     window.open(url, '_blank');
                                 }}
-                                className="flex items-center justify-center gap-1 p-1 bg-white text-black rounded w-full sm:w-auto sm:p-3 sm:gap-3 border hover:bg-[#F97316] hover:text-white"
+                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151]"
                             >
-                                <svg
-                                    className="w-6 h-6 sm:w-9 sm:h-9"
-                                    viewBox="0 0 38 38"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M19 37C28.9411 37 37 28.9411 37 19C37 9.05888 28.9411 1 19 1C9.05888 1 1 9.05888 1 19C1 28.9411 9.05888 37 19 37Z"
-                                        fill="white"
-                                        stroke="black"
-                                    ></path>
-                                    <path
-                                        d="M31.2715 19.75L22.0334 33.4H15.9263L6.6882 19.75H31.2715Z"
-                                        fill="#F97316"
-                                        stroke="#000"
-                                    ></path>
-                                </svg>
-                                Знайти в Інспекторі
+                                <Search className="w-4 h-4 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={1.6} />
+                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Знайти в Інспекторі</span>
                             </button>
                         )}
+                        <button
+                            onClick={() => router.push(`/edit/${record.id}`)}
+                            className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151]"
+                        >
+                            <Edit3 className="w-4 h-4 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={1.6} />
+                            <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Запропонувати виправлення</span>
+                        </button>
                     </div>
 
-                </div>
-                <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} as={Fragment}>
-                    <div className="fixed inset-0 bg-black bg-opacity-30 z-40 flex items-center justify-center">
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded shadow-md max-w-xl w-full z-50">
-                            <Dialog.Title className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">
-                                Повідомте про проблему в інвентарі
-                            </Dialog.Title>
+                    {/* Warning Banner */}
+                    {record.mark_type === 0 && (
+                        <div className="flex items-start gap-[10px] lg:gap-[15px] px-[12px] lg:px-[15px] py-[10px] rounded bg-[#FEF3C7] dark:bg-[#EAB308] mb-[20px]">
+                            <AlertTriangle className="w-4 h-4 text-[#92400E] dark:text-[#451A03] flex-shrink-0 mt-0.5" strokeWidth={1.6} />
+                            <p className="text-[#92400E] dark:text-[#451A03] text-[14px] lg:text-[16px] font-medium flex-1">
+                                Зверніть увагу, що даний інвентар відноситься до певної області навколо населеного пункту. Потенційно у справі можуть бути ще й інвентарі по навколишнім населеним пунктам, а не лише по тому, що вказаний в записі.
+                            </p>
+                        </div>
+                    )}
 
-                            <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
-                                Ім'я <span className="text-red-600">*</span>
-                                <input
-                                    type="text"
-                                    value={reportName}
-                                    onChange={(e) => setReportName(e.target.value)}
-                                    className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                    placeholder="Ваше ім'я"
-                                    required
-                                />
-                            </label>
-
-                            <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
-                                Контакти <span className="text-red-600">*</span>
-                                <input
-                                    type="text"
-                                    value={reportContacts}
-                                    onChange={(e) => setReportContacts(e.target.value)}
-                                    className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                    placeholder="Facebook, Telegram, Email тощо"
-                                    required
-                                />
-                            </label>
-
-                            <label className="block mb-4 font-medium text-gray-700 dark:text-gray-300">
-                                Опис проблеми <span className="text-red-600">*</span>
-                                <textarea
-                                    value={reportText}
-                                    onChange={(e) => setReportText(e.target.value)}
-                                    placeholder="Опишіть помилку або неточність"
-                                    rows={5}
-                                    className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                    required
-                                />
-                            </label>
-
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 rounded bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
-                                >
-                                    Скасувати
-                                </button>
-                                <button
-                                    onClick={sendErrorReport}
-                                    disabled={!isFormValid}
-                                    className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-                                >
-                                    Надіслати
-                                </button>
+                    {/* Main Content Card */}
+                    <div className="p-[20px] lg:p-[30px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col gap-[30px] lg:gap-[40px]">
+                        {/* Administrative Divisions */}
+                        <div className="flex flex-col lg:flex-row gap-[20px] lg:gap-[10px]">
+                            {/* Current Division */}
+                            <div className="flex-1 flex flex-col gap-[15px]">
+                                <div className="flex items-center gap-[10px]">
+                                    <Map className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6] flex-shrink-0" strokeWidth={2} />
+                                    <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                                        Сучасний адміністративний поділ
+                                    </h2>
+                                </div>
+                                <div className="flex flex-col gap-[10px]">
+                                    <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">
+                                        {currentSettlementDisplay}
+                                    </p>
+                                    <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">
+                                        {fullLocationCurrent || '-'}
+                                    </p>
+                                </div>
                             </div>
 
-                            {submitted && (
-                                <p className="text-green-600 mt-3 text-sm">Повідомлення надіслано! Дякуємо.</p>
-                            )}
+                            {/* Historical Division */}
+                            <div className="flex-1 flex flex-col gap-[15px]">
+                                <div className="flex items-center gap-[10px]">
+                                    <RotateCcw className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6] flex-shrink-0" strokeWidth={2} />
+                                    <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                                        Адмінподіл станом на час складання інвентарю {record.inventory_year ? `(${record.inventory_year} рік)` : ''}
+                                    </h2>
+                                </div>
+                                <div className="flex flex-col gap-[10px]">
+                                    <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">
+                                        {oldSettlementDisplay}
+                                    </p>
+                                    <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">
+                                        {fullLocationOld || '-'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Inventory Information */}
+                        <div className="flex flex-col gap-[15px]">
+                            <div className="flex items-center gap-[10px]">
+                                <FileText className="w-5 h-5 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={2} />
+                                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">Інформація про інвентар</h2>
+                            </div>
+
+                            <div className="flex flex-col gap-[20px]">
+                                {/* Grid of Details */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-x-[15px] lg:gap-x-[20px] gap-y-[15px] lg:gap-y-[20px]">
+                                    {/* Year */}
+                                    <div className="flex flex-col gap-[10px]">
+                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Рік складання</p>
+                                        <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.inventory_year || '-'}</p>
+                                    </div>
+
+                                    {/* Case Signature */}
+                                    <div className="flex flex-col gap-[10px]">
+                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Сигнатура справи</p>
+                                        {record.case_signature ? (
+                                            <div className="flex flex-col gap-2">
+                                                <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.case_signature}</p>
+                                                <button
+                                                    onClick={() => router.push(`/case?case_signature=${encodeURIComponent(record.case_signature)}`)}
+                                                    className="text-[14px] bg-[#2563EB] text-white px-3 py-1 rounded hover:bg-[#1D4ED8] self-start"
+                                                >
+                                                    Всі записи справи
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">-</p>
+                                        )}
+                                    </div>
+
+                                    {/* Case Date */}
+                                    <div className="flex flex-col gap-[10px]">
+                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Дата справи</p>
+                                        <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.case_date || '-'}</p>
+                                    </div>
+
+                                    {/* Pages */}
+                                    <div className="flex flex-col gap-[10px]">
+                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Сторінок у справі</p>
+                                        <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.pages_count || '-'}</p>
+                                    </div>
+
+                                    {/* Start Page */}
+                                    <div className="flex flex-col gap-[10px]">
+                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Початкова сторінка</p>
+                                        <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.inventory_start_page || '-'}</p>
+                                    </div>
+
+                                    {/* Additional Reference */}
+                                    <div className="flex flex-col gap-[10px]">
+                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Додаткова сигнатура</p>
+                                        <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.additional_case_signature || '-'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Notes */}
+                        {record.notes && (
+                            <div className="flex flex-col gap-[15px]">
+                                <div className="flex items-center gap-[10px]">
+                                    <Edit3 className="w-5 h-5 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={2} />
+                                    <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">Примітки</h2>
+                                </div>
+                                <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px]">
+                                    {record.notes}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Timestamp */}
+                        <div className="flex items-center gap-[10px]">
+                            <Clock className="w-4 h-4 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={1.6} />
+                            <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px]">
+                                Додано в реєстр {new Date(record.created_at).toLocaleDateString('uk-UA', { 
+                                    day: 'numeric', 
+                                    month: 'long', 
+                                    year: 'numeric' 
+                                })}
+                            </p>
                         </div>
                     </div>
-                </Dialog>
+                </div>
             </main>
         </>
     );

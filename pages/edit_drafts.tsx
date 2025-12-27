@@ -4,6 +4,7 @@ import Header from '../components/header';
 import Toast from '../components/Toast';
 import dynamic from 'next/dynamic';
 import { useUser } from '../contexts/UserContext';
+import { Save, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
     ssr: false,
@@ -130,14 +131,12 @@ export default function MyDraftsPage() {
         }
     };
 
-
-
     if (loading) {
         return (
             <>
                 <Header />
-                <main className="p-6 min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
-                    <p className="text-gray-900 dark:text-gray-100">Завантаження...</p>
+                <main className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+                    <p className="text-gray-900 dark:text-[#F3F4F6] text-[16px]">Завантаження...</p>
                 </main>
             </>
         );
@@ -147,8 +146,8 @@ export default function MyDraftsPage() {
         return (
             <>
                 <Header />
-                <main className="p-6 min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
-                    <p className="text-red-600">⛔ Лише для авторизованих користувачів</p>
+                <main className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+                    <p className="text-red-600 dark:text-red-400 text-[16px]">⛔ Лише для авторизованих користувачів</p>
                 </main>
             </>
         );
@@ -157,47 +156,72 @@ export default function MyDraftsPage() {
     return (
         <>
             <Header />
-            <main className="p-6 min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-                <div className="max-w-2xl mx-auto">
-                    <h1 className="text-2xl font-bold mb-6">✏️ Мої чернетки</h1>
+            <div className="min-h-screen bg-white dark:bg-[#111827]">
+                <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+                    {/* Page Title */}
+                    <div className="flex items-center gap-[10px] mb-[20px] lg:mb-[29px]">
+                        <FileText className="w-6 h-6 lg:w-7 lg:h-7 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                        <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold">
+                            Мої чернетки
+                        </h1>
+                    </div>
 
                     {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
                     {records.length === 0 ? (
-                        <p>У вас немає чернеток</p>
+                        <div className="p-[20px] lg:p-[30px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
+                            <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] text-center">
+                                У вас немає чернеток
+                            </p>
+                        </div>
                     ) : (
                         <>
-                            <div className="flex gap-2 mb-4">
+                            {/* Navigation Buttons */}
+                            <div className="flex flex-wrap items-center gap-[10px] lg:gap-[15px] mb-[20px]">
                                 <button
                                     onClick={() => goToRecord(index - 1)}
                                     disabled={index === 0}
-                                    className="px-4 py-2 bg-gray-500 text-white rounded disabled:opacity-50"
+                                    className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    ⬅ Попередній
+                                    <ChevronLeft className="w-4 h-4 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={1.6} />
+                                    <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap">
+                                        Попередній
+                                    </span>
                                 </button>
+                                <span className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80">
+                                    {index + 1} з {records.length}
+                                </span>
                                 <button
                                     onClick={() => goToRecord(index + 1)}
                                     disabled={index === records.length - 1}
-                                    className="px-4 py-2 bg-gray-500 text-white rounded disabled:opacity-50"
+                                    className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    Наступний ➡
+                                    <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap">
+                                        Наступний
+                                    </span>
+                                    <ChevronRight className="w-4 h-4 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={1.6} />
                                 </button>
                             </div>
 
+                            {/* Form */}
                             <EditableInventoryForm data={formData} onChange={setFormData} />
 
-                            <div className="mt-6 flex justify-end">
+                            {/* Save Button */}
+                            <div className="mt-[20px] flex justify-end">
                                 <button
                                     onClick={saveRecord}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    className="flex items-center gap-[8px] lg:gap-[10px] px-[15px] lg:px-[20px] h-[40px] lg:h-[44px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
                                 >
-                                    💾 Зберегти чернетку
+                                    <Save className="w-4 h-4 text-white flex-shrink-0" strokeWidth={1.6} />
+                                    <span className="text-white text-[15px] lg:text-[16px] font-semibold whitespace-nowrap">
+                                        Зберегти чернетку
+                                    </span>
                                 </button>
                             </div>
                         </>
                     )}
                 </div>
-            </main>
+            </div>
         </>
     );
 }

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
+import { Search, Check, RotateCcw, ChevronDown, ChevronRight, ExternalLink, MapPin, Mail } from 'lucide-react';
 
 export default function AdminNotIdentifyPage() {
   const { user, loading: userLoading } = useUser();
@@ -246,9 +247,9 @@ export default function AdminNotIdentifyPage() {
     return (
       <>
         <Header />
-        <main className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen p-6 flex items-center justify-center">
-          <p>Завантаження...</p>
-        </main>
+        <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+          <p className="text-gray-900 dark:text-white text-[16px]">Завантаження...</p>
+        </div>
       </>
     );
   }
@@ -257,9 +258,9 @@ export default function AdminNotIdentifyPage() {
     return (
       <>
         <Header />
-        <main className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen p-6 flex items-center justify-center">
-          <p className="text-red-600 dark:text-red-400 font-medium text-center">{error}</p>
-        </main>
+        <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+          <p className="text-red-600 dark:text-red-400 text-[16px] text-center">{error}</p>
+        </div>
       </>
     );
   }
@@ -267,169 +268,206 @@ export default function AdminNotIdentifyPage() {
   return (
     <>
       <Header />
-      <main className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen p-6">
-        <div className="w-full">
-          <h1 className="text-2xl font-bold mb-6">🔍 Неідентифіковані інвентарі</h1>
+      <div className="min-h-screen bg-white dark:bg-[#111827]">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+          {/* Page Title */}
+          <div className="flex items-center gap-[10px] mb-[20px] lg:mb-[30px]">
+            <Search className="w-6 h-6 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+            <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold">
+              Неідентифіковані інвентарі
+            </h1>
+          </div>
 
-          {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Фільтр по статусу:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-            >
-              <option value="all">Всі</option>
-              <option value="new">Очікує ідентифікації</option>
-              <option value="review">Обробляється адміністратором</option>
-              <option value="done">Оброблено</option>
-            </select>
+          {/* Filter */}
+          <div className="mb-[20px]">
+            <label className="block text-gray-900 dark:text-white text-[14px] font-medium mb-[10px]">
+              Фільтр по статусу:
+            </label>
+            <div className="relative max-w-[300px]">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-[10px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] text-gray-900 dark:text-white text-[14px] outline-none focus:border-[#2563EB] transition-colors appearance-none pr-[35px]"
+              >
+                <option value="all">Всі</option>
+                <option value="new">Очікує ідентифікації</option>
+                <option value="review">Обробляється адміністратором</option>
+                <option value="done">Оброблено</option>
+              </select>
+              <ChevronDown className="absolute right-[10px] top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600 dark:text-[#F3F4F6] pointer-events-none" strokeWidth={2} />
+            </div>
           </div>
 
           {filteredRecords.length === 0 ? (
-            <p className="text-gray-700 dark:text-gray-300">Немає інвентарів для відображення</p>
+            <div className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] text-center">
+              <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px]">
+                Немає інвентарів для відображення
+              </p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-gray-300 dark:border-gray-600">
-                <thead className="bg-gray-100 dark:bg-gray-800">
+              <table className="w-full border-collapse border border-gray-300 dark:border-[#374151]">
+                <thead className="bg-gray-100 dark:bg-[#1F2937]">
                   <tr>
-                    <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Дата додавання</th>
-                    <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Назва справи</th>
-                    <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Сигнатура справи</th>
-                    <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Дата справи</th>
-                    <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Дод. сигнатура</th>
-                    <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Рік інвентаря</th>
-                    <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Скани</th>
-                    <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center">Населені пункти</th>
-                    <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Статус</th>
-                    <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center">Дії</th>
+                    <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold whitespace-nowrap">Дата додавання</th>
+                    <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold">Назва справи</th>
+                    <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold whitespace-nowrap">Сигнатура</th>
+                    <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold whitespace-nowrap">Дата справи</th>
+                    <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold whitespace-nowrap">Дод. сигнатура</th>
+                    <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold whitespace-nowrap">Рік</th>
+                    <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold">Скани</th>
+                    <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-center text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold whitespace-nowrap">Н.п.</th>
+                    <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold">Статус</th>
+                    <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-center text-gray-900 dark:text-white text-[13px] lg:text-[14px] font-semibold">Дії</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {filteredRecords.map((record) => (
+                  {filteredRecords.map((record, index) => (
                     <>
-                      <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                      <tr 
+                        key={record.id} 
+                        className={`${index % 2 === 0 ? '' : 'bg-gray-50 dark:bg-[#1F2937]'} hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors`}
+                      >
+                        <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px] whitespace-nowrap">
                           {record.created_at ? new Date(record.created_at).toLocaleDateString('uk-UA') : '—'}
                         </td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                        <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
                           {record.case_title || '—'}
                         </td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                        <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
                           {record.case_signature || '—'}
                         </td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                        <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
                           {record.case_date || '—'}
                         </td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                        <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
                           {record.additional_case_signature || '—'}
                         </td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                        <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
                           {record.inventory_year || '—'}
                         </td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                        <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
                           {record.scans_url ? (
                             <a
                               href={record.scans_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
+                              className="inline-flex items-center gap-[5px] text-[#2563EB] hover:text-[#1D4ED8] underline"
                             >
-                              🔗 Відкрити
+                              <ExternalLink className="w-3 h-3" strokeWidth={2} />
+                              Відкрити
                             </a>
                           ) : '—'}
                         </td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center">
+                        <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-center">
                           <button
                             onClick={() => toggleExpandRecord(record.id)}
-                            className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                            className="inline-flex items-center gap-[5px] text-[#2563EB] hover:text-[#1D4ED8] font-medium text-[13px]"
                           >
-                            {record.points_count} {expandedRecordId === record.id ? '▼' : '▶'}
+                            {record.points_count}
+                            {expandedRecordId === record.id ? (
+                              <ChevronDown className="w-4 h-4" strokeWidth={2} />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" strokeWidth={2} />
+                            )}
                           </button>
                         </td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                        <td className="border border-gray-300 dark:border-[#374151] p-[10px]">
                           <span
-                            className={`px-2 py-1 rounded text-xs ${record.status === 'new'
+                            className={`inline-block px-[8px] py-[4px] rounded text-[12px] font-medium ${
+                              record.status === 'new'
                                 ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
                                 : record.status === 'review'
                                   ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
                                   : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                              }`}
+                            }`}
                           >
-                            {record.status === 'new' && 'Очікує ідентифікації'}
-                            {record.status === 'review' && 'Обробляється адміністратором'}
+                            {record.status === 'new' && 'Очікує'}
+                            {record.status === 'review' && 'Обробляється'}
                             {record.status === 'done' && 'Оброблено'}
                           </span>
                         </td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center">
+                        <td className="border border-gray-300 dark:border-[#374151] p-[10px]">
                           {record.status === 'review' && (
-                            <div className="flex gap-2 justify-center">
+                            <div className="flex gap-[8px] justify-center flex-wrap">
                               <button
                                 onClick={() => confirmRecord(record)}
-                                className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                                className="inline-flex items-center gap-[5px] px-[10px] py-[6px] bg-green-600 hover:bg-green-700 text-white rounded text-[12px] font-medium transition-colors"
                               >
-                                ✅ Підтвердити
+                                <Check className="w-3 h-3" strokeWidth={2} />
+                                Підтвердити
                               </button>
                               <button
                                 onClick={() => returnToIdentification(record)}
-                                className="px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm"
+                                className="inline-flex items-center gap-[5px] px-[10px] py-[6px] bg-orange-600 hover:bg-orange-700 text-white rounded text-[12px] font-medium transition-colors"
                               >
-                                🔄 На ідентифікацію
+                                <RotateCcw className="w-3 h-3" strokeWidth={2} />
+                                Повернути
                               </button>
                             </div>
                           )}
                         </td>
                       </tr>
 
+                      {/* Expanded Row */}
                       {expandedRecordId === record.id && (
                         <tr>
-                          <td colSpan={10} className="border border-gray-300 dark:border-gray-600 px-4 py-4 bg-gray-50 dark:bg-gray-800">
+                          <td colSpan={10} className="border border-gray-300 dark:border-[#374151] p-[15px] bg-gray-100 dark:bg-[#111827]">
                             {loadingPoints ? (
-                              <p className="text-center">Завантаження населених пунктів...</p>
+                              <p className="text-center text-gray-900 dark:text-white text-[14px]">Завантаження населених пунктів...</p>
                             ) : settlementPoints.length === 0 ? (
-                              <p className="text-center text-gray-500">Немає населених пунктів</p>
+                              <p className="text-center text-gray-500 dark:text-gray-400 text-[14px]">Немає населених пунктів</p>
                             ) : (
-                              <div className="overflow-x-auto">
-                                <h3 className="font-semibold mb-3">Населені пункти ({settlementPoints.length}):</h3>
-                                <table className="w-full border-collapse border border-gray-300 dark:border-gray-600">
-                                  <thead className="bg-gray-200 dark:bg-gray-700">
-                                    <tr>
-                                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Регіон</th>
-                                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Район</th>
-                                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Громада</th>
-                                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Населений пункт</th>
-                                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Автор</th>
-                                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-center">На карті</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {settlementPoints.map((point, idx) => (
-                                      <tr key={idx} className="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{point.current_region}</td>
-                                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{point.current_district}</td>
-                                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{point.current_community}</td>
-                                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">
-                                          {point.current_settlement_type} {point.current_settlement_name}
-                                        </td>
-                                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{point.email}</td>
-                                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-center">
-                                          {point.latitude && point.longitude ? (
-                                            <a
-                                              href={`https://www.openstreetmap.org/?mlat=${point.latitude}&mlon=${point.longitude}&zoom=15`}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-blue-600 dark:text-blue-400 hover:underline"
-                                            >
-                                              🗺️ Показати
-                                            </a>
-                                          ) : '—'}
-                                        </td>
+                              <div>
+                                <h3 className="text-gray-900 dark:text-white text-[16px] font-semibold mb-[10px]">
+                                  Населені пункти ({settlementPoints.length}):
+                                </h3>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full border-collapse border border-gray-300 dark:border-[#374151]">
+                                    <thead className="bg-gray-200 dark:bg-[#1F2937]">
+                                      <tr>
+                                        <th className="border border-gray-300 dark:border-[#374151] p-[8px] text-left text-gray-900 dark:text-white text-[12px] font-semibold">Регіон</th>
+                                        <th className="border border-gray-300 dark:border-[#374151] p-[8px] text-left text-gray-900 dark:text-white text-[12px] font-semibold">Район</th>
+                                        <th className="border border-gray-300 dark:border-[#374151] p-[8px] text-left text-gray-900 dark:text-white text-[12px] font-semibold">Громада</th>
+                                        <th className="border border-gray-300 dark:border-[#374151] p-[8px] text-left text-gray-900 dark:text-white text-[12px] font-semibold">Населений пункт</th>
+                                        <th className="border border-gray-300 dark:border-[#374151] p-[8px] text-left text-gray-900 dark:text-white text-[12px] font-semibold">Автор</th>
+                                        <th className="border border-gray-300 dark:border-[#374151] p-[8px] text-center text-gray-900 dark:text-white text-[12px] font-semibold">Карта</th>
                                       </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
+                                    </thead>
+                                    <tbody>
+                                      {settlementPoints.map((point, idx) => (
+                                        <tr key={idx} className={`${idx % 2 === 0 ? '' : 'bg-gray-50 dark:bg-[#1F2937]'} hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors`}>
+                                          <td className="border border-gray-300 dark:border-[#374151] p-[8px] text-gray-900 dark:text-white text-[12px]">{point.current_region || '—'}</td>
+                                          <td className="border border-gray-300 dark:border-[#374151] p-[8px] text-gray-900 dark:text-white text-[12px]">{point.current_district || '—'}</td>
+                                          <td className="border border-gray-300 dark:border-[#374151] p-[8px] text-gray-900 dark:text-white text-[12px]">{point.current_community || '—'}</td>
+                                          <td className="border border-gray-300 dark:border-[#374151] p-[8px] text-gray-900 dark:text-white text-[12px]">
+                                            {point.current_settlement_type} {point.current_settlement_name}
+                                          </td>
+                                          <td className="border border-gray-300 dark:border-[#374151] p-[8px] text-gray-900 dark:text-white text-[12px]">
+                                            <div className="flex items-center gap-[5px]">
+                                              <Mail className="w-3 h-3" strokeWidth={2} />
+                                              {point.email || '—'}
+                                            </div>
+                                          </td>
+                                          <td className="border border-gray-300 dark:border-[#374151] p-[8px] text-center">
+                                            {point.latitude && point.longitude ? (
+                                              <a
+                                                href={`https://www.openstreetmap.org/?mlat=${point.latitude}&mlon=${point.longitude}&zoom=15`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-[5px] text-[#2563EB] hover:text-[#1D4ED8] underline text-[12px]"
+                                              >
+                                                <MapPin className="w-3 h-3" strokeWidth={2} />
+                                                Показати
+                                              </a>
+                                            ) : '—'}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
                               </div>
                             )}
                           </td>
@@ -442,7 +480,9 @@ export default function AdminNotIdentifyPage() {
             </div>
           )}
         </div>
-      </main>
+      </div>
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </>
   );
 }

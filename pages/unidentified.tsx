@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Header from '../components/header';
 import { supabase } from '../lib/supabaseClient';
+import { Search, ChevronDown, ChevronLeft, ChevronRight, Plus, AlertCircle } from 'lucide-react';
 
 type RecordNotIdentify = {
     id: string;
@@ -98,159 +99,272 @@ export default function NotIdentifyPage() {
         }
     }
 
+    const resetFilters = () => {
+        setQuery('');
+        setArchive('');
+        setFonds('');
+        setSeries('');
+        setRecord('');
+    };
+
     return (
         <>
             <Header />
-            <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-                <div className="w-full space-y-6">
-                    <div className="border border-gray-300 dark:border-gray-700 rounded p-6">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                            <div>
-                                <h1 className="text-2xl font-semibold mb-2">Неідентифіковані інвентарі</h1>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    Тут зібрані інвентарі без точної прив'язки до населеного пункту.
-                                    Фільтруйте або шукайте по сигнатурі/назві справи, щоб допомогти з ідентифікацією.
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    window.location.href = '/add_unidentified';
-                                }}
-                                className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 self-start md:self-auto"
-                            >
-                                Додати неідентифікований інвентар
-                            </button>
+            <div className="min-h-screen bg-white dark:bg-[#111827]">
+                <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+                    {/* Header Section */}
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-[20px] lg:mb-[29px]">
+                        <div>
+                            <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[10px]">
+                                Неідентифіковані інвентарі
+                            </h1>
+                            <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80">
+                                Тут зібрані інвентарі без точної прив'язки до населеного пункту.
+                                Фільтруйте або шукайте по сигнатурі/назві справи, щоб допомогти з ідентифікацією.
+                            </p>
                         </div>
+
+                        <button
+                            onClick={() => window.location.href = '/add_unidentified'}
+                            className="flex items-center gap-[10px] px-[15px] h-[40px] rounded bg-[#2563EB] whitespace-nowrap hover:bg-[#1D4ED8] transition-colors"
+                        >
+                            <Plus className="w-4 h-4 text-white" strokeWidth={1.6} />
+                            <span className="text-white text-[14px] lg:text-[16px] font-medium">
+                                Додати неідентифікований інвентар
+                            </span>
+                        </button>
                     </div>
 
-                    {/* Filters */}
-                    <div className="border border-gray-300 dark:border-gray-700 rounded p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <input
-                                type="text"
-                                placeholder="Пошук по сигнатурі або заголовку справи"
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                className="w-full px-3 py-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
-                            />
+                    {/* Filters Section */}
+                    <div className="p-[15px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#111827] mb-[20px]">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[15px]">
+                            {/* Search Query */}
+                            <div className="flex items-center gap-[10px] px-[10px] py-[10px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937]">
+                                <Search className="w-4 h-4 text-gray-400 dark:text-white flex-shrink-0" strokeWidth={1.6} />
+                                <input
+                                    type="text"
+                                    placeholder="Пошук по сигнатурі або заголовку"
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    className="bg-transparent text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-[14px] outline-none flex-1 min-w-0"
+                                />
+                            </div>
+
+                            {/* Archive */}
                             <input
                                 type="text"
                                 placeholder="Архів"
                                 value={archive}
                                 onChange={(e) => setArchive(e.target.value)}
-                                className="w-full px-3 py-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+                                className="px-[10px] py-[10px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-[14px] outline-none"
                             />
+
+                            {/* Fonds */}
                             <input
                                 type="text"
                                 placeholder="Фонд"
                                 value={fonds}
                                 onChange={(e) => setFonds(e.target.value)}
-                                className="w-full px-3 py-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+                                className="px-[10px] py-[10px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-[14px] outline-none"
                             />
+
+                            {/* Series */}
                             <input
                                 type="text"
                                 placeholder="Опис"
                                 value={series}
                                 onChange={(e) => setSeries(e.target.value)}
-                                className="w-full px-3 py-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+                                className="px-[10px] py-[10px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-[14px] outline-none"
                             />
+
+                            {/* Record */}
                             <input
                                 type="text"
-                                placeholder="Справa"
+                                placeholder="Справа"
                                 value={record}
                                 onChange={(e) => setRecord(e.target.value)}
-                                className="w-full px-3 py-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+                                className="px-[10px] py-[10px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-[14px] outline-none"
                             />
-                            <div className="flex items-center gap-2">
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-[10px]">
                                 <button
-                                    onClick={() => { setQuery(''); setArchive(''); setFonds(''); setSeries(''); setRecord(''); }}
-                                    className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 text-sm"
+                                    onClick={resetFilters}
+                                    className="flex-1 px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors"
                                 >
-                                    Скинути
+                                    <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] font-medium">Скинути</span>
                                 </button>
                                 <button
                                     onClick={() => fetchData(1)}
-                                    className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                                    className="flex-1 px-[15px] h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
                                 >
-                                    Знайти
+                                    <span className="text-white text-[14px] font-medium">Знайти</span>
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* Table view */}
-                    <div className="overflow-x-auto w-full">
-                        <table className="min-w-full w-full border-collapse border border-gray-300 dark:border-gray-600 hidden sm:table">
-                            <thead>
-                                <tr>
-                                    <th className="border border-gray-300 dark:border-gray-600 p-2">Сигнатура справи</th>
-                                    <th className="border border-gray-300 dark:border-gray-600 p-2">Назва справи</th>
-                                    <th className="border border-gray-300 dark:border-gray-600 p-2">Рік складання</th>
-                                    <th className="border border-gray-300 dark:border-gray-600 p-2">Дата справи</th>
-                                    <th className="border border-gray-300 dark:border-gray-600 p-2">Статус</th>
-                                    <th className="border border-gray-300 dark:border-gray-600 p-2">Примітки</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {items.map(it => (
-                                    <tr 
-                                        key={it.id} 
-                                        onClick={() => router.push(`/unidentified/${it.id}`)}
-                                        className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    {/* Results Count */}
+                    {total > 0 && !loading && (
+                        <p className="text-gray-900 dark:text-[#F3F4F6] text-[16px] lg:text-[18px] mb-[15px]">
+                            Знайдено {total} {total === 1 ? 'інвентар' : total < 5 ? 'інвентарі' : 'інвентарів'}
+                        </p>
+                    )}
+
+                    {loading && (
+                        <div className="text-center py-8">
+                            <p className="text-gray-900 dark:text-white text-[16px]">Завантаження...</p>
+                        </div>
+                    )}
+
+                    {/* Desktop Table */}
+                    <div className="hidden lg:block overflow-x-auto mb-[15px]">
+                        <div className="min-w-full border border-gray-300 dark:border-[#374151] rounded-lg overflow-hidden">
+                            {/* Table Header */}
+                            <div className="grid grid-cols-[2fr_2.5fr_1fr_1fr_1.5fr_2fr] border-b border-gray-300 dark:border-[#374151]">
+                                <TableHeader label="Сигнатура справи" />
+                                <TableHeader label="Назва справи" />
+                                <TableHeader label="Рік складання" />
+                                <TableHeader label="Дата справи" />
+                                <TableHeader label="Статус" />
+                                <TableHeader label="Примітки" isLast />
+                            </div>
+
+                            {/* Table Body */}
+                            <div className="divide-y divide-gray-200 dark:divide-[#374151]">
+                                {items.length === 0 && !loading && (
+                                    <div className="text-center py-8">
+                                        <p className="text-gray-600 dark:text-gray-400 text-[14px] lg:text-[16px]">
+                                            Інвентарі не знайдено
+                                        </p>
+                                    </div>
+                                )}
+                                {items.map((item, index) => (
+                                    <div
+                                        key={item.id}
+                                        className={`grid grid-cols-[2fr_2.5fr_1fr_1fr_1.5fr_2fr] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors ${
+                                            index % 2 === 0 ? '' : 'bg-gray-50 dark:bg-[#1F2937]'
+                                        }`}
+                                        onClick={() => router.push(`/unidentified/${item.id}`)}
                                     >
-                                        <td className="border border-gray-300 dark:border-gray-600 p-2 text-xs">{it.case_signature || '—'}</td>
-                                        <td className="border border-gray-300 dark:border-gray-600 p-2 text-xs">{it.case_title || '—'}</td>
-                                        <td className="border border-gray-300 dark:border-gray-600 p-2 text-xs">{it.inventory_year || '—'}</td>
-                                        <td className="border border-gray-300 dark:border-gray-600 p-2 text-xs">{it.case_date || '—'}</td>
-                                        <td className="border border-gray-300 dark:border-gray-600 p-2 text-xs">{getStatusLabel(it.status)}</td>
-                                        <td className="border border-gray-300 dark:border-gray-600 p-2 text-xs">{truncate(it.notes) || '—'}</td>
-                                    </tr>
+                                        <TableCell>{item.case_signature || '—'}</TableCell>
+                                        <TableCell>{item.case_title || '—'}</TableCell>
+                                        <TableCell>{item.inventory_year || '—'}</TableCell>
+                                        <TableCell>{item.case_date || '—'}</TableCell>
+                                        <TableCell>{getStatusLabel(item.status)}</TableCell>
+                                        <TableCell>{truncate(item.notes) || '—'}</TableCell>
+                                    </div>
                                 ))}
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Mobile cards */}
-                    <div className="block sm:hidden space-y-4">
-                        {items.map(it => (
-                            <div 
-                                key={it.id} 
-                                onClick={() => router.push(`/unidentified/${it.id}`)}
-                                className="border rounded p-3 bg-white dark:bg-gray-800 shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    {/* Mobile Cards */}
+                    <div className="block lg:hidden space-y-4 mb-[15px]">
+                        {items.length === 0 && !loading && (
+                            <div className="text-center p-6 border border-gray-300 dark:border-[#374151] rounded-lg bg-gray-50 dark:bg-[#1F2937]">
+                                <p className="text-gray-600 dark:text-gray-400 text-[14px]">
+                                    Інвентарі не знайдено
+                                </p>
+                            </div>
+                        )}
+                        {items.map(item => (
+                            <div
+                                key={item.id}
+                                className="p-4 border border-gray-300 dark:border-[#374151] rounded-lg bg-gray-50 dark:bg-[#1F2937] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors"
+                                onClick={() => router.push(`/unidentified/${item.id}`)}
                             >
-                                <div className="text-xs mb-1"><strong>Сигнатура:</strong> {it.case_signature || '—'}</div>
-                                <div className="text-xs mb-1"><strong>Назва справи:</strong> {it.case_title || '—'}</div>
-                                <div className="text-xs mb-1"><strong>Рік:</strong> {it.inventory_year || '—'}</div>
-                                <div className="text-xs mb-1"><strong>Дата:</strong> {it.case_date || '—'}</div>
-                                <div className="text-xs mb-1"><strong>Статус:</strong> {getStatusLabel(it.status)}</div>
-                                <div className="text-xs mb-1"><strong>Примітки:</strong> {truncate(it.notes) || '—'}</div>
+                                <div className="space-y-3">
+                                    <div>
+                                        <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">
+                                            Сигнатура справи
+                                        </div>
+                                        <div className="text-[13px] text-gray-900 dark:text-white">
+                                            {item.case_signature || '—'}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">
+                                            Назва справи
+                                        </div>
+                                        <div className="text-[13px] text-gray-900 dark:text-white">
+                                            {item.case_title || '—'}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">Рік складання</div>
+                                            <div className="text-[13px] text-gray-900 dark:text-white">{item.inventory_year || '—'}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">Дата справи</div>
+                                            <div className="text-[13px] text-gray-900 dark:text-white">{item.case_date || '—'}</div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">Статус</div>
+                                        <div className="text-[13px] text-gray-900 dark:text-white">{getStatusLabel(item.status)}</div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">Примітки</div>
+                                        <div className="text-[13px] text-gray-900 dark:text-white">{truncate(item.notes) || '—'}</div>
+                                    </div>
+                                </div>
                             </div>
                         ))}
                     </div>
 
                     {/* Pagination */}
-                    <div className="flex justify-between items-center mt-4 max-w-md mx-auto">
-                        <button
-                            className="px-4 py-2 rounded bg-gray-700 text-gray-100 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            disabled={page === 1 || loading}
-                            onClick={() => setPage(prev => Math.max(prev - 1, 1))}
-                        >
-                            Попередня
-                        </button>
-                        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                            Сторінка {page} з {totalPages}
-                        </span>
-                        <button
-                            className="px-4 py-2 rounded bg-gray-700 text-gray-100 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            disabled={items.length < PAGE_SIZE || loading}
-                            onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
-                        >
-                            Наступна
-                        </button>
-                    </div>
+                    {total > 0 && (
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-[15px] p-[15px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#111827]">
+                            <div className="flex items-center gap-[20px]">
+                                <button 
+                                    className="flex items-center gap-[5px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={page === 1 || loading}
+                                    onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+                                >
+                                    <ChevronLeft className="w-5 h-5 text-gray-900 dark:text-white" strokeWidth={2} />
+                                    <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px]">Назад</span>
+                                </button>
 
+                                <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px]">
+                                    Сторінка {page} з {totalPages}
+                                </span>
+
+                                <button 
+                                    className="flex items-center gap-[10px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={items.length < PAGE_SIZE || loading}
+                                    onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
+                                >
+                                    <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px]">Вперед</span>
+                                    <ChevronRight className="w-5 h-5 text-gray-900 dark:text-white" strokeWidth={2} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            </main>
+            </div>
         </>
+    );
+}
+
+function TableHeader({ label, isLast = false }: { label: string; isLast?: boolean }) {
+    return (
+        <div className={`flex items-center justify-center gap-[5px] p-[10px] ${isLast ? '' : 'border-r border-gray-200 dark:border-[#374151]'} bg-gray-100 dark:bg-[#1F2937] min-h-[50px]`}>
+            <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] font-semibold text-center">{label}</span>
+            <ChevronDown className="w-5 h-5 text-gray-600 dark:text-[#F3F4F6] flex-shrink-0" strokeWidth={2} />
+        </div>
+    );
+}
+
+function TableCell({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="flex items-center justify-center p-[10px] border-r border-gray-200 dark:border-[#374151] last:border-r-0 min-h-[50px]">
+            <span className="text-gray-900 dark:text-white text-[13px] lg:text-[14px] text-center">{children}</span>
+        </div>
     );
 }

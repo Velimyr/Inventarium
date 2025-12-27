@@ -494,5 +494,14 @@
     "full_name_ukr": "Волинський краєзнавчий музей",
     "full_name_native": "Волинський краєзнавчий музей",
     "site": "https://volynmuseum.com/"
+  },
+  {
+    "id": "3f9e2c1a-7b4d-4a8f-9c2e-1d2b3c4f5a6b",
+    "short_name": "APP",
+    "country": "Польща",
+    "full_name_ukr": "Державний архів в Перемишлі",
+    "full_name_native": "Archiwum Państwowe w Przemyślu",
+    "site": "https://www.przemysl.ap.gov.pl/"
   }
+  
 ]

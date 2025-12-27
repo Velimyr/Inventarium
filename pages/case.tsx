@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import ClientOnly from '../components/clientonly';
+import { ChevronDown } from 'lucide-react';
 
 // Динамічний імпорт react-leaflet компонентів БЕЗ SSR
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -113,180 +114,225 @@ export default function CasePage() {
     return (
         <>
             <Header />
-            <main className="w-full bg-white dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
-                {caseInfo && (
-                    <section className="p-6 border-b dark:border-gray-700">
-                        <h1 className="text-2xl font-bold mb-4">Справа: {case_signature}</h1>
-                    </section>
-                )}
-
-                <div style={{ height: '500px', width: '100%', position: 'relative' }}>
-                    {isLoading ? (
-                        <div className="absolute z-[1001] top-0 left-0 w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                            <div className="flex flex-col items-center gap-4">
-                                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                                <span className="text-lg font-medium text-gray-900 dark:text-gray-100">Завантаження даних...</span>
-                            </div>
-                        </div>
-                    ) : records.length === 0 ? (
-                        <div className="absolute z-[1001] top-0 left-0 w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                            <span className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                                Записів не знайдено
-                            </span>
-                        </div>
-                    ) : (
-                        <ClientOnly>
-                            <MapContainer 
-                                center={getMapCenter()} 
-                                zoom={8} 
-                                style={{ height: '100%', width: '100%' }} 
-                                scrollWheelZoom={true}
-                            >
-                                <TileLayer
-                                    attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
-                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                />
-                                <GeocoderControl />
-                                {records.map((record) => {
-                                    if (!record.latitude || !record.longitude) return null;
-                                    const position: [number, number] = [record.latitude, record.longitude];
-                                    const isRegion = record.mark_type === 0;
-
-                                    return (
-                                        <Marker 
-                                            key={record.id} 
-                                            position={position} 
-                                            icon={isRegion ? (icons.redIcon || undefined) : (icons.blueIcon || undefined)}
-                                        >
-                                            <Popup>
-                                                <div>
-                                                    <strong>{record.current_settlement_name || 'Невідома назва'}</strong>
-                                                    {record.current_settlement_type && (
-                                                        <span> ({record.current_settlement_type})</span>
-                                                    )}
-                                                    <br />
-                                                    {record.old_settlement_name && (
-                                                        <>
-                                                            <span className="text-sm text-gray-600">
-                                                                Історична назва: {record.old_settlement_type} {record.old_settlement_name}
-                                                            </span>
-                                                            <br />
-                                                        </>
-                                                    )}
-                                                    {record.inventory_start_page && (
-                                                        <span className="text-sm text-gray-600">
-                                                            Сторінка: {record.inventory_start_page}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </Popup>
-                                            {isRegion && (
-                                                <Circle center={position} radius={20000} pathOptions={{ color: 'rgba(255,0,0,0.3)' }} />
-                                            )}
-                                        </Marker>
-                                    );
-                                })}
-                            </MapContainer>
-                        </ClientOnly>
+            <div className="min-h-screen bg-white dark:bg-[#111827]">
+                <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+                    {/* Page Title */}
+                    {caseInfo && (
+                        <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px] lg:mb-[30px]">
+                            Справа: {case_signature}
+                        </h1>
                     )}
-                </div>
 
-                {!isLoading && records.length > 0 && (
-                    <section className="p-6">
-                        <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                            Знайдено записів: {records.length}
-                        </div>
-                        <h2 className="text-xl font-semibold mb-4">Населені пункти у справі</h2>
+                    {/* Map Section */}
+                    <div className="rounded-lg border border-gray-300 dark:border-[#374151] overflow-hidden mb-[20px]" style={{ height: '500px' }}>
+                        {isLoading ? (
+                            <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-[#1F2937]">
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="w-12 h-12 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin"></div>
+                                    <span className="text-[16px] font-medium text-gray-900 dark:text-white">Завантаження даних...</span>
+                                </div>
+                            </div>
+                        ) : records.length === 0 ? (
+                            <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-[#1F2937]">
+                                <span className="text-[16px] font-medium text-gray-900 dark:text-white">
+                                    Записів не знайдено
+                                </span>
+                            </div>
+                        ) : (
+                            <ClientOnly>
+                                <MapContainer 
+                                    center={getMapCenter()} 
+                                    zoom={8} 
+                                    style={{ height: '100%', width: '100%' }} 
+                                    scrollWheelZoom={true}
+                                >
+                                    <TileLayer
+                                        attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    />
+                                    <GeocoderControl />
+                                    {records.map((record) => {
+                                        if (!record.latitude || !record.longitude) return null;
+                                        const position: [number, number] = [record.latitude, record.longitude];
+                                        const isRegion = record.mark_type === 0;
 
-                        <div className="hidden sm:block overflow-x-auto">
-                            <table className="w-full border-collapse border border-gray-300 dark:border-gray-600">
-                                <thead>
-                                    <tr className="bg-gray-100 dark:bg-gray-800">
-                                        <th className="border border-gray-300 dark:border-gray-600 p-2 text-left">Сучасна назва</th>
-                                        <th className="border border-gray-300 dark:border-gray-600 p-2 text-left">Історична назва</th>
-                                        <th className="border border-gray-300 dark:border-gray-600 p-2 text-left">Адміністративний поділ</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {records.map((record) => (
-                                        <tr 
-                                            key={record.id} 
-                                            className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                                            onClick={() => router.push(`/record/${record.id}`)}
-                                        >
-                                            <td className="border border-gray-300 dark:border-gray-600 p-2">
-                                                {record.current_settlement_type} {record.current_settlement_name || '—'}
-                                            </td>
-                                            <td className="border border-gray-300 dark:border-gray-600 p-2">
-                                                {record.old_settlement_type && record.old_settlement_name
-                                                    ? `${record.old_settlement_type} ${record.old_settlement_name}`
-                                                    : '—'}
-                                            </td>
-                                            <td className="border border-gray-300 dark:border-gray-600 p-2">
-                                                <div className="text-sm">
-                                                    {[
-                                                        record.current_region,
-                                                        record.current_district,
-                                                        record.current_community,
-                                                    ]
+                                        return (
+                                            <Marker 
+                                                key={record.id} 
+                                                position={position} 
+                                                icon={isRegion ? (icons.redIcon || undefined) : (icons.blueIcon || undefined)}
+                                            >
+                                                <Popup>
+                                                    <div>
+                                                        <strong>{record.current_settlement_name || 'Невідома назва'}</strong>
+                                                        {record.current_settlement_type && (
+                                                            <span> ({record.current_settlement_type})</span>
+                                                        )}
+                                                        <br />
+                                                        {record.old_settlement_name && (
+                                                            <>
+                                                                <span className="text-sm text-gray-600">
+                                                                    Історична назва: {record.old_settlement_type} {record.old_settlement_name}
+                                                                </span>
+                                                                <br />
+                                                            </>
+                                                        )}
+                                                        {record.inventory_start_page && (
+                                                            <span className="text-sm text-gray-600">
+                                                                Сторінка: {record.inventory_start_page}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </Popup>
+                                                {isRegion && (
+                                                    <Circle center={position} radius={20000} pathOptions={{ color: 'rgba(255,0,0,0.3)' }} />
+                                                )}
+                                            </Marker>
+                                        );
+                                    })}
+                                </MapContainer>
+                            </ClientOnly>
+                        )}
+                    </div>
+
+                    {/* Records Count and Title */}
+                    {!isLoading && records.length > 0 && (
+                        <>
+                            <p className="text-gray-900 dark:text-[#F3F4F6] text-[16px] lg:text-[18px] mb-[15px]">
+                                Знайдено {records.length} {records.length === 1 ? 'запис' : records.length < 5 ? 'записи' : 'записів'}
+                            </p>
+
+                            {/* Desktop Table */}
+                            <div className="hidden lg:block overflow-x-auto mb-[15px]">
+                                <div className="min-w-full border border-gray-300 dark:border-[#374151] rounded-lg overflow-hidden">
+                                    {/* Table Header */}
+                                    <div className="grid grid-cols-[2fr_2fr_3fr] border-b border-gray-300 dark:border-[#374151]">
+                                        <TableHeader label="Сучасна назва" />
+                                        <TableHeader label="Історична назва" />
+                                        <TableHeader label="Адміністративний поділ" isLast />
+                                    </div>
+
+                                    {/* Table Body */}
+                                    <div className="divide-y divide-gray-200 dark:divide-[#374151]">
+                                        {records.map((record, index) => (
+                                            <div
+                                                key={record.id}
+                                                className={`grid grid-cols-[2fr_2fr_3fr] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors ${
+                                                    index % 2 === 0 ? '' : 'bg-gray-50 dark:bg-[#1F2937]'
+                                                }`}
+                                                onClick={() => router.push(`/record/${record.id}`)}
+                                            >
+                                                <TableCell>
+                                                    {record.current_settlement_type} {record.current_settlement_name || '—'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {record.old_settlement_type && record.old_settlement_name
+                                                        ? `${record.old_settlement_type} ${record.old_settlement_name}`
+                                                        : '—'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="text-[13px] lg:text-[14px] font-bold">
+                                                            {[
+                                                                record.current_region ? `${record.current_region} область` : null,
+                                                                record.current_district ? `${record.current_district} район` : null,
+                                                                record.current_community ? `${record.current_community} громада` : null,
+                                                            ]
+                                                                .filter(Boolean)
+                                                                .join(', ') || '—'}
+                                                        </div>
+                                                        {(record.old_province || record.old_district || record.old_community) && (
+                                                            <div className="text-[12px] text-gray-600 dark:text-gray-400">
+                                                                {[record.old_province, record.old_district, record.old_community]
+                                                                    .filter(Boolean)
+                                                                    .join(', ')}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Mobile Cards */}
+                            <div className="block lg:hidden space-y-4">
+                                {records.map((record) => (
+                                    <div
+                                        key={record.id}
+                                        className="p-4 border border-gray-300 dark:border-[#374151] rounded-lg bg-gray-50 dark:bg-[#1F2937] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors"
+                                        onClick={() => router.push(`/record/${record.id}`)}
+                                    >
+                                        <div className="space-y-3">
+                                            <div>
+                                                <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">
+                                                    Сучасна назва
+                                                </div>
+                                                <div className="text-[15px] text-gray-900 dark:text-white font-semibold">
+                                                    {record.current_settlement_type} {record.current_settlement_name || '—'}
+                                                </div>
+                                            </div>
+
+                                            {(record.old_settlement_type || record.old_settlement_name) && (
+                                                <div>
+                                                    <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">
+                                                        Історична назва
+                                                    </div>
+                                                    <div className="text-[13px] text-gray-900 dark:text-white">
+                                                        {record.old_settlement_type} {record.old_settlement_name}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div>
+                                                <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">
+                                                    Адміністративний поділ
+                                                </div>
+                                                <div className="text-[13px] text-gray-900 dark:text-white">
+                                                    {[record.current_region, record.current_district, record.current_community]
                                                         .filter(Boolean)
                                                         .join(', ') || '—'}
                                                 </div>
-                                                {(record.old_province || record.old_district || record.old_community) && (
-                                                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                                        Історично: {[record.old_province, record.old_district, record.old_community]
+                                            </div>
+
+                                            {(record.old_province || record.old_district || record.old_community) && (
+                                                <div>
+                                                    <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">
+                                                        Історичний поділ
+                                                    </div>
+                                                    <div className="text-[13px] text-gray-600 dark:text-gray-400">
+                                                        {[record.old_province, record.old_district, record.old_community]
                                                             .filter(Boolean)
                                                             .join(', ')}
                                                     </div>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div className="block sm:hidden space-y-4">
-                            {records.map((record) => (
-                                <div
-                                    key={record.id}
-                                    className="border rounded p-4 shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
-                                    onClick={() => router.push(`/record/${record.id}`)}
-                                >
-                                    <div className="mb-2">
-                                        <div className="font-semibold text-lg">
-                                            {record.current_settlement_type} {record.current_settlement_name || '—'}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-
-                                    {(record.old_settlement_type || record.old_settlement_name) && (
-                                        <div className="mb-2 text-sm text-gray-600 dark:text-gray-400">
-                                            <span className="font-semibold">Історична назва: </span>
-                                            {record.old_settlement_type} {record.old_settlement_name}
-                                        </div>
-                                    )}
-
-                                    <div className="mb-2 text-sm">
-                                        <span className="font-semibold">Адміністративний поділ: </span>
-                                        {[record.current_region, record.current_district, record.current_community]
-                                            .filter(Boolean)
-                                            .join(', ') || '—'}
-                                    </div>
-
-                                    {(record.old_province || record.old_district || record.old_community) && (
-                                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                                            <span className="font-semibold">Історичний поділ: </span>
-                                            {[record.old_province, record.old_district, record.old_community]
-                                                .filter(Boolean)
-                                                .join(', ')}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
-            </main>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
         </>
+    );
+}
+
+function TableHeader({ label, isLast = false }: { label: string; isLast?: boolean }) {
+    return (
+        <div className={`flex items-center justify-center gap-[5px] p-[10px] ${isLast ? '' : 'border-r border-gray-200 dark:border-[#374151]'} bg-gray-100 dark:bg-[#1F2937] min-h-[50px]`}>
+            <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] font-semibold text-center">{label}</span>
+            <ChevronDown className="w-5 h-5 text-gray-600 dark:text-[#F3F4F6] flex-shrink-0" strokeWidth={2} />
+        </div>
+    );
+}
+
+function TableCell({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="flex items-center justify-center p-[10px] border-r border-gray-200 dark:border-[#374151] last:border-r-0 min-h-[50px]">
+            <span className="text-gray-900 dark:text-white text-[13px] lg:text-[14px] text-center">{children}</span>
+        </div>
     );
 }

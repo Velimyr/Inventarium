@@ -1,9 +1,10 @@
 import { Dialog } from '@headlessui/react';
-import { useState, Fragment, useEffect, ChangeEvent } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useUser } from '../contexts/UserContext';
 import emailjs from 'emailjs-com';
 import Toast from './Toast';
+import { ChevronDown } from 'lucide-react';
 
 // Тип для населеного пункту
 type Settlement = {
@@ -39,7 +40,6 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
   const [names, setNames] = useState<string[]>([]);
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  // Додаємо стан для email
   const [email, setEmail] = useState<string>(user?.email || '');
 
   // Оновлення районів при зміні області
@@ -164,8 +164,6 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
     setFile(selectedFile);
   };
 
-
-
   const uploadToSupabase = async (file: File): Promise<string> => {
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const filePath = `${Date.now()}-${sanitizedFileName}`;
@@ -177,8 +175,6 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
     const { data } = supabase.storage.from('email-attachments').getPublicUrl(filePath);
     return data.publicUrl;
   };
-
-
 
   const handleSubmit = async () => {
     if (!isFormValid) return;
@@ -251,104 +247,112 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
   };
 
   return (
-    <Dialog open={isOpen} onClose={onClose} as="div">
-      <div className="fixed inset-0 bg-black bg-opacity-30 z-40 flex items-center justify-center">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded shadow-md max-w-lg w-full z-50">
-          <Dialog.Title className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">
+    <Dialog open={isOpen} onClose={onClose}>
+      <div className="fixed inset-0 bg-black bg-opacity-30 z-40 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-[#1F2937] p-[20px] lg:p-[30px] rounded-lg shadow-md max-w-lg w-full z-50 border border-gray-300 dark:border-[#374151]">
+          <Dialog.Title className="text-gray-900 dark:text-[#F3F4F6] text-[20px] lg:text-[22px] font-semibold mb-[20px]">
             Додати підписку
           </Dialog.Title>
 
-          <div className="grid gap-3 mb-4">
-           
-            <select
-              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          <div className="space-y-[15px] mb-[20px]">
+            {/* Region Select */}
+            <FormSelect
               value={region}
               onChange={(e) => setRegion(e.target.value)}
+              placeholder="Оберіть область"
             >
-              <option value="">Оберіть область</option>
               {regionStructure &&
                 Object.keys(regionStructure).map((r) => (
                   <option key={r} value={r}>
                     {r}
                   </option>
                 ))}
-            </select>
+            </FormSelect>
 
-            <select
-              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            {/* District Select */}
+            <FormSelect
               value={district}
               onChange={(e) => setDistrict(e.target.value)}
+              placeholder="Оберіть район"
               disabled={!region || districts.length === 0}
             >
-              <option value="">Оберіть район</option>
               {districts.map((d) => (
                 <option key={d} value={d}>
                   {d}
                 </option>
               ))}
-            </select>
+            </FormSelect>
 
-            <select
-              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            {/* Community Select */}
+            <FormSelect
               value={community}
               onChange={(e) => setCommunity(e.target.value)}
+              placeholder="Оберіть громаду"
               disabled={!district || communities.length === 0}
             >
-              <option value="">Оберіть громаду</option>
               {communities.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
               ))}
-            </select>
+            </FormSelect>
 
-            <select
-              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            {/* Type Select */}
+            <FormSelect
               value={type}
               onChange={(e) => setType(e.target.value)}
+              placeholder="Оберіть тип"
               disabled={!community || types.length === 0}
             >
-              <option value="">Оберіть тип</option>
               {types.map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>
               ))}
-            </select>
+            </FormSelect>
 
-            <select
-              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            {/* Settlement Select */}
+            <FormSelect
               value={name}
               onChange={(e) => setName(e.target.value)}
+              placeholder="Оберіть населений пункт"
               disabled={!type || names.length === 0}
             >
-              <option value="">Оберіть населений пункт</option>
               {names.map((n) => (
                 <option key={n} value={n}>
                   {n}
                 </option>
               ))}
-            </select>
-            <p className="mb-6 text-center text-gray-700 dark:text-gray-300"> Оберіть файл з скріншотом вашого донату (дата донату має бути сьогоднішньою, сума більше 200 грн.)</p>
+            </FormSelect>
+
+            {/* Help Text */}
+            <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">
+              Оберіть файл з скріншотом вашого донату (дата донату має бути сьогоднішньою, сума більше 200 грн.)
+            </p>
+
+            {/* File Input */}
             <input
               type="file"
               onChange={handleFileChange}
-              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full p-[10px] border border-gray-300 dark:border-[#374151] rounded bg-white dark:bg-[#111827] text-gray-900 dark:text-white text-[13px] lg:text-[14px] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-100 dark:file:bg-[#374151] file:text-gray-900 dark:file:text-white hover:file:bg-gray-200 dark:hover:file:bg-[#4B5563]"
             />
-             <input
+
+            {/* Email Input */}
+            <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email на який будуть приходити сповіщення про інвентарі"
-              className="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-[10px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-[13px] lg:text-[14px] outline-none focus:border-[#2563EB] transition-colors"
               required
             />
           </div>
 
-          <div className="flex justify-end gap-2">
+          {/* Buttons */}
+          <div className="flex justify-end gap-[10px]">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
+              className="px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors text-[14px] lg:text-[16px] font-medium disabled:opacity-50"
               disabled={submitting}
             >
               Скасувати
@@ -356,7 +360,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
             <button
               onClick={handleSubmit}
               disabled={submitting || !isFormValid}
-              className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              className="px-[15px] h-[40px] rounded bg-[#2563EB] text-white hover:bg-[#1D4ED8] transition-colors text-[14px] lg:text-[16px] font-medium disabled:opacity-50"
             >
               {submitting ? 'Надсилання...' : 'Додати підписку'}
             </button>
@@ -371,6 +375,36 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
         />
       )}
     </Dialog>
+  );
+}
+
+// Reusable Select Component
+function FormSelect({ 
+  value, 
+  onChange, 
+  placeholder, 
+  disabled, 
+  children 
+}: { 
+  value: string; 
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; 
+  placeholder: string; 
+  disabled?: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        className="w-full px-[10px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] text-gray-900 dark:text-white text-[13px] lg:text-[14px] outline-none focus:border-[#2563EB] transition-colors appearance-none pr-[35px] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <option value="">{placeholder}</option>
+        {children}
+      </select>
+      <ChevronDown className="absolute right-[10px] top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600 dark:text-[#F3F4F6] pointer-events-none" strokeWidth={2} />
+    </div>
   );
 }
 

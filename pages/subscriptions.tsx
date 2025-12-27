@@ -5,6 +5,7 @@ import { useUser } from '../contexts/UserContext';
 import SubscriptionModal from '../components/subscriptionModal';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
+import { Bell, Plus, AlertTriangle, ChevronDown } from 'lucide-react';
 
 export default function SubscriptionsPage() {
     const { user, loading } = useUser();
@@ -65,9 +66,11 @@ export default function SubscriptionsPage() {
         return (
             <>
                 <Header />
-                <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex items-center justify-center">
-                    <p className="text-lg text-center">🔐 Щоб переглянути підписки, увійдіть у систему.</p>
-                </main>
+                <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+                    <p className="text-gray-900 dark:text-white text-[16px] lg:text-[18px] text-center px-4">
+                        🔐 Щоб переглянути підписки, увійдіть у систему.
+                    </p>
+                </div>
             </>
         );
     }
@@ -75,82 +78,184 @@ export default function SubscriptionsPage() {
     return (
         <>
             <Header />
-            <main className="px-8 py-6 w-full min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-                <div className="max-w-4xl mx-auto">
-                    <h1 className="text-2xl font-bold mb-4">Мої підписки</h1>
+            <div className="min-h-screen bg-white dark:bg-[#111827]">
+                <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+                    {/* Page Title */}
+                    <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px] lg:mb-[30px]">
+                        Мої підписки
+                    </h1>
 
-                    <p className="mb-4">
-                        Ви можете підписатися на оновлення реєстру Інвентаріуму по певному населеному пункту. Якщо в систему буде внесено інвентар по цьому населеному пункту — ви отримаєте відповідне сповіщення на електронну пошту.
-                    </p>
-                    <p className="mb-6">
-                        Для створення нової підписки за одним населеним пунктом — ви маєте зробити пожертву на підтримку Сил Оборони України для актуального збору на нашому сайті (сума повинна бути від 200 грн.):
-                    </p>
-                    <Link
-                        href="/donate"
-                        className="inline-block text-blue-600 hover:underline font-semibold mb-8"
-                    >
-                        Задонатити
-                    </Link>
-
-                    {/* Таблиця підписок */}
-                    {loadingSubscriptions ? (
-                        <p className="mb-8">Завантаження...</p>
-                    ) : (
-                        subscriptions.length > 0 ? (
-                            <>
-                            <table className="w-full text-left border border-gray-300 dark:border-gray-700 mb-8">
-                                <thead className="bg-gray-100 dark:bg-gray-800">
-                                    <tr>
-                                        <th className="p-2 border-b dark:border-gray-700">Населений пункт</th>
-                                        <th className="p-2 border-b dark:border-gray-700">Статус</th>
-                                        <th className="p-2 border-b dark:border-gray-700">Дійсна до</th>
-                                        <th className="p-2 border-b dark:border-gray-700">Email</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {subscriptions.map((s) => {
-                                        const now = new Date();
-                                        const expired = new Date(s.expire_date) < now;
-                                        let statusText = '';
-                                        if (expired) {
-                                            statusText = 'Підписка завершена';
-                                        } else if (s.status === 'new') {
-                                            statusText = 'Очікує підтвердження адміністратором';
-                                        } else if (s.status === 'approved') {
-                                            statusText = 'Підписка активна';
-                                        } else if (s.status === 'rejected') {
-                                            statusText = 'Підписка відхилена';
-                                        } else {
-                                            statusText = 'Підписка завершена';
-                                        }
-                                        return (
-                                            <tr key={s.id} className="border-t border-gray-300 dark:border-gray-700">
-                                                <td className="p-2">{getSettlementNameByCode(s.settlement_code)}</td>
-                                                <td className="p-2">{statusText}</td>
-                                                <td className="p-2">
-                                                    {s.status === 'rejected' ? '—' : formatDate(s.expire_date)}
-                                                </td>
-                                                <td className="p-2">{s.email || '—'}</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                            <p className="text-base font-semibold text-yellow-700 dark:text-yellow-400">
-                                ⚠️ Зверніть увагу: Коли зʼявиться новий інвентар і вам буде відправлено сповіщення про це, лист може потрапити в спам. Додайте завчасно адресу inventariumteam@gmail.com до списку дозволений відправників.
+                    {/* Info Section */}
+                    <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] mb-[20px]">
+                        <div className="flex items-start gap-[10px] mb-[15px]">
+                            <Bell className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6] flex-shrink-0 mt-0.5" strokeWidth={2} />
+                            <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                                Про підписки
+                            </h2>
+                        </div>
+                        <div className="space-y-[15px]">
+                            <p className="text-gray-900 dark:text-white text-[14px] lg:text-[16px]">
+                                Ви можете підписатися на оновлення реєстру Інвентаріуму по певному населеному пункту. Якщо в систему буде внесено інвентар по цьому населеному пункту — ви отримаєте відповідне сповіщення на електронну пошту.
                             </p>
-                            </>
-                        ) : (
-                            <p className="mb-8">У вас поки немає підписок.</p>
-                        )
+                            <p className="text-gray-900 dark:text-white text-[14px] lg:text-[16px]">
+                                Для створення нової підписки за одним населеним пунктом — ви маєте зробити пожертву на підтримку Сил Оборони України для актуального збору на нашому сайті (сума повинна бути від 200 грн.):
+                            </p>
+                            <Link href="/donate">
+                                <a className="inline-block text-[#2563EB] hover:text-[#1D4ED8] text-[14px] lg:text-[16px] font-semibold underline">
+                                    Задонатити
+                                </a>
+                            </Link>
+                        </div>
+                    </section>
+
+                    {/* Subscriptions Table */}
+                    {loadingSubscriptions ? (
+                        <div className="text-center py-8">
+                            <p className="text-gray-900 dark:text-white text-[16px]">Завантаження...</p>
+                        </div>
+                    ) : subscriptions.length > 0 ? (
+                        <>
+                            {/* Desktop Table */}
+                            <div className="hidden lg:block overflow-x-auto mb-[20px]">
+                                <div className="min-w-full border border-gray-300 dark:border-[#374151] rounded-lg overflow-hidden">
+                                    {/* Table Header */}
+                                    <div className="grid grid-cols-[2fr_1.5fr_1fr_1.5fr] border-b border-gray-300 dark:border-[#374151]">
+                                        <TableHeader label="Населений пункт" />
+                                        <TableHeader label="Статус" />
+                                        <TableHeader label="Дійсна до" />
+                                        <TableHeader label="Email" isLast />
+                                    </div>
+
+                                    {/* Table Body */}
+                                    <div className="divide-y divide-gray-200 dark:divide-[#374151]">
+                                        {subscriptions.map((s, index) => {
+                                            const now = new Date();
+                                            const expired = new Date(s.expire_date) < now;
+                                            let statusText = '';
+                                            if (expired) {
+                                                statusText = 'Підписка завершена';
+                                            } else if (s.status === 'new') {
+                                                statusText = 'Очікує підтвердження адміністратором';
+                                            } else if (s.status === 'approved') {
+                                                statusText = 'Підписка активна';
+                                            } else if (s.status === 'rejected') {
+                                                statusText = 'Підписка відхилена';
+                                            } else {
+                                                statusText = 'Підписка завершена';
+                                            }
+
+                                            return (
+                                                <div
+                                                    key={s.id}
+                                                    className={`grid grid-cols-[2fr_1.5fr_1fr_1.5fr] ${
+                                                        index % 2 === 0 ? '' : 'bg-gray-50 dark:bg-[#1F2937]'
+                                                    }`}
+                                                >
+                                                    <TableCell>{getSettlementNameByCode(s.settlement_code)}</TableCell>
+                                                    <TableCell>{statusText}</TableCell>
+                                                    <TableCell>
+                                                        {s.status === 'rejected' ? '—' : formatDate(s.expire_date)}
+                                                    </TableCell>
+                                                    <TableCell>{s.email || '—'}</TableCell>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Mobile Cards */}
+                            <div className="block lg:hidden space-y-4 mb-[20px]">
+                                {subscriptions.map((s) => {
+                                    const now = new Date();
+                                    const expired = new Date(s.expire_date) < now;
+                                    let statusText = '';
+                                    if (expired) {
+                                        statusText = 'Підписка завершена';
+                                    } else if (s.status === 'new') {
+                                        statusText = 'Очікує підтвердження адміністратором';
+                                    } else if (s.status === 'approved') {
+                                        statusText = 'Підписка активна';
+                                    } else if (s.status === 'rejected') {
+                                        statusText = 'Підписка відхилена';
+                                    } else {
+                                        statusText = 'Підписка завершена';
+                                    }
+
+                                    return (
+                                        <div
+                                            key={s.id}
+                                            className="p-4 border border-gray-300 dark:border-[#374151] rounded-lg bg-gray-50 dark:bg-[#1F2937]"
+                                        >
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">
+                                                        Населений пункт
+                                                    </div>
+                                                    <div className="text-[13px] text-gray-900 dark:text-white">
+                                                        {getSettlementNameByCode(s.settlement_code)}
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">
+                                                            Статус
+                                                        </div>
+                                                        <div className="text-[13px] text-gray-900 dark:text-white">
+                                                            {statusText}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">
+                                                            Дійсна до
+                                                        </div>
+                                                        <div className="text-[13px] text-gray-900 dark:text-white">
+                                                            {s.status === 'rejected' ? '—' : formatDate(s.expire_date)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">
+                                                        Email
+                                                    </div>
+                                                    <div className="text-[13px] text-gray-900 dark:text-white">
+                                                        {s.email || '—'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Warning Banner */}
+                            <div className="flex items-start gap-[10px] lg:gap-[15px] px-[12px] lg:px-[15px] py-[10px] rounded bg-[#FEF3C7] dark:bg-[#EAB308] mb-[20px]">
+                                <AlertTriangle className="w-4 h-4 text-[#92400E] dark:text-[#451A03] flex-shrink-0 mt-0.5" strokeWidth={1.6} />
+                                <p className="text-[#92400E] dark:text-[#451A03] text-[14px] lg:text-[16px] font-medium flex-1">
+                                    Зверніть увагу: Коли зʼявиться новий інвентар і вам буде відправлено сповіщення про це, лист може потрапити в спам. Додайте завчасно адресу inventariumteam@gmail.com до списку дозволених відправників.
+                                </p>
+                            </div>
+                        </>
+                    ) : (
+                        <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] mb-[20px]">
+                            <p className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] text-center">
+                                У вас поки немає підписок.
+                            </p>
+                        </section>
                     )}
 
-                    <div className="mt-8 flex justify-end">
+                    {/* Add Subscription Button */}
+                    <div className="flex justify-end">
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition"
+                            className="flex items-center gap-[10px] px-[15px] h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
                         >
-                            Додати підписку
+                            <Plus className="w-4 h-4 text-white" strokeWidth={1.6} />
+                            <span className="text-white text-[14px] lg:text-[16px] font-medium">
+                                Додати підписку
+                            </span>
                         </button>
                     </div>
 
@@ -171,7 +276,24 @@ export default function SubscriptionsPage() {
                         }}
                     />
                 </div>
-            </main>
+            </div>
         </>
+    );
+}
+
+function TableHeader({ label, isLast = false }: { label: string; isLast?: boolean }) {
+    return (
+        <div className={`flex items-center justify-center gap-[5px] p-[10px] ${isLast ? '' : 'border-r border-gray-200 dark:border-[#374151]'} bg-gray-100 dark:bg-[#1F2937] min-h-[50px]`}>
+            <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] font-semibold text-center">{label}</span>
+            <ChevronDown className="w-5 h-5 text-gray-600 dark:text-[#F3F4F6] flex-shrink-0" strokeWidth={2} />
+        </div>
+    );
+}
+
+function TableCell({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="flex items-center justify-center p-[10px] border-r border-gray-200 dark:border-[#374151] last:border-r-0 min-h-[50px]">
+            <span className="text-gray-900 dark:text-white text-[13px] lg:text-[14px] text-center">{children}</span>
+        </div>
     );
 }

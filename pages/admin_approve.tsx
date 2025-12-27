@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import Toast from '../components/Toast';
@@ -7,8 +6,9 @@ import dynamic from 'next/dynamic';
 import { useUser } from '../contexts/UserContext';
 import SubscriptionNotifier from '../components/SubscriptionNotifier';
 import regionStructure from '../public/data/region_structure.json';
-import { sendNotification } from '../components/notifications'
-// Отримати код населеного пункту за шляхом
+import { sendNotification } from '../components/notifications';
+import { Save, X, ChevronLeft, ChevronRight } from 'lucide-react';
+
 const getSettlementCodeByPath = (
   structure: any,
   region: string,
@@ -51,9 +51,7 @@ export default function AdminPage() {
   const [notifyAfterSave, setNotifyAfterSave] = useState(false);
   const [savedRecordInfo, setSavedRecordInfo] = useState<any | null>(null);
 
-
   useEffect(() => {
-    // Чекаємо, поки юзер завантажиться
     if (userLoading) return;
 
     if (!user) {
@@ -120,15 +118,8 @@ export default function AdminPage() {
     }
   };
 
-  function parseLatLng(value: any): number | null {
-    if (value === null || value === undefined || value === '') return null;
-    const num = parseFloat(value.toString());
-    return isNaN(num) ? null : num;
-  }
-
   const saveRecord = async () => {
     try {
-
       const matchQuery: Record<string, any> = {
         current_region: formData.current_region,
         current_district: formData.current_district,
@@ -140,17 +131,14 @@ export default function AdminPage() {
         case_signature: formData.case_signature,
       };
 
-      // Додаткова умова для інвентарного року
       let existing;
       if (formData.inventory_year) {
-        // Якщо рік вказано — шукаємо запис із точно таким самим роком
         ({ data: existing } = await supabase
           .from('records')
           .select('id')
           .match({ ...matchQuery, inventory_year: formData.inventory_year })
           .maybeSingle());
       } else {
-        // Якщо рік НЕ вказано — шукаємо записи, де inventory_year IS NULL або ''
         ({ data: existing } = await supabase
           .from('records')
           .select('id')
@@ -166,7 +154,6 @@ export default function AdminPage() {
         });
         return;
       }
-
 
       const { is_ukrainian_archive, ...recordToInsert } = formData;
 
@@ -185,7 +172,6 @@ export default function AdminPage() {
       const preparedRecord = {
         ...recordToInsert,
         approved: true,
-        //created_by: user?.id || null,
         latitude: parseFloatOrNull(formData.latitude) ?? parseFloatOrNull(originalCoords.latitude),
         longitude: parseFloatOrNull(formData.longitude) ?? parseFloatOrNull(originalCoords.longitude),
         pages_count: parseIntegerOrNull(recordToInsert.pages_count ?? formData.pages_count),
@@ -203,6 +189,7 @@ export default function AdminPage() {
         setToast({ message: '❌ Помилка при додаванні до бази', type: 'error' });
         return;
       }
+
       if (!insertError) {
         setNotifyAfterSave(true);
         const settlementCode = getSettlementCodeByPath(
@@ -219,6 +206,7 @@ export default function AdminPage() {
           settlement: `${formData.current_region}, ${formData.current_district}, ${formData.current_community}, ${formData.current_settlement_type} ${formData.current_settlement_name}`
         });
       }
+
       const { error: deleteError } = await supabase
         .from('records_unverified')
         .delete()
@@ -228,19 +216,18 @@ export default function AdminPage() {
         console.error('Delete error:', deleteError);
         setToast({ message: `Помилка видалення: ${deleteError.message}`, type: 'error' });
       } else {
-
-        //Відправка повідомлення користувачеві про успішне підтвердження інвентаря
-        const recordUrl = `${window.location.origin}/record/${formData.id}`
+        const recordUrl = `${window.location.origin}/record/${formData.id}`;
         const messageText =
           `Ваш інвентар успішно підтверджено адміністратором.\n\n` +
-          `[Переглянути інвентар можна тут](${recordUrl})`
+          `[Переглянути інвентар можна тут](${recordUrl})`;
 
         await sendNotification({
           fromUserId: user.id,
           toUserId: formData.created_by,
           messageType: 'approved',
           messageText
-        })
+        });
+
         setToast({ message: '✅ Інвентар підтверджено і збережено', type: 'success' });
       }
 
@@ -269,36 +256,31 @@ export default function AdminPage() {
     }
   };
 
-
   const rejectRecord = async () => {
     const confirmed = window.confirm(
       'Ви впевнені, що хочете відхилити цей інвентар? Це призведе до його видалення.'
-    )
+    );
 
-    if (!confirmed) return
+    if (!confirmed) return;
 
-    // ⬇️ запитуємо причину
-    const reason = window.prompt(
-      'Вкажіть причину відхилення (необовʼязково):'
-    )
+    const reason = window.prompt('Вкажіть причину відхилення (необовʼязково):');
 
     try {
       const { error } = await supabase
         .from('records_unverified')
         .delete()
-        .eq('id', formData.id)
+        .eq('id', formData.id);
 
       if (error) {
-        alert('❌ Помилка при відхиленні')
-        console.error(error)
-        return
+        alert('❌ Помилка при відхиленні');
+        console.error(error);
+        return;
       }
 
-      //Відправка повідомлення користувачеві про відхилення інвентаря
-      let messageText = 'Ваш інвентар відхилено адміністратором.'
+      let messageText = 'Ваш інвентар відхилено адміністратором.';
 
       if (reason && reason.trim().length > 0) {
-        messageText += `\n\nПричина:\n${reason.trim()}`
+        messageText += `\n\nПричина:\n${reason.trim()}`;
       }
 
       await sendNotification({
@@ -306,45 +288,42 @@ export default function AdminPage() {
         toUserId: formData.created_by,
         messageType: 'reject',
         messageText
-      })
+      });
 
-      alert('❌ Запис відхилено та видалено')
+      alert('❌ Запис відхилено та видалено');
 
-      const updatedRecords = records.filter((_, i) => i !== index)
-      setRecords(updatedRecords)
+      const updatedRecords = records.filter((_, i) => i !== index);
+      setRecords(updatedRecords);
 
       if (updatedRecords.length === 0) {
-        setIndex(0)
-        setFormData({})
+        setIndex(0);
+        setFormData({});
         setToast({
           message: '🎉 Усі інвентарі оброблено! Записів більше не залишилось.',
           type: 'success',
-        })
+        });
       } else {
-        const nextIndex =
-          index >= updatedRecords.length
-            ? updatedRecords.length - 1
-            : index
-
-        setIndex(nextIndex)
-        setFormData(updatedRecords[nextIndex])
+        const nextIndex = index >= updatedRecords.length ? updatedRecords.length - 1 : index;
+        setIndex(nextIndex);
+        setFormData(updatedRecords[nextIndex]);
         setOriginalCoords({
           latitude: updatedRecords[nextIndex].latitude,
           longitude: updatedRecords[nextIndex].longitude,
-        })
+        });
       }
     } catch (err) {
-      alert('❌ Помилка при відхиленні')
-      console.error(err)
+      alert('❌ Помилка при відхиленні');
+      console.error(err);
     }
-  }
+  };
+
   if (loading) {
     return (
       <>
         <Header />
-        <main className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen p-6 flex items-center justify-center">
-          <p>Завантаження...</p>
-        </main>
+        <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+          <p className="text-gray-900 dark:text-white text-[16px]">Завантаження...</p>
+        </div>
       </>
     );
   }
@@ -353,9 +332,9 @@ export default function AdminPage() {
     return (
       <>
         <Header />
-        <main className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen p-6 flex items-center justify-center">
-          <p className="text-red-600 dark:text-red-400 font-medium text-center">{error}</p>
-        </main>
+        <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
+          <p className="text-red-600 dark:text-red-400 font-medium text-center text-[18px]">{error}</p>
+        </div>
       </>
     );
   }
@@ -363,78 +342,75 @@ export default function AdminPage() {
   return (
     <>
       <Header />
-      <main className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen p-6">
-        <div className="max-w-2xl w-full mx-auto">
-          <h1 className="text-2xl font-bold mb-6">🛠 Перевірте інвентар і внесіть зміни, якщо вони потрібні</h1>
+      <div className="min-h-screen bg-white dark:bg-[#111827]">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+          <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px]">
+            🛠 Перевірте інвентар і внесіть зміни, якщо вони потрібні
+          </h1>
 
-          {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
           {records.length === 0 ? (
-            <p className="text-gray-700 dark:text-gray-300">Немає записів для перевірки</p>
+            <p className="text-gray-700 dark:text-gray-300 text-[16px]">Немає записів для перевірки</p>
           ) : (
             <>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => goToRecord(index - 1)}
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                  disabled={index === 0}
-                >
-                  ⬅ Попередній
-                </button>
-                <button
-                  type="button"
-                  onClick={() => goToRecord(index + 1)}
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                  disabled={index === records.length - 1}
-                >
-                  Наступний ➡
-                </button>
+              {/* Navigation Info */}
+              <div className="mb-[20px] p-[15px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
+                <p className="text-gray-900 dark:text-white text-[14px] lg:text-[16px]">
+                  Запис <span className="font-bold">{index + 1}</span> з <span className="font-bold">{records.length}</span>
+                </p>
               </div>
 
               <EditableInventoryForm data={formData} onChange={setFormData} />
-              <div className="flex flex-col sm:flex-row sm:justify-between items-stretch sm:items-center mt-6 gap-2 sm:gap-4">
-                {/* Кнопки навігації */}
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <button
-                    type="button"
-                    onClick={() => goToRecord(index - 1)}
-                    disabled={index === 0}
-                    className="w-full sm:w-auto px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    ⬅ Попередній
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => goToRecord(index + 1)}
-                    disabled={index === records.length - 1}
-                    className="w-full sm:w-auto px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Наступний ➡
-                  </button>
-                </div>
 
-                {/* Кнопки дій */}
-                <div className="flex flex-col sm:flex-row gap-2 sm:ml-auto">
-                  <button
-                    type="button"
-                    onClick={saveRecord}
-                    className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    ✅ Прийняти і зберегти
-                  </button>
-                  <button
-                    type="button"
-                    onClick={rejectRecord}
-                    className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                  >
-                    ❌ Відхилити
-                  </button>
-                </div>
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-[15px] mt-[20px]">
+                <button
+                  onClick={() => goToRecord(index - 1)}
+                  disabled={index === 0}
+                  className="flex items-center gap-[10px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-900 dark:text-white" strokeWidth={1.6} />
+                  <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium">
+                    Попередній
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => goToRecord(index + 1)}
+                  disabled={index === records.length - 1}
+                  className="flex items-center gap-[10px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium">
+                    Наступний
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-gray-900 dark:text-white" strokeWidth={1.6} />
+                </button>
+
+                <div className="flex-1"></div>
+
+                <button
+                  onClick={saveRecord}
+                  className="flex items-center gap-[10px] px-[15px] h-[40px] rounded bg-[#14AE5C] hover:bg-[#0F8A4A] transition-colors"
+                >
+                  <Save className="w-4 h-4 text-white" strokeWidth={1.6} />
+                  <span className="text-white text-[14px] lg:text-[16px] font-medium">
+                    Прийняти і зберегти
+                  </span>
+                </button>
+
+                <button
+                  onClick={rejectRecord}
+                  className="flex items-center gap-[10px] px-[15px] h-[40px] rounded bg-[#EC221F] hover:bg-[#C81E1B] transition-colors"
+                >
+                  <X className="w-4 h-4 text-white" strokeWidth={1.6} />
+                  <span className="text-white text-[14px] lg:text-[16px] font-medium">
+                    Відхилити
+                  </span>
+                </button>
               </div>
-
             </>
           )}
         </div>
+
         {notifyAfterSave && savedRecordInfo && user?.id && (
           <SubscriptionNotifier
             settlement={savedRecordInfo.settlement}
@@ -443,8 +419,9 @@ export default function AdminPage() {
             userId={user.id}
           />
         )}
-      </main>
+      </div>
 
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </>
   );
 }

@@ -131,16 +131,13 @@ export default function Home() {
       <Header />
       
       <div className="min-h-screen bg-white dark:bg-[#111827]">
-        <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+        <div className="w-full px-4 md:px-8 lg:px-[52px] py-[20px] lg:py-[30px]">
           {/* Header Section */}
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-[10px] lg:mb-[16px]">
             <div>
               <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[10px]">
                 Пошук у реєстрі Інвентаріуму
               </h1>
-             {/*  <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80">
-                Введіть населений пункт, назву або сигнатуру справи для пошуку потрібного вам інвентарю
-              </p> */}
             </div>
 
             <div className="flex flex-wrap items-center gap-[15px]">

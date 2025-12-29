@@ -24,24 +24,33 @@ export default function Help() {
                 </h2>
               </div>
               <div className="flex flex-wrap gap-[10px]">
-                <Link href="https://telegra.ph/%D0%86nstrukc%D1%96ya-po-robot%D1%96-z-%D0%86nventar%D1%96um-06-29">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Як шукати інвентарі в реєстрі Inventarium
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
-                <Link href="https://telegra.ph/YAk-dodavati-%D1%96nventar-v-reyestr-06-29">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Як додати новий інвентар до реєстру
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
-                <Link href="https://telegra.ph/YAk%D1%96-tipi-dokument%D1%96v-predstavlen%D1%96-v-reyestr%D1%96-%D0%86nventar%D1%96um-09-22">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Які типи документів представлені в реєстрі Інвентаріум
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
+                <a 
+                  href="https://telegra.ph/%D0%86nstrukc%D1%96ya-po-robot%D1%96-z-%D0%86nventar%D1%96um-06-29"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white"
+                >
+                  Як шукати інвентарі в реєстрі Inventarium
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                </a>
+                <a 
+                  href="https://telegra.ph/YAk-dodavati-%D1%96nventar-v-reyestr-06-29"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white"
+                >
+                  Як додати новий інвентар до реєстру
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                </a>
+                <a 
+                  href="https://telegra.ph/YAk%D1%96-tipi-dokument%D1%96v-predstavlen%D1%96-v-reyestr%D1%96-%D0%86nventar%D1%96um-09-22"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white"
+                >
+                  Які типи документів представлені в реєстрі Інвентаріум
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                </a>
                 <Link href="/FAQ">
                   <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
                     Відповіді на часті запитання
@@ -59,18 +68,24 @@ export default function Help() {
                 </h2>
               </div>
               <div className="flex flex-wrap gap-[10px]">
-                <Link href="https://youtu.be/gW30DA3QrBc">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Навчальний курс "Інвентарний детектив XVIII ст." Лекція 1
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
-                <Link href="https://youtu.be/bZUNAxE3Ztg">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Навчальний курс "Інвентарний детектив XVIII ст." Лекція 2
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
+                <a 
+                  href="https://youtu.be/gW30DA3QrBc"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white"
+                >
+                  Навчальний курс "Інвентарний детектив XVIII ст." Лекція 1
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                </a>
+                <a 
+                  href="https://youtu.be/bZUNAxE3Ztg"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white"
+                >
+                  Навчальний курс "Інвентарний детектив XVIII ст." Лекція 2
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                </a>
               </div>
             </section>
 
@@ -83,36 +98,42 @@ export default function Help() {
                 </h2>
               </div>
               <div className="flex flex-wrap gap-[10px]">
-                <Link href="https://telegra.ph/%D0%86nvertarn%D1%96-opisi-mayetk%D1%96v-yak-dzherelo-genealog%D1%96chnoi-%D1%96nformac%D1%96i-04-24">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Інвертарні описи маєтків, як джерело генеалогічної інформації
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
-                <Link href="https://telegra.ph/Poshuk-%D1%96nventar%D1%96v-u-Lv%D1%96vsk%D1%96j-b%D1%96bl%D1%96otec%D1%96-%D1%96men%D1%96-Vasilya-Stefanika-07-06">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Пошук інвентарів у Львівській бібліотеці імені Василя Стефаника
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
-                <Link href="https://telegra.ph/Poshuk-%D1%96nventar%D1%96v-v-%D0%86nstitut%D1%96-rukopisu-NBUV-07-09">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Пошук інвентарів в Інституті рукопису НБУВ
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
-                <Link href="https://istznu.org/index.php/journal/article/view/1947">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Господарські інвентарі як джерело з історії Поділля XVII-XIX ст.
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
-                <Link href="https://telegra.ph/Poshuk-%D1%96nventar%D1%96v-v-arh%D1%96vah-Ugorshchini-10-25">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Пошук інвентарів в архівах Угорщини
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
+                <a 
+                  href="https://telegra.ph/%D0%86nvertarn%D1%96-opisi-mayetk%D1%96v-yak-dzherelo-genealog%D1%96chnoi-%D1%96nformac%D1%96i-04-24"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white"
+                >
+                  Інвертарні описи маєтків, як джерело генеалогічної інформації
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                </a>
+                <a 
+                  href="https://telegra.ph/Poshuk-%D1%96nventar%D1%96v-u-Lv%D1%96vsk%D1%96j-b%D1%96bl%D1%96otec%D1%96-%D1%96men%D1%96-Vasilya-Stefanika-07-06"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white"
+                >
+                  Пошук інвентарів у Львівській бібліотеці імені Василя Стефаника
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                </a>
+                <a 
+                  href="https://telegra.ph/Poshuk-%D1%96nventar%D1%96v-v-%D0%86nstitut%D1%96-rukopisu-NBUV-07-09"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white"
+                >
+                  Пошук інвентарів в Інституті рукопису НБУВ
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                </a>
+                <a 
+                  href="https://telegra.ph/Poshuk-%D1%96nventar%D1%96v-v-arh%D1%96vah-Ugorshchini-10-25"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white"
+                >
+                  Пошук інвентарів в архівах Угорщини
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                </a>
               </div>
             </section>
 
@@ -125,30 +146,42 @@ export default function Help() {
                 </h2>
               </div>
               <div className="flex flex-wrap gap-[10px]">
-                <Link href="https://t.me/archivist_notes">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Телеграм канал "Записки диванного архівіста"
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
-                <Link href="https://www.facebook.com/groups/UAGenealogy">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Спільнота UAGenealogy
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
-                <Link href="https://t.me/fazulyanov">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Телеграм канал "Генеалог Сергій Фазульянов"
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
-                <Link href="https://t.me/mk_genealogy">
-                  <a className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white">
-                    Телеграм канал "Моє коріння: генеалогія"
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                  </a>
-                </Link>
+                <a 
+                  href="https://t.me/archivist_notes"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white"
+                >
+                  Телеграм канал "Записки диванного архівіста"
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                </a>
+                <a 
+                  href="https://www.facebook.com/groups/UAGenealogy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white"
+                >
+                  Спільнота UAGenealogy
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                </a>
+                <a 
+                  href="https://t.me/fazulyanov"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white"
+                >
+                  Телеграм канал "Генеалог Сергій Фазульянов"
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                </a>
+                <a 
+                  href="https://t.me/mk_genealogy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors text-[13px] lg:text-[14px] text-gray-900 dark:text-white"
+                >
+                  Телеграм канал "Моє коріння: генеалогія"
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                </a>
               </div>
             </section>
           </div>

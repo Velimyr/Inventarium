@@ -8,12 +8,12 @@ export default function VolunteerPage() {
       <main className="min-h-screen bg-white dark:bg-[#111827]">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
           {/* Page Title */}
-          <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px] lg:mb-[29px] text-center">
+          <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px] lg:mb-[29px]">
             Стати волонтером
           </h1>
 
           {/* Main Content Card */}
-          <div className="p-[20px] lg:p-[30px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col gap-[30px] lg:gap-[40px] max-w-3xl mx-auto">
+          <div className="p-[20px] lg:p-[30px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col gap-[30px] lg:gap-[40px]">
             
             {/* Introduction */}
             <div className="flex flex-col gap-[15px]">

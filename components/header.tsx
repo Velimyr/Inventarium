@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
-import { Menu, X, Bell } from 'lucide-react';
+import { Menu, X, Bell, Sun, Moon } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 
 type Theme = 'light' | 'dark';
@@ -87,129 +87,116 @@ export default function Header() {
   };
 
   return (
-    <header className="flex items-start sm:items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 flex-wrap gap-4 sm:gap-0">
-      {/* (логотип)*/}
-      <div className="flex-shrink-0 flex sm:block justify-center sm:justify-start w-full sm:w-auto mt-1 mb-2 sm:my-0">
-        <Image
-          src="/inventarium_logo.webp"
-          alt="Логотип"
-          width={96}
-          height={96}
-          priority
-          className="sm:w-[120px] sm:h-[120px] w-[96px] h-[96px]"
-        />
-      </div>
-
-      {/* Центральна частина */}
-      <div className="flex flex-col flex-grow mx-4 sm:mx-6 min-w-0 max-w-full text-center sm:text-left items-center sm:items-start">
-        <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mb-1 truncate">
-          Інвентаріум
-        </h1>
-        <p className="hidden sm:block text-lg text-gray-700 dark:text-gray-300 mb-4 truncate">
-          Реєстр інвентарних описів маєтків на українських землях
-        </p>
-
-        {/* Меню */}
-        <nav>
-          <ul className="hidden sm:flex flex-wrap space-x-4 sm:space-x-6 text-lg text-gray-700 dark:text-gray-300">
-            <li><Link href="/" className="hover:underline">Головна</Link></li>
-            <li><Link href="/map" className="hover:underline">Карта</Link></li>
-            <li><Link href="/add_inventory" className="hover:underline">Додати інвентар</Link></li>
-            <li><Link href="/stats" className="hover:underline">Мій внесок</Link></li>
-            <li><Link href="/help" className="hover:underline">Посібники</Link></li>
-            <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
-          </ul>
-
-          {/* Мобільне меню */}
-          <div className="flex items-center justify-between sm:hidden text-lg text-gray-700 dark:text-gray-300">
-            <div className="flex space-x-4">
-              <Link href="/" className="hover:underline">Головна</Link>
-              <Link href="/map" className="hover:underline">Карта</Link>
-              <Link href="/add_inventory" className="hover:underline">Додати інвентар</Link>
-            </div>
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Меню"
-              className="p-2"
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+    <header className="bg-white dark:bg-[#111827] border-b border-gray-300 dark:border-[#374151]">
+      <div className="flex items-center justify-between gap-[15px] md:gap-[20px] lg:gap-[30px] px-4 md:px-8 lg:px-[50px] py-[15px] lg:py-[20px]">
+        {/* Логотип + Назва */}
+        <Link href="/" className="flex items-center gap-[12px] md:gap-[15px] lg:gap-[20px] flex-shrink-0">
+          <Image
+            src="/inventarium_logo.webp"
+            alt="Логотип Інвентаріум"
+            width={60}
+            height={60}
+            priority
+            className="w-[45px] h-[45px] md:w-[50px] md:h-[50px] lg:w-[60px] lg:h-[60px]"
+          />
+          <div className="hidden sm:block">
+            <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] md:text-[20px] lg:text-[24px] font-bold leading-tight">
+              Інвентаріум
+            </h1>
+            <p className="text-gray-700 dark:text-white text-[11px] md:text-[12px] lg:text-[13px] opacity-80 leading-tight mt-[2px]">
+              Реєстр інвентарних описів
+            </p>
           </div>
+        </Link>
 
-          {mobileMenuOpen && (
-            <ul className="flex flex-col mt-2 space-y-2 text-lg text-gray-700 dark:text-gray-300 sm:hidden">
-              <li><Link href="/stats" className="hover:underline">Мій внесок</Link></li>
-              <li><Link href="/help" className="hover:underline">Посібники</Link></li>
-              <li><Link href="/about" className="hover:underline">Про проєкт</Link></li>
-            </ul>
-          )}
+        {/* Progressive Navigation - показує стільки пунктів, скільки влазить */}
+        <nav className="flex xl:hidden items-center gap-[12px] md:gap-[15px]">
+          {/* Завжди показуємо на мобільних */}
+          <Link href="/" className="text-gray-900 dark:text-[#F3F4F6] text-[13px] md:text-[14px] font-medium hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors whitespace-nowrap">
+            Головна
+          </Link>
+          <Link href="/map" className="text-gray-900 dark:text-[#F3F4F6] text-[13px] md:text-[14px] font-medium hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors whitespace-nowrap">
+            Карта
+          </Link>
+          {/* Показуємо на середніх екранах (md і вище) */}
+          <Link href="/add_inventory" className="hidden md:block text-gray-900 dark:text-[#F3F4F6] text-[14px] font-medium hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors whitespace-nowrap">
+            Додати інвентар
+          </Link>
         </nav>
-      </div>
 
-      {/* Тема + юзер */}
-      <div className="flex items-center justify-between space-x-4 sm:flex-col sm:items-end sm:space-x-0 sm:space-y-2 w-full sm:w-auto">
-        {/* Перемикач тем */}
-        <button
-          onClick={toggleTheme}
-          aria-label="Перемкнути тему"
-          className="focus:outline-none"
-        >
-          {theme === 'light' ? (
-            <svg
-              className="h-8 w-8 text-yellow-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 3v1m0 16v1m8.66-9h1M3 12H2m15.36 6.36l.7.7M6.34 6.34l.7.7m12.02 0l-.7.7M6.34 17.66l-.7.7M12 7a5 5 0 100 10 5 5 0 000-10z"
-              />
-            </svg>
-          ) : (
-            <svg
-              className="h-8 w-8 text-gray-300"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"
-              />
-            </svg>
+        {/* Desktop Navigation - всі пункти */}
+        <nav className="hidden xl:flex items-center gap-[25px] flex-grow justify-center">
+          <Link href="/" className="text-gray-900 dark:text-[#F3F4F6] text-[15px] font-medium hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors">
+            Головна
+          </Link>
+          <Link href="/map" className="text-gray-900 dark:text-[#F3F4F6] text-[15px] font-medium hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors">
+            Карта
+          </Link>
+          <Link href="/add_inventory" className="text-gray-900 dark:text-[#F3F4F6] text-[15px] font-medium hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors">
+            Додати інвентар
+          </Link>
+          <Link href="/stats" className="text-gray-900 dark:text-[#F3F4F6] text-[15px] font-medium hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors">
+            Мій внесок
+          </Link>
+          <Link href="/help" className="text-gray-900 dark:text-[#F3F4F6] text-[15px] font-medium hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors">
+            Посібники
+          </Link>
+          <Link href="/about" className="text-gray-900 dark:text-[#F3F4F6] text-[15px] font-medium hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors">
+            Про проєкт
+          </Link>
+        </nav>
+
+        {/* Right Side: Theme + User + Mobile Menu */}
+        <div className="flex items-center gap-[10px] md:gap-[12px] lg:gap-[15px]">
+          {/* Theme Toggle - Desktop Only */}
+          <button
+            onClick={toggleTheme}
+            aria-label="Перемкнути тему"
+            className="hidden xl:block p-[8px] rounded-lg hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors"
+          >
+            {theme === 'light' ? (
+              <Sun className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+            ) : (
+              <Moon className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+            )}
+          </button>
+
+          {/* Messages Icon - Mobile/Tablet Only (показується тільки якщо user залогінений) */}
+          {user && (
+            <Link href="/messages" className="xl:hidden relative p-[8px] rounded-lg hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors">
+              <Bell className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+              {getUnreadBadge() && (
+                <span className="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-[4px]">
+                  {getUnreadBadge()}
+                </span>
+              )}
+            </Link>
           )}
-        </button>
 
-        {/* Юзер / кнопки увійти-вийти */}
-        <div className="text-sm text-gray-800 dark:text-gray-100 text-right flex-grow">
+          {/* User Section - Desktop Only */}
           {loading ? (
-            <div className="italic text-gray-500 dark:text-gray-400">Завантаження…</div>
+            <div className="hidden xl:block text-gray-500 dark:text-gray-400 text-[14px]">Завантаження…</div>
           ) : user ? (
-            <div className="flex items-center justify-between sm:flex-col sm:items-end sm:space-y-1">
-              <div className="flex items-center space-x-3">
-                {/* Іконка повідомлень */}
-                <Link href="/messages" className="relative">
-                  <Bell 
-                    size={24} 
-                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer" 
-                  />
-                  {getUnreadBadge() && (
-                    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
-                      {getUnreadBadge()}
-                    </span>
-                  )}
-                </Link>
-                
-                <span className="truncate max-w-[60%] sm:max-w-full">👤 {user.email}</span>
-              </div>
+            <div className="hidden xl:flex items-center gap-[12px]">
+              {/* Messages Icon */}
+              <Link href="/messages" className="relative p-[8px] rounded-lg hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors">
+                <Bell className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                {getUnreadBadge() && (
+                  <span className="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-[4px]">
+                    {getUnreadBadge()}
+                  </span>
+                )}
+              </Link>
+
+              {/* User Email */}
+              <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] font-medium max-w-[150px] truncate">
+                {user.email}
+              </span>
+
+              {/* Sign Out Button */}
               <button
                 onClick={signOut}
-                className="ml-4 sm:ml-0 px-2 py-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition"
+                className="px-[12px] h-[36px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] text-gray-900 dark:text-[#F3F4F6] text-[14px] font-medium hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors"
               >
                 Вийти
               </button>
@@ -217,13 +204,87 @@ export default function Header() {
           ) : (
             <button
               onClick={signInWithGoogle}
-              className="w-full sm:w-auto px-2 py-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition"
+              className="hidden xl:flex px-[15px] h-[36px] rounded-lg bg-[#2563EB] text-white text-[14px] font-medium hover:bg-[#1D4ED8] transition-colors items-center"
+            >
+              Увійти через Google
+            </button>
+          )}
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Меню"
+            className="xl:hidden p-[8px] rounded-lg hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors"
+          >
+            {mobileMenuOpen ? (
+              <X className="w-6 h-6 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+            ) : (
+              <Menu className="w-6 h-6 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="xl:hidden px-4 md:px-8 pb-[15px] border-t border-gray-300 dark:border-[#374151]">
+          <nav className="flex flex-col gap-[12px] mt-[15px] mb-[15px]">
+            {/* Додати інвентар - ховаємо на md+ де він вже показаний */}
+            <Link href="/add_inventory" className="md:hidden text-gray-900 dark:text-[#F3F4F6] text-[15px] font-medium hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors">
+              Додати інвентар
+            </Link>
+            <Link href="/stats" className="text-gray-900 dark:text-[#F3F4F6] text-[15px] font-medium hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors">
+              Мій внесок
+            </Link>
+            <Link href="/help" className="text-gray-900 dark:text-[#F3F4F6] text-[15px] font-medium hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors">
+              Посібники
+            </Link>
+            <Link href="/about" className="text-gray-900 dark:text-[#F3F4F6] text-[15px] font-medium hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors">
+              Про проєкт
+            </Link>
+          </nav>
+
+          {/* Theme Toggle in Mobile Menu */}
+          <button
+            onClick={toggleTheme}
+            className="flex items-center gap-[10px] text-gray-900 dark:text-[#F3F4F6] text-[15px] font-medium w-full py-[8px] hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors"
+          >
+            {theme === 'light' ? (
+              <>
+                <Sun className="w-5 h-5" strokeWidth={2} />
+                <span>Світла тема</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-5 h-5" strokeWidth={2} />
+                <span>Темна тема</span>
+              </>
+            )}
+          </button>
+
+          {/* Mobile User Section */}
+          {user ? (
+            <div className="flex flex-col gap-[12px] pt-[15px] border-t border-gray-300 dark:border-[#374151]">
+              <div className="text-gray-900 dark:text-[#F3F4F6] text-[14px] truncate">
+                {user.email}
+              </div>
+              <button
+                onClick={signOut}
+                className="w-full px-[12px] h-[36px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] text-gray-900 dark:text-[#F3F4F6] text-[14px] font-medium hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors"
+              >
+                Вийти
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={signInWithGoogle}
+              className="w-full px-[15px] h-[36px] rounded-lg bg-[#2563EB] text-white text-[14px] font-medium hover:bg-[#1D4ED8] transition-colors mt-[15px]"
             >
               Увійти через Google
             </button>
           )}
         </div>
-      </div>
+      )}
     </header>
   );
 }

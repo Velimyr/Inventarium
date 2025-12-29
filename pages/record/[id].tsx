@@ -2,7 +2,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
 import Header from '../../components/header';
 import { useEffect, useState } from 'react';
-import { ExternalLink, MapPin, Search, Edit3, AlertTriangle, Map, RotateCcw, FileText, Clock } from "lucide-react";
+import { ExternalLink, MapPin, Search, Edit3, AlertTriangle, Map, RotateCcw, FileText, Clock, HelpCircle } from "lucide-react";
 
 export default function RecordPage() {
     const router = useRouter();
@@ -10,6 +10,7 @@ export default function RecordPage() {
 
     const [record, setRecord] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
+    const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
     useEffect(() => {
         if (id) fetchRecord();
@@ -31,6 +32,10 @@ export default function RecordPage() {
             setRecord(data);
         }
         setLoading(false);
+    };
+
+    const toggleTooltip = (tooltipId: string) => {
+        setActiveTooltip(activeTooltip === tooltipId ? null : tooltipId);
     };
 
     if (loading) return <p className="p-4 text-gray-900 dark:text-white">Завантаження...</p>;
@@ -61,6 +66,17 @@ export default function RecordPage() {
     const oldSettlementDisplay = record.old_settlement_name
         ? `${record.old_settlement_name}, ${record.old_settlement_type || 'населений пункт'}`
         : '-';
+
+    const tooltips: Record<string, string> = {
+        current_division: "Адміністративний поділ, який існував на час додавання запису про інвентар до реєстру Інвентаріум",
+        historical_division: "Адміністративний поділ, який існував на час, коли інвентар було складено",
+        inventory_year: "Рік, коли було складено інвентар по вказаному населеному пункту",
+        case_signature: "Шифр, за яким ви можете знайти справу у відповідному архіві",
+        case_date: "Дати, вказані в архівній справі, в якій знаходиться даний інвентар (Дати справи можуть не відповідати рокові складання інвентарю)",
+        pages_count: "Загальна кількість сторінок у справі (Це саме кількість сторінок, вказана в архівному описі. Кількість сторінок НЕ відповідає кількості сканів)",
+        start_page: "Номер початкової сторінки, на якій знаходиться інвентар по даному населеному пункту",
+        additional_signature: "Якщо ця ж справа знаходиться також в іншому архіві — буде вказано її додаткову сигнатуру"
+    };
 
     return (
         <>
@@ -141,6 +157,19 @@ export default function RecordPage() {
                                     <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
                                         Сучасний адміністративний поділ
                                     </h2>
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => toggleTooltip('current_division')}
+                                            className="p-1 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                        >
+                                            <HelpCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" strokeWidth={2} />
+                                        </button>
+                                        {activeTooltip === 'current_division' && (
+                                            <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.current_division}</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="flex flex-col gap-[10px]">
                                     <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">
@@ -159,6 +188,19 @@ export default function RecordPage() {
                                     <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
                                         Адмінподіл станом на час складання інвентарю {record.inventory_year ? `(${record.inventory_year} рік)` : ''}
                                     </h2>
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => toggleTooltip('historical_division')}
+                                            className="p-1 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                        >
+                                            <HelpCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" strokeWidth={2} />
+                                        </button>
+                                        {activeTooltip === 'historical_division' && (
+                                            <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.historical_division}</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="flex flex-col gap-[10px]">
                                     <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">
@@ -183,13 +225,43 @@ export default function RecordPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-x-[15px] lg:gap-x-[20px] gap-y-[15px] lg:gap-y-[20px]">
                                     {/* Year */}
                                     <div className="flex flex-col gap-[10px]">
-                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Рік складання</p>
+                                        <div className="flex items-center gap-[5px]">
+                                            <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Рік складання</p>
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() => toggleTooltip('inventory_year')}
+                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                                >
+                                                    <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
+                                                </button>
+                                                {activeTooltip === 'inventory_year' && (
+                                                    <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                        <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.inventory_year}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                         <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.inventory_year || '-'}</p>
                                     </div>
 
                                     {/* Case Signature */}
                                     <div className="flex flex-col gap-[10px]">
-                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Сигнатура справи</p>
+                                        <div className="flex items-center gap-[5px]">
+                                            <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Сигнатура справи</p>
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() => toggleTooltip('case_signature')}
+                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                                >
+                                                    <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
+                                                </button>
+                                                {activeTooltip === 'case_signature' && (
+                                                    <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                        <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.case_signature}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                         {record.case_signature ? (
                                             <div className="flex flex-col gap-2">
                                                 <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.case_signature}</p>
@@ -207,25 +279,85 @@ export default function RecordPage() {
 
                                     {/* Case Date */}
                                     <div className="flex flex-col gap-[10px]">
-                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Дата справи</p>
+                                        <div className="flex items-center gap-[5px]">
+                                            <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Дата справи</p>
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() => toggleTooltip('case_date')}
+                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                                >
+                                                    <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
+                                                </button>
+                                                {activeTooltip === 'case_date' && (
+                                                    <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                        <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.case_date}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                         <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.case_date || '-'}</p>
                                     </div>
 
                                     {/* Pages */}
                                     <div className="flex flex-col gap-[10px]">
-                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Сторінок у справі</p>
+                                        <div className="flex items-center gap-[5px]">
+                                            <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Сторінок у справі</p>
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() => toggleTooltip('pages_count')}
+                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                                >
+                                                    <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
+                                                </button>
+                                                {activeTooltip === 'pages_count' && (
+                                                    <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                        <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.pages_count}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                         <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.pages_count || '-'}</p>
                                     </div>
 
                                     {/* Start Page */}
                                     <div className="flex flex-col gap-[10px]">
-                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Початкова сторінка</p>
+                                        <div className="flex items-center gap-[5px]">
+                                            <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Початкова сторінка</p>
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() => toggleTooltip('start_page')}
+                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                                >
+                                                    <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
+                                                </button>
+                                                {activeTooltip === 'start_page' && (
+                                                    <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                        <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.start_page}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                         <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.inventory_start_page || '-'}</p>
                                     </div>
 
                                     {/* Additional Reference */}
                                     <div className="flex flex-col gap-[10px]">
-                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Додаткова сигнатура</p>
+                                        <div className="flex items-center gap-[5px]">
+                                            <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Додаткова сигнатура</p>
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() => toggleTooltip('additional_signature')}
+                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                                >
+                                                    <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
+                                                </button>
+                                                {activeTooltip === 'additional_signature' && (
+                                                    <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                        <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.additional_signature}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                         <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.additional_case_signature || '-'}</p>
                                     </div>
                                 </div>
@@ -259,6 +391,35 @@ export default function RecordPage() {
                     </div>
                 </div>
             </main>
+
+            {/* Tooltip Modal - appears at bottom on mobile, near button on desktop */}
+            {activeTooltip && (
+                <>
+                    {/* Backdrop */}
+                    <div 
+                        className="fixed inset-0 bg-black/20 z-40 lg:hidden"
+                        onClick={() => setActiveTooltip(null)}
+                    />
+                    
+                    {/* Tooltip Content */}
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-[#1F2937] border-t border-gray-300 dark:border-[#374151] shadow-lg z-50 lg:hidden">
+                        <div className="max-w-[600px] mx-auto">
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                                <h3 className="text-gray-900 dark:text-white text-[15px] font-semibold">Довідка</h3>
+                                <button
+                                    onClick={() => setActiveTooltip(null)}
+                                    className="p-1 hover:bg-gray-200 dark:hover:bg-[#374151] rounded transition-colors"
+                                >
+                                    <span className="text-gray-600 dark:text-gray-400 text-[18px]">×</span>
+                                </button>
+                            </div>
+                            <p className="text-gray-900 dark:text-white text-[14px] leading-relaxed">
+                                {tooltips[activeTooltip]}
+                            </p>
+                        </div>
+                    </div>
+                </>
+            )}
         </>
     );
 }

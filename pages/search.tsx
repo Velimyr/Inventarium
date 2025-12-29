@@ -449,13 +449,15 @@ function TableCell({ children }: { children: React.ReactNode }) {
 }
 
 function StatusBadge({ label, variant }: { label: string; variant: "success" | "danger" }) {
-  const bgColor = variant === "success" ? "bg-[#14AE5C]" : "bg-[#EC221F]";
+  const styles = variant === "success" 
+    ? "bg-[#ECFEF5] dark:bg-[#065E44] text-[#065E44] dark:text-[#ECFEF5]" 
+    : "bg-[#FEE2E2] dark:bg-[#880E16] text-[#880E16] dark:text-[#FEE2E2]";
   const Icon = variant === "success" ? Check : X;
 
   return (
-    <div className={`inline-flex items-center justify-center gap-[5px] px-[10px] py-[5px] rounded ${bgColor}`}>
-      <Icon className="w-4 h-4 text-white" strokeWidth={1.6} />
-      <span className="text-white text-[13px] lg:text-[14px] leading-[100%]">{label}</span>
+    <div className={`inline-flex items-center justify-center gap-[5px] px-[10px] py-[5px] rounded ${styles}`}>
+      <Icon className="w-4 h-4" strokeWidth={1.6} />
+      <span className="text-[13px] lg:text-[14px] leading-[100%] font-medium">{label}</span>
     </div>
   );
 }

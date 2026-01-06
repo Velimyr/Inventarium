@@ -140,14 +140,14 @@ export default function SettlementRecordsPage() {
                         </div>
                         <div className="w-[140px] flex items-center justify-center p-[10px]">
                           {record.scans_url ? (
-                            <div className="flex items-center gap-[5px] px-[10px] py-[5px] bg-[#14AE5C] rounded">
-                              <Check className="w-4 h-4 text-white" strokeWidth={1.6} />
-                              <span className="text-white text-sm">онлайн</span>
+                            <div className="flex items-center gap-[5px] px-[10px] py-[5px] bg-[#ECFEF5] dark:bg-[#065E44] rounded">
+                              <Check className="w-4 h-4 text-[#065E44] dark:text-[#ECFEF5]" strokeWidth={1.6} />
+                              <span className="text-[#065E44] dark:text-[#ECFEF5] text-sm font-medium">онлайн</span>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-[5px] px-[10px] py-[5px] bg-[#EC221F] rounded">
-                              <X className="w-4 h-4 text-white" strokeWidth={1.6} />
-                              <span className="text-white text-sm">відсутні</span>
+                            <div className="flex items-center gap-[5px] px-[10px] py-[5px] bg-[#FEE2E2] dark:bg-[#880E16] rounded">
+                              <X className="w-4 h-4 text-[#880E16] dark:text-[#FEE2E2]" strokeWidth={1.6} />
+                              <span className="text-[#880E16] dark:text-[#FEE2E2] text-sm font-medium">відсутні</span>
                             </div>
                           )}
                         </div>
@@ -183,14 +183,14 @@ export default function SettlementRecordsPage() {
                       </div>
                       <div className="flex-shrink-0 ml-4">
                         {record.scans_url ? (
-                          <div className="flex items-center gap-1 px-3 py-1.5 bg-[#14AE5C] rounded">
-                            <Check className="w-3 h-3 text-white" />
-                            <span className="text-white text-xs">онлайн</span>
+                          <div className="flex items-center gap-1 px-3 py-1.5 bg-[#ECFEF5] dark:bg-[#065E44] rounded">
+                            <Check className="w-3 h-3 text-[#065E44] dark:text-[#ECFEF5]" strokeWidth={1.6} />
+                            <span className="text-[#065E44] dark:text-[#ECFEF5] text-xs font-medium">онлайн</span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1 px-3 py-1.5 bg-[#EC221F] rounded">
-                            <X className="w-3 h-3 text-white" />
-                            <span className="text-white text-xs">відсутні</span>
+                          <div className="flex items-center gap-1 px-3 py-1.5 bg-[#FEE2E2] dark:bg-[#880E16] rounded">
+                            <X className="w-3 h-3 text-[#880E16] dark:text-[#FEE2E2]" strokeWidth={1.6} />
+                            <span className="text-[#880E16] dark:text-[#FEE2E2] text-xs font-medium">відсутні</span>
                           </div>
                         )}
                       </div>

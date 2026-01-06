@@ -2,7 +2,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
 import Header from '../../components/header';
 import { useEffect, useState } from 'react';
-import { ExternalLink, MapPin, Search, Edit3, AlertTriangle, Map, RotateCcw, FileText, Clock } from "lucide-react";
+import { ExternalLink, MapPin, Search, Edit3, AlertTriangle, Map, FileText, Clock, Feather } from "lucide-react";
 
 export default function RecordPage() {
     const router = useRouter();
@@ -155,9 +155,9 @@ export default function RecordPage() {
                             {/* Historical Division */}
                             <div className="flex-1 flex flex-col gap-[15px]">
                                 <div className="flex items-center gap-[10px]">
-                                    <RotateCcw className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6] flex-shrink-0" strokeWidth={2} />
+                                    <Feather className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6] flex-shrink-0" strokeWidth={2} />
                                     <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
-                                        Адмінподіл станом на час складання інвентарю {record.inventory_year ? `(${record.inventory_year} рік)` : ''}
+                                        Історичний адміністративний поділ {record.inventory_year ? `(станом на ${record.inventory_year} рік)` : ''}
                                     </h2>
                                 </div>
                                 <div className="flex flex-col gap-[10px]">

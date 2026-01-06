@@ -666,7 +666,7 @@ export default function NotIdentifyDetails() {
                                 {/* Адміністративний поділ час складання */}
                                 <div>
                                     <h3 className="text-gray-900 dark:text-[#F3F4F6] text-[16px] font-semibold mb-[10px]">
-                                        Адміністративний поділ станом на час складання інвентарю
+                                        Історичний адміністративний поділ (станом на час складання інвентарю)
                                     </h3>
                                     <p className="text-gray-700 dark:text-white text-[13px] opacity-80 mb-[10px]">
                                         Заповнюйте лише ті значення, в яких точно впевнені. Вказуйте повну назву
@@ -766,7 +766,7 @@ export default function NotIdentifyDetails() {
                                     {/* Table Header */}
                                     <div className="grid grid-cols-[2fr_2fr_1fr_1fr] border-b border-gray-300 dark:border-[#374151]">
                                         <TableHeader label="Сучасний адміністративний поділ" />
-                                        <TableHeader label="Давній адміністративний поділ" />
+                                        <TableHeader label="Історичний адміністративний поділ" />
                                         <TableHeader label="Координати" />
                                         <TableHeader label="Сторінка початку" isLast />
                                     </div>
@@ -887,7 +887,7 @@ export default function NotIdentifyDetails() {
 
                                                 <div>
                                                     <div className="text-[12px] font-semibold text-gray-700 dark:text-gray-400 mb-[5px]">
-                                                        Давній адміністративний поділ:
+                                                        Історичний адміністративний поділ:
                                                     </div>
                                                     <div className="text-[13px] text-gray-900 dark:text-white">
                                                         {fullLocationOld || '-'}

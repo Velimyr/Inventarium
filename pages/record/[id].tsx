@@ -2,7 +2,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
 import Header from '../../components/header';
 import { useEffect, useState } from 'react';
-import { ExternalLink, MapPin, Search, Edit3, AlertTriangle, Map, FileText, Clock, Feather } from "lucide-react";
+import { ExternalLink, MapPin, Search, Edit3, AlertTriangle, Map, FileText, Clock, Feather, HelpCircle, Image, ArrowUpRight } from "lucide-react";
 
 export default function RecordPage() {
     const router = useRouter();
@@ -66,6 +66,8 @@ export default function RecordPage() {
     const oldSettlementDisplay = record.old_settlement_name
         ? `${record.old_settlement_name}, ${record.old_settlement_type || 'населений пункт'}`
         : '-';
+
+    const hasScans = !!record.scans_url;
 
     const tooltips: Record<string, string> = {
         current_division: "Адміністративний поділ, який існував на час додавання запису про інвентар до реєстру Інвентаріум",
@@ -157,24 +159,42 @@ export default function RecordPage() {
                                     <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
                                         Сучасний адміністративний поділ
                                     </h2>
-                                    <div className="relative">
+                                    <div className="relative group">
                                         <button
                                             onClick={() => toggleTooltip('current_division')}
-                                            className="p-1 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                            className="p-1 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors lg:pointer-events-none"
                                         >
                                             <HelpCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" strokeWidth={2} />
                                         </button>
-                                        {activeTooltip === 'current_division' && (
-                                            <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
-                                                <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.current_division}</p>
-                                            </div>
-                                        )}
+                                        {/* Desktop hover tooltip */}
+                                        <div className="hidden lg:group-hover:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                            <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.current_division}</p>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-[10px]">
-                                    <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">
-                                        {currentSettlementDisplay}
-                                    </p>
+                                    <div className="flex items-center gap-[5px]">
+                                        <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">
+                                            {currentSettlementDisplay}
+                                        </p>
+                                        {record.current_settlement_name && (
+                                            <button
+                                                onClick={() => {
+                                                    const params = new URLSearchParams();
+                                                    if (record.current_region) params.set('current_region', record.current_region);
+                                                    if (record.current_district) params.set('current_district', record.current_district);
+                                                    if (record.current_community) params.set('current_community', record.current_community);
+                                                    if (record.current_settlement_name) params.set('current_settlement_name', record.current_settlement_name);
+
+                                                    const url = `/settlement?${params.toString()}`;
+                                                    window.open(url, '_self', 'noopener,noreferrer');
+                                                }}
+                                                className="flex items-center justify-center w-4 h-4 rounded bg-white dark:bg-white hover:bg-[#2563EB] dark:hover:bg-[#2563EB] transition-colors flex-shrink-0 group"
+                                            >
+                                                <ArrowUpRight className="w-3 h-3 text-gray-900 dark:text-gray-900 group-hover:text-white transition-colors" strokeWidth={2} />
+                                            </button>
+                                        )}
+                                    </div>
                                     <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">
                                         {fullLocationCurrent || '-'}
                                     </p>
@@ -188,18 +208,17 @@ export default function RecordPage() {
                                     <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
                                         Історичний адміністративний поділ {record.inventory_year ? `(станом на ${record.inventory_year} рік)` : ''}
                                     </h2>
-                                    <div className="relative">
+                                    <div className="relative group">
                                         <button
                                             onClick={() => toggleTooltip('historical_division')}
-                                            className="p-1 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                            className="p-1 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors lg:pointer-events-none"
                                         >
                                             <HelpCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" strokeWidth={2} />
                                         </button>
-                                        {activeTooltip === 'historical_division' && (
-                                            <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
-                                                <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.historical_division}</p>
-                                            </div>
-                                        )}
+                                        {/* Desktop hover tooltip */}
+                                        <div className="hidden lg:group-hover:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                            <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.historical_division}</p>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-[10px]">
@@ -212,6 +231,9 @@ export default function RecordPage() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Separator */}
+                        <div className="h-[1px] w-full bg-gray-300 dark:bg-[#374151]"></div>
 
                         {/* Inventory Information */}
                         <div className="flex flex-col gap-[15px]">
@@ -227,18 +249,17 @@ export default function RecordPage() {
                                     <div className="flex flex-col gap-[10px]">
                                         <div className="flex items-center gap-[5px]">
                                             <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Рік складання</p>
-                                            <div className="relative">
+                                            <div className="relative group">
                                                 <button
                                                     onClick={() => toggleTooltip('inventory_year')}
-                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors lg:pointer-events-none"
                                                 >
                                                     <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
                                                 </button>
-                                                {activeTooltip === 'inventory_year' && (
-                                                    <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
-                                                        <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.inventory_year}</p>
-                                                    </div>
-                                                )}
+                                                {/* Desktop hover tooltip */}
+                                                <div className="hidden lg:group-hover:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                    <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.inventory_year}</p>
+                                                </div>
                                             </div>
                                         </div>
                                         <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.inventory_year || '-'}</p>
@@ -248,28 +269,27 @@ export default function RecordPage() {
                                     <div className="flex flex-col gap-[10px]">
                                         <div className="flex items-center gap-[5px]">
                                             <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Сигнатура справи</p>
-                                            <div className="relative">
+                                            <div className="relative group">
                                                 <button
                                                     onClick={() => toggleTooltip('case_signature')}
-                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors lg:pointer-events-none"
                                                 >
                                                     <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
                                                 </button>
-                                                {activeTooltip === 'case_signature' && (
-                                                    <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
-                                                        <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.case_signature}</p>
-                                                    </div>
-                                                )}
+                                                {/* Desktop hover tooltip */}
+                                                <div className="hidden lg:group-hover:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                    <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.case_signature}</p>
+                                                </div>
                                             </div>
                                         </div>
                                         {record.case_signature ? (
-                                            <div className="flex flex-col gap-2">
+                                            <div className="flex items-center gap-[5px]">
                                                 <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.case_signature}</p>
                                                 <button
                                                     onClick={() => router.push(`/case?case_signature=${encodeURIComponent(record.case_signature)}`)}
-                                                    className="text-[14px] bg-[#2563EB] text-white px-3 py-1 rounded hover:bg-[#1D4ED8] self-start"
+                                                    className="flex items-center justify-center w-4 h-4 rounded bg-white dark:bg-white hover:bg-[#2563EB] dark:hover:bg-[#2563EB] transition-colors flex-shrink-0 group"
                                                 >
-                                                    Всі записи справи
+                                                    <ArrowUpRight className="w-3 h-3 text-gray-900 dark:text-gray-900 group-hover:text-white transition-colors" strokeWidth={2} />
                                                 </button>
                                             </div>
                                         ) : (
@@ -281,18 +301,17 @@ export default function RecordPage() {
                                     <div className="flex flex-col gap-[10px]">
                                         <div className="flex items-center gap-[5px]">
                                             <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Дата справи</p>
-                                            <div className="relative">
+                                            <div className="relative group">
                                                 <button
                                                     onClick={() => toggleTooltip('case_date')}
-                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors lg:pointer-events-none"
                                                 >
                                                     <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
                                                 </button>
-                                                {activeTooltip === 'case_date' && (
-                                                    <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
-                                                        <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.case_date}</p>
-                                                    </div>
-                                                )}
+                                                {/* Desktop hover tooltip */}
+                                                <div className="hidden lg:group-hover:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                    <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.case_date}</p>
+                                                </div>
                                             </div>
                                         </div>
                                         <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.case_date || '-'}</p>
@@ -302,18 +321,17 @@ export default function RecordPage() {
                                     <div className="flex flex-col gap-[10px]">
                                         <div className="flex items-center gap-[5px]">
                                             <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Сторінок у справі</p>
-                                            <div className="relative">
+                                            <div className="relative group">
                                                 <button
                                                     onClick={() => toggleTooltip('pages_count')}
-                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors lg:pointer-events-none"
                                                 >
                                                     <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
                                                 </button>
-                                                {activeTooltip === 'pages_count' && (
-                                                    <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
-                                                        <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.pages_count}</p>
-                                                    </div>
-                                                )}
+                                                {/* Desktop hover tooltip */}
+                                                <div className="hidden lg:group-hover:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                    <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.pages_count}</p>
+                                                </div>
                                             </div>
                                         </div>
                                         <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.pages_count || '-'}</p>
@@ -323,18 +341,17 @@ export default function RecordPage() {
                                     <div className="flex flex-col gap-[10px]">
                                         <div className="flex items-center gap-[5px]">
                                             <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Початкова сторінка</p>
-                                            <div className="relative">
+                                            <div className="relative group">
                                                 <button
                                                     onClick={() => toggleTooltip('start_page')}
-                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors lg:pointer-events-none"
                                                 >
                                                     <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
                                                 </button>
-                                                {activeTooltip === 'start_page' && (
-                                                    <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
-                                                        <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.start_page}</p>
-                                                    </div>
-                                                )}
+                                                {/* Desktop hover tooltip */}
+                                                <div className="hidden lg:group-hover:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                    <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.start_page}</p>
+                                                </div>
                                             </div>
                                         </div>
                                         <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.inventory_start_page || '-'}</p>
@@ -344,18 +361,17 @@ export default function RecordPage() {
                                     <div className="flex flex-col gap-[10px]">
                                         <div className="flex items-center gap-[5px]">
                                             <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Додаткова сигнатура</p>
-                                            <div className="relative">
+                                            <div className="relative group">
                                                 <button
                                                     onClick={() => toggleTooltip('additional_signature')}
-                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors"
+                                                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors lg:pointer-events-none"
                                                 >
                                                     <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
                                                 </button>
-                                                {activeTooltip === 'additional_signature' && (
-                                                    <div className="hidden lg:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
-                                                        <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.additional_signature}</p>
-                                                    </div>
-                                                )}
+                                                {/* Desktop hover tooltip */}
+                                                <div className="hidden lg:group-hover:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                    <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.additional_signature}</p>
+                                                </div>
                                             </div>
                                         </div>
                                         <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.additional_case_signature || '-'}</p>
@@ -364,18 +380,65 @@ export default function RecordPage() {
                             </div>
                         </div>
 
+                        {/* Separator */}
+                        <div className="h-[1px] w-full bg-gray-300 dark:bg-[#374151]"></div>
+
                         {/* Notes */}
                         {record.notes && (
-                            <div className="flex flex-col gap-[15px]">
-                                <div className="flex items-center gap-[10px]">
-                                    <Edit3 className="w-5 h-5 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={2} />
-                                    <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">Примітки</h2>
+                            <>
+                                <div className="flex flex-col gap-[15px]">
+                                    <div className="flex items-center gap-[10px]">
+                                        <Edit3 className="w-5 h-5 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={2} />
+                                        <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">Примітки</h2>
+                                    </div>
+                                    <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px]">
+                                        {record.notes}
+                                    </p>
                                 </div>
-                                <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px]">
-                                    {record.notes}
-                                </p>
-                            </div>
+
+                                {/* Separator */}
+                                <div className="h-[1px] w-full bg-gray-300 dark:bg-[#374151]"></div>
+                            </>
                         )}
+
+                        {/* Scans */}
+                        <div className="flex flex-col gap-[15px]">
+                            <div className="flex items-center gap-[10px]">
+                                <Image className="w-5 h-5 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={2} />
+                                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">Скани</h2>
+                            </div>
+                            
+                            <div className={`flex items-center gap-[10px] lg:gap-[15px] px-[12px] lg:px-[15px] py-[10px] rounded ${hasScans ? 'bg-[#ECFEF5] dark:bg-[#065E44]' : 'bg-[#FEE2E2] dark:bg-[#880E16]'}`}>
+                                
+                                <div className="flex-1 flex flex-col gap-[10px]">
+                                    {hasScans ? (
+                                        <>
+                                            <p className={`text-[14px] lg:text-[16px] font-medium ${hasScans ? 'text-[#065E44] dark:text-[#ECFEF5]' : 'text-[#880E16] dark:text-[#FEE2E2]'}`}>
+                                                Копія цієї справи доступна онлайн. Зверніть увагу, що для доступу до сайтів окремих іноземних архівів вам може знадобитися VPN
+                                            </p>
+                                            <a
+                                                href={record.scans_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className={`flex items-center gap-[8px] text-[14px] lg:text-[16px] font-semibold hover:underline self-start ${hasScans ? 'text-[#065E44] dark:text-[#ECFEF5]' : 'text-[#880E16] dark:text-[#FEE2E2]'} group`}
+                                            >
+                                                <span>Переглянути скани</span>
+                                                <div className="flex items-center justify-center w-4 h-4 rounded bg-white dark:bg-white group-hover:bg-[#2563EB] dark:group-hover:bg-[#2563EB] transition-colors">
+                                                    <ArrowUpRight className="w-3 h-3 text-gray-900 dark:text-gray-900 group-hover:text-white transition-colors" strokeWidth={2} />
+                                                </div>
+                                            </a>
+                                        </>
+                                    ) : (
+                                        <p className={`text-[14px] lg:text-[16px] font-medium ${hasScans ? 'text-[#065E44] dark:text-[#ECFEF5]' : 'text-[#880E16] dark:text-[#FEE2E2]'}`}>
+                                            Наразі скановані копії цієї справи недоступні онлайн або нам про них не відомо. Якщо ви маєте посилання на такі матеріали, будь ласка, додайте його через кнопку "Запропонувати виправлення" вгорі сторінки.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Separator */}
+                        <div className="h-[1px] w-full bg-gray-300 dark:bg-[#374151]"></div>
 
                         {/* Timestamp */}
                         <div className="flex items-center gap-[10px]">

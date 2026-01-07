@@ -251,7 +251,7 @@ export default function Home() {
                     className={`grid grid-cols-[2fr_2fr_1fr_1.5fr_2fr_1fr] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors ${
                       index % 2 === 0 ? '' : 'bg-gray-50 dark:bg-[#1F2937]'
                     }`}
-                    onClick={() => window.location.href = `/record/${record.id}`}
+                    onClick={() => window.open(`/record/${record.id}`, '_blank')}
                   >
                     <TableCell>
                       <div className="flex flex-col items-center">

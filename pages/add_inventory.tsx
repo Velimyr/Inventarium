@@ -308,6 +308,7 @@ export default function AddInventoryPage() {
         } else {
             setSuccess(true);
 
+            //Відправка повідомлення адмінам по новий доданий інвентар
             const { data: admins, error: adminError } = await supabase
                 .from('admin_users')
                 .select('id');

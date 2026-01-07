@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient'
 import Toast from '../components/Toast'
 import ReactMarkdown from 'react-markdown'
 import { Mail, CheckCheck, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { getMessageTypeLabel } from '../lib/messageUtils'
 
 interface Message {
     message_id: string
@@ -86,27 +87,6 @@ export default function MessagesPage() {
             }
         } catch (err) {
             console.error('Помилка перевірки Telegram:', err)
-        }
-    }
-
-    function getMessageTypeLabel(type: string): string {
-        switch (type) {
-            case 'approved':
-                return 'Ваш інвентар підтверджено'
-            case 'reject':
-                return 'Ваш інвентар відхилено'
-            case 'edit_approve':
-                return 'Ваше редагування інвентарю підтверджено'
-            case 'edit_reject':
-                return 'Ваше редагування інвентарю відхилено'
-            case 'new':
-                return 'Новий інвентар додано'
-            case 'new_identified':
-                return 'Новий інвентар ідентифіковано'
-            case 'other':
-                return 'Загальне повідомлення'
-            default:
-                return 'Загальне повідомлення'
         }
     }
 

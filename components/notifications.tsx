@@ -1,9 +1,10 @@
 import { supabase } from '../lib/supabaseClient'
+import { getMessageTypeLabel, MessageType } from '../lib/messageUtils'
 
 interface SendNotificationParams {
     fromUserId: string
     toUserId: string
-    messageType: 'approved' | 'reject' | 'edit_approve' | 'edit_reject' | 'new' | 'new_identified' | 'other'
+    messageType: MessageType
     messageText: string
 }
 
@@ -68,26 +69,5 @@ export async function sendNotification({
     } catch (error) {
         console.error('Неочікувана помилка:', error)
         return { success: false, error: 'Неочікувана помилка' }
-    }
-}
-
-function getMessageTypeLabel(type: string): string {
-    switch (type) {
-        case 'approved':
-            return 'Ваш інвентар підтверджено'
-        case 'reject':
-            return 'Ваш інвентар відхилено'
-        case 'edit_approve':
-            return 'Ваше редагування інвентарю підтверджено'
-        case 'edit_reject':
-            return 'Ваше редагування інвентарю відхилено'
-        case 'new':
-            return 'Новий інвентар додано'
-        case 'new_identified':
-            return 'Новий інвентар ідентифіковано'
-        case 'other':
-            return 'Загальне повідомлення'
-        default:
-            return 'Загальне повідомлення'
     }
 }

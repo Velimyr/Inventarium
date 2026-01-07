@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { useUser } from '../../contexts/UserContext';
 import { Save } from 'lucide-react';
 import Link from 'next/link';
+import { sendNotification } from '../../components/notifications';
 
 const EditableInventoryForm = dynamic(() => import('../../components/EditableInventoryForm'), {
     ssr: false,
@@ -171,6 +172,29 @@ export default function EditSingleRecordPage() {
                 );
 
             if (error) throw error;
+             //Відправка повідомлення адмінам по новий доданий інвентар
+             const { data: admins, error: adminError } = await supabase
+             .from('admin_users')
+             .select('id');
+
+         if (!adminError && admins && admins.length > 0) {
+             const messageText =
+                 `Інвентар відредаговано ${id} і він очікує на перевірку.\n\n`  +
+                 `Email автора редагування: ${emailFromUser}`;
+
+             for (const admin of admins) {
+                 try {
+                     await sendNotification({
+                         fromUserId: user?.id || 'system',
+                         toUserId: admin.id,
+                         messageType: 'new_edit',
+                         messageText
+                     });
+                 } catch (err) {
+                     console.error('Помилка відправки повідомлення адміну:', err);
+                 }
+             }
+         }
 
             setToast({ message: '✅ Зміни збережено, вони будуть перевірені і підтверджені адміністратором', type: 'success' });
         } catch (err) {

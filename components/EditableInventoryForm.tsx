@@ -550,6 +550,9 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
             onChange={handleChange}
             placeholder="Посилання на скани справи"
           />
+           <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80 mb-[15px]">
+          Заповнюйте поле Посилання ТІЛЬКИ якщо за цим посиланням є скани справи. Не потрібно давати посилання на архівний Опис
+        </p>
         </div>
 
         {/* Notes Textarea */}

@@ -85,10 +85,25 @@ export default function RecordPage() {
             <Header />
             <main className="min-h-screen bg-white dark:bg-[#111827]">
                 <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
-                    {/* Page Title */}
-                    <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px] lg:mb-[29px]">
-                        {record.case_title || 'Інвентарний опис'}
-                    </h1>
+                    {/* Page Title with Badge */}
+                    <div className="flex flex-wrap items-baseline gap-[15px] md:gap-[20px] mb-[20px] lg:mb-[29px]">
+                        <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold leading-none">
+                            {record.case_title || 'Інвентарний опис'}
+                        </h1>
+                        {hasScans ? (
+                            <div className="inline-flex items-center gap-[5px] px-[10px] py-[5px] rounded bg-[#ECFEF5] dark:bg-[#065E44]">
+                                <span className="text-[#065E44] dark:text-[#ECFEF5] text-[13px] lg:text-[14px] font-medium">
+                                    Скани доступні онлайн
+                                </span>
+                            </div>
+                        ) : (
+                            <div className="inline-flex items-center gap-[5px] px-[10px] py-[5px] rounded bg-[#FEE2E2] dark:bg-[#880E16]">
+                                <span className="text-[#880E16] dark:text-[#FEE2E2] text-[13px] lg:text-[14px] font-medium">
+                                    Скани недоступні онлайн
+                                </span>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap items-center gap-[10px] lg:gap-[15px] mb-[20px]">
@@ -97,10 +112,10 @@ export default function RecordPage() {
                                 href={record.scans_url}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8]"
+                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors group"
                             >
                                 <ExternalLink className="w-4 h-4 text-white flex-shrink-0" strokeWidth={1.6} />
-                                <span className="text-white text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Переглянути скани</span>
+                                <span className="text-white text-[14px] lg:text-[16px] font-medium whitespace-nowrap group-hover:underline">Переглянути скани</span>
                             </a>
                         )}
                         {record.latitude && record.longitude && (
@@ -108,10 +123,10 @@ export default function RecordPage() {
                                 href={`https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=16/${record.latitude}/${record.longitude}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151]"
+                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors group"
                             >
                                 <MapPin className="w-4 h-4 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={1.6} />
-                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Відкрити на карті</span>
+                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap group-hover:underline group-hover:text-[#2563EB]">Відкрити на карті</span>
                             </a>
                         )}
                         {record.archive && record.fonds && record.series && record.record && (
@@ -123,18 +138,18 @@ export default function RecordPage() {
                                     const url = `https://inspector.duckarchive.com/search?q=${encodeURIComponent(query)}`;
                                     window.open(url, '_blank');
                                 }}
-                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151]"
+                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors group"
                             >
                                 <Search className="w-4 h-4 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={1.6} />
-                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Знайти в Інспекторі</span>
+                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap group-hover:underline group-hover:text-[#2563EB]">Знайти в Інспекторі</span>
                             </button>
                         )}
                         <button
                             onClick={() => router.push(`/edit/${record.id}`)}
-                            className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151]"
+                            className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors group"
                         >
                             <Edit3 className="w-4 h-4 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={1.6} />
-                            <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Запропонувати виправлення</span>
+                            <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap group-hover:underline group-hover:text-[#2563EB]">Запропонувати виправлення</span>
                         </button>
                     </div>
 
@@ -408,33 +423,40 @@ export default function RecordPage() {
                                 <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">Скани</h2>
                             </div>
                             
-                            <div className={`flex items-center gap-[10px] lg:gap-[15px] px-[12px] lg:px-[15px] py-[10px] rounded ${hasScans ? 'bg-[#ECFEF5] dark:bg-[#065E44]' : 'bg-[#FEE2E2] dark:bg-[#880E16]'}`}>
-                                
-                                <div className="flex-1 flex flex-col gap-[10px]">
-                                    {hasScans ? (
-                                        <>
-                                            <p className={`text-[14px] lg:text-[16px] font-medium ${hasScans ? 'text-[#065E44] dark:text-[#ECFEF5]' : 'text-[#880E16] dark:text-[#FEE2E2]'}`}>
-                                                Копія цієї справи доступна онлайн. Зверніть увагу, що для доступу до сайтів окремих іноземних архівів вам може знадобитися VPN
-                                            </p>
-                                            <a
-                                                href={record.scans_url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className={`flex items-center gap-[8px] text-[14px] lg:text-[16px] font-semibold hover:underline self-start ${hasScans ? 'text-[#065E44] dark:text-[#ECFEF5]' : 'text-[#880E16] dark:text-[#FEE2E2]'} group`}
-                                            >
-                                                <span>Переглянути скани</span>
-                                                <div className="flex items-center justify-center w-4 h-4 rounded bg-white dark:bg-white group-hover:bg-[#2563EB] dark:group-hover:bg-[#2563EB] transition-colors">
-                                                    <ArrowUpRight className="w-3 h-3 text-gray-900 dark:text-gray-900 group-hover:text-white transition-colors" strokeWidth={2} />
-                                                </div>
-                                            </a>
-                                        </>
-                                    ) : (
-                                        <p className={`text-[14px] lg:text-[16px] font-medium ${hasScans ? 'text-[#065E44] dark:text-[#ECFEF5]' : 'text-[#880E16] dark:text-[#FEE2E2]'}`}>
-                                            Наразі скановані копії цієї справи недоступні онлайн або нам про них не відомо. Якщо ви маєте посилання на такі матеріали, будь ласка, додайте його через кнопку "Запропонувати виправлення" вгорі сторінки.
-                                        </p>
-                                    )}
+                            {hasScans ? (
+                                <div className="flex flex-col gap-[20px]">
+                                    <div className="flex items-center gap-[5px]">
+                                        <a
+                                            href={record.scans_url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] font-medium"
+                                        >
+                                            {(() => {
+                                                try {
+                                                    const url = new URL(record.scans_url);
+                                                    return url.hostname.replace('www.', '');
+                                                } catch {
+                                                    return record.scans_url;
+                                                }
+                                            })()}
+                                        </a>
+                                        <button
+                                            onClick={() => window.open(record.scans_url, '_blank')}
+                                            className="flex items-center justify-center w-4 h-4 rounded bg-white dark:bg-white hover:bg-[#2563EB] dark:hover:bg-[#2563EB] transition-colors flex-shrink-0 group"
+                                        >
+                                            <ArrowUpRight className="w-3 h-3 text-gray-900 dark:text-gray-900 group-hover:text-white transition-colors" strokeWidth={2} />
+                                        </button>
+                                    </div>
+                                    <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">
+                                        Копія цієї справи доступна онлайн. Зверніть увагу, що для доступу до сайтів окремих іноземних архівів необхідно ввімкнути VPN.
+                                    </p>
                                 </div>
-                            </div>
+                            ) : (
+                                <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px]">
+                                    Наразі скановані копії цієї справи недоступні онлайн або нам про них не відомо. Якщо ви маєте посилання на такі матеріали, будь ласка, додайте його через кнопку "Запропонувати виправлення" вгорі сторінки.
+                                </p>
+                            )}
                         </div>
 
                         {/* Separator */}

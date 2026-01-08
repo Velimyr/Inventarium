@@ -112,10 +112,10 @@ export default function RecordPage() {
                                 href={record.scans_url}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors group"
+                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
                             >
                                 <ExternalLink className="w-4 h-4 text-white flex-shrink-0" strokeWidth={1.6} />
-                                <span className="text-white text-[14px] lg:text-[16px] font-medium whitespace-nowrap group-hover:underline">Переглянути скани</span>
+                                <span className="text-white text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Переглянути скани</span>
                             </a>
                         )}
                         {record.latitude && record.longitude && (
@@ -123,10 +123,10 @@ export default function RecordPage() {
                                 href={`https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=16/${record.latitude}/${record.longitude}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors group"
+                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors"
                             >
                                 <MapPin className="w-4 h-4 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={1.6} />
-                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap group-hover:underline group-hover:text-[#2563EB]">Відкрити на карті</span>
+                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Відкрити на карті</span>
                             </a>
                         )}
                         {record.archive && record.fonds && record.series && record.record && (
@@ -138,18 +138,18 @@ export default function RecordPage() {
                                     const url = `https://inspector.duckarchive.com/search?q=${encodeURIComponent(query)}`;
                                     window.open(url, '_blank');
                                 }}
-                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors group"
+                                className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors"
                             >
                                 <Search className="w-4 h-4 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={1.6} />
-                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap group-hover:underline group-hover:text-[#2563EB]">Знайти в Інспекторі</span>
+                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Знайти в Інспекторі</span>
                             </button>
                         )}
                         <button
                             onClick={() => router.push(`/edit/${record.id}`)}
-                            className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors group"
+                            className="flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors"
                         >
                             <Edit3 className="w-4 h-4 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={1.6} />
-                            <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap group-hover:underline group-hover:text-[#2563EB]">Запропонувати виправлення</span>
+                            <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Запропонувати виправлення</span>
                         </button>
                     </div>
 

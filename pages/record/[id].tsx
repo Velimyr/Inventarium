@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
 import Header from '../../components/header';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { ExternalLink, MapPin, Search, Edit3, AlertTriangle, Map, FileText, Clock, Feather, HelpCircle, Image, ArrowUpRight } from "lucide-react";
 
 export default function RecordPage() {
@@ -11,10 +11,21 @@ export default function RecordPage() {
     const [record, setRecord] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+    const [isTitleMultiline, setIsTitleMultiline] = useState(false);
+    const titleRef = useRef<HTMLHeadingElement>(null);
 
     useEffect(() => {
         if (id) fetchRecord();
     }, [id]);
+
+    useEffect(() => {
+        // Check if title is multiline
+        if (titleRef.current && record) {
+            const lineHeight = parseInt(window.getComputedStyle(titleRef.current).lineHeight);
+            const height = titleRef.current.offsetHeight;
+            setIsTitleMultiline(height > lineHeight * 1.5);
+        }
+    }, [record]);
 
     const fetchRecord = async () => {
         setLoading(true);
@@ -86,19 +97,22 @@ export default function RecordPage() {
             <main className="min-h-screen bg-white dark:bg-[#111827]">
                 <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
                     {/* Page Title with Badge */}
-                    <div className="flex flex-wrap items-baseline gap-[15px] md:gap-[20px] mb-[20px] lg:mb-[29px]">
-                        <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold leading-none">
+                    <div className={`flex gap-[15px] md:gap-[20px] mb-[20px] lg:mb-[29px] ${isTitleMultiline ? 'items-center' : 'flex-wrap items-baseline'}`}>
+                        <h1 
+                            ref={titleRef}
+                            className={`text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold ${isTitleMultiline ? 'flex-1' : ''}`}
+                        >
                             {record.case_title || 'Інвентарний опис'}
                         </h1>
                         {hasScans ? (
-                            <div className="inline-flex items-center gap-[5px] px-[10px] py-[5px] rounded bg-[#ECFEF5] dark:bg-[#065E44]">
-                                <span className="text-[#065E44] dark:text-[#ECFEF5] text-[13px] lg:text-[14px] font-medium">
+                            <div className={`inline-flex items-center gap-[5px] px-[10px] py-[5px] rounded bg-[#ECFEF5] dark:bg-[#065E44] ${isTitleMultiline ? 'flex-shrink-0' : ''}`}>
+                                <span className="text-[#065E44] dark:text-[#ECFEF5] text-[13px] lg:text-[14px] font-medium whitespace-nowrap">
                                     Скани доступні онлайн
                                 </span>
                             </div>
                         ) : (
-                            <div className="inline-flex items-center gap-[5px] px-[10px] py-[5px] rounded bg-[#FEE2E2] dark:bg-[#880E16]">
-                                <span className="text-[#880E16] dark:text-[#FEE2E2] text-[13px] lg:text-[14px] font-medium">
+                            <div className={`inline-flex items-center gap-[5px] px-[10px] py-[5px] rounded bg-[#FEE2E2] dark:bg-[#880E16] ${isTitleMultiline ? 'flex-shrink-0' : ''}`}>
+                                <span className="text-[#880E16] dark:text-[#FEE2E2] text-[13px] lg:text-[14px] font-medium whitespace-nowrap">
                                     Скани недоступні онлайн
                                 </span>
                             </div>

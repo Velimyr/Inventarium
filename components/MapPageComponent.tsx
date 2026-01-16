@@ -69,6 +69,8 @@ function DynamicTileLayer({ isDarkMode }: { isDarkMode: boolean }) {
         const tileLayer = L.tileLayer(tileUrl, {
             attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://stadiamaps.com/">Stadia Maps</a>',
             maxZoom: 19,
+            noWrap: true,
+            className: 'map-tiles',  // Додамо клас для CSS
         });
 
         // Додаємо новий layer на карту (він автоматично буде знизу)
@@ -85,7 +87,7 @@ function DynamicTileLayer({ isDarkMode }: { isDarkMode: boolean }) {
 }
 
 // Компонент для динамічного керування heat map
-function HeatMapLayer({ records, isDarkMode }: { records: Record[]; isDarkMode: boolean }) {
+function HeatMapLayer({ records, isDarkMode, colorScheme }: { records: Record[]; isDarkMode: boolean; colorScheme: 'blue' | 'rgb' }) {
     const map = useMap();
     const [heatLayer, setHeatLayer] = useState<any>(null);
     const [currentZoom, setCurrentZoom] = useState(map.getZoom());
@@ -116,9 +118,9 @@ function HeatMapLayer({ records, isDarkMode }: { records: Record[]; isDarkMode: 
     useEffect(() => {
         if (!isHeatLibLoaded || records.length === 0) return;
 
-        const shouldShowHeatMap = currentZoom <= 9;
+        const shouldShowHeatMap = currentZoom <= 13;
 
-        // Видаляємо старий layer при зміні теми або zoom
+        // Видаляємо старий layer при зміні теми або zoom або кольорової схеми
         if (heatLayer) {
             map.removeLayer(heatLayer);
             setHeatLayer(null);
@@ -128,36 +130,56 @@ function HeatMapLayer({ records, isDarkMode }: { records: Record[]; isDarkMode: 
         if (shouldShowHeatMap) {
             const heatPoints = records
                 .filter(r => r.latitude && r.longitude)
-                .map(r => [r.latitude!, r.longitude!, 0.5] as [number, number, number]);
+                .map(r => [r.latitude!, r.longitude!, 0.05] as [number, number, number]); // Зменшено з 0.5 до 0.05
 
             if (heatPoints.length > 0) {
-                // Кольори залежно від теми - пастельні відтінки
-                const gradient = isDarkMode ? {
-                    0.0: 'rgba(147, 197, 253, 0.4)',   // Пастельний блакитний (dark mode)
-                    0.5: 'rgba(134, 239, 172, 0.5)',   // Пастельний зелений (dark mode)
-                    0.7: 'rgba(253, 224, 71, 0.6)',    // Пастельний жовтий (dark mode)
-                    1.0: 'rgba(252, 165, 165, 0.7)'    // Пастельний червоний (dark mode)
-                } : {
-                    0.0: 'rgba(191, 219, 254, 0.5)',   // Пастельний синій (light mode)
-                    0.5: 'rgba(167, 243, 208, 0.6)',   // Пастельний зелений (light mode)
-                    0.7: 'rgba(254, 240, 138, 0.7)',   // Пастельний жовтий (light mode)
-                    1.0: 'rgba(254, 202, 202, 0.8)'    // Пастельний червоний (light mode)
-                };
+                // Вибір градієнту залежно від кольорової схеми і теми
+                let gradient;
+                
+                if (colorScheme === 'blue') {
+                    // Синя схема - різні відтінки синього
+                    gradient = isDarkMode ? {
+                        0.0: 'rgba(191, 219, 254, 0.5)',  // Світло-блакитний
+                        0.3: 'rgba(96, 165, 250, 0.6)',   // Середній синій
+                        0.6: 'rgba(37, 99, 235, 0.7)',    // Яскравий синій
+                        0.8: 'rgba(29, 78, 216, 0.8)',    // Темно-синій
+                        1.0: 'rgba(30, 58, 138, 0.9)'     // Дуже темний синій
+                    } : {
+                        0.0: 'rgba(219, 234, 254, 0.6)',  // Дуже світлий блакитний
+                        0.3: 'rgba(147, 197, 253, 0.7)',  // Світлий синій
+                        0.6: 'rgba(59, 130, 246, 0.8)',   // Середній синій
+                        0.8: 'rgba(37, 99, 235, 0.85)',   // Яскравий синій
+                        1.0: 'rgba(29, 78, 216, 0.9)'     // Темно-синій
+                    };
+                } else {
+                    // RGB схема - контрастні та яскраві кольори
+                    gradient = isDarkMode ? {
+                        0.0: 'rgba(34, 197, 94, 0.8)',    // ЯСКРАВИЙ зелений (green-500) - збільшена непрозорість
+                        0.35: 'rgba(234, 179, 8, 0.85)',  // Яскравий жовтий (yellow-500)
+                        0.65: 'rgba(249, 115, 22, 0.9)',  // Помаранчевий (orange-500)
+                        1.0: 'rgba(220, 38, 38, 1.0)'     // Яскраво-червоний (red-600) - повна непрозорість
+                    } : {
+                        0.0: 'rgba(34, 197, 94, 0.85)',   // ЯСКРАВИЙ зелений (green-500) - збільшена непрозорість
+                        0.35: 'rgba(234, 179, 8, 0.9)',   // Яскравий жовтий (yellow-500)
+                        0.65: 'rgba(249, 115, 22, 0.95)', // Помаранчевий (orange-500)
+                        1.0: 'rgba(220, 38, 38, 1.0)'     // Яскраво-червоний (red-600) - повна непрозорість
+                    };
+                }
 
                 // @ts-ignore
                 const heat = L.heatLayer(heatPoints, {
-                    radius: 25,
-                    blur: 35,
-                    maxZoom: 9,
-                    max: 1.0,
-                    minOpacity: isDarkMode ? 0.3 : 0.4,
+                    radius: 20,  // Зменшено з 25 для більшої деталізації
+                    blur: 25,    // Зменшено з 35 для чіткіших меж
+                    maxZoom: 13,  // Heat map показується до зуму 13
+                    max: 1.0,    // Максимальна інтенсивність
+                    minOpacity: isDarkMode ? 0.5 : 0.6,
                     gradient: gradient
                 }).addTo(map);
 
                 setHeatLayer(heat);
             }
         }
-    }, [currentZoom, isHeatLibLoaded, records, map, isDarkMode]);
+    }, [currentZoom, isHeatLibLoaded, records, map, isDarkMode, colorScheme]);
 
     // Cleanup при unmount
     useEffect(() => {
@@ -199,6 +221,13 @@ export default function MapPageComponent() {
             return saved !== null ? saved === 'true' : false; // За замовчуванням false
         }
         return false;
+    });
+    const [colorScheme, setColorScheme] = useState<'blue' | 'rgb'>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('map_color_scheme');
+            return (saved === 'blue' ? 'blue' : 'rgb') as 'blue' | 'rgb'; // За замовчуванням rgb
+        }
+        return 'rgb';
     });
     const router = useRouter();
 
@@ -277,6 +306,17 @@ export default function MapPageComponent() {
     useEffect(() => {
         localStorage.setItem('map_show_individual', String(showIndividualMarkers));
     }, [showIndividualMarkers]);
+
+    useEffect(() => {
+        localStorage.setItem('map_color_scheme', colorScheme);
+        
+        // Додаємо/видаляємо клас на body для CSS
+        if (colorScheme === 'rgb') {
+            document.body.classList.add('rgb-scheme');
+        } else {
+            document.body.classList.remove('rgb-scheme');
+        }
+    }, [colorScheme]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -395,6 +435,28 @@ export default function MapPageComponent() {
                                         />
                                     </button>
                                 </div>
+
+                                {/* Перемикач кольорової схеми */}
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-center w-8">
+                                        <span className="text-2xl leading-none" title="Кольорова схема (Синя / RGB)">🎨</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setColorScheme(colorScheme === 'blue' ? 'rgb' : 'blue')}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                            colorScheme === 'rgb' 
+                                                ? 'bg-gradient-to-r from-green-500 via-yellow-500 to-red-500' 
+                                                : 'bg-blue-600'
+                                        }`}
+                                        aria-label="Перемкнути кольорову схему"
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                colorScheme === 'rgb' ? 'translate-x-6' : 'translate-x-1'
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Легенда */}
@@ -435,7 +497,7 @@ export default function MapPageComponent() {
                                     <GeocoderControl />
                                     
                                     {/* Heat Map Layer - показується якщо увімкнена */}
-                                    {showHeatMap && <HeatMapLayer records={records} isDarkMode={isDarkMode} />}
+                                    {showHeatMap && <HeatMapLayer records={records} isDarkMode={isDarkMode} colorScheme={colorScheme} />}
                                     
                                     {/* Відображення маркерів залежно від налаштувань */}
                                     {showClusters ? (
@@ -448,15 +510,18 @@ export default function MapPageComponent() {
                                             maxClusterRadius={50}
                                             iconCreateFunction={(cluster) => {
                                                 const count = cluster.getChildCount();
-                                                let size = 'small';
-                                                let className = 'marker-cluster-small';
+                                                let size = 'tiny';
+                                                let className = 'marker-cluster-tiny';
                                                 
-                                                if (count > 150) {
+                                                if (count >= 150) {
                                                     size = 'large';
                                                     className = 'marker-cluster-large';
-                                                } else if (count > 50) {
+                                                } else if (count >= 50) {
                                                     size = 'medium';
                                                     className = 'marker-cluster-medium';
+                                                } else if (count >= 10) {
+                                                    size = 'small';
+                                                    className = 'marker-cluster-small';
                                                 }
                                                 
                                                 return L.divIcon({

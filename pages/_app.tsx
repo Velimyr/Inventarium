@@ -3,6 +3,7 @@ import '../styles/globals.css';
 import type { AppProps } from 'next/app';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
+import '../styles/marker-cluster.css'; 
 import { Analytics } from '@vercel/analytics/react';
 import Head from 'next/head';
 import { useEffect } from 'react';

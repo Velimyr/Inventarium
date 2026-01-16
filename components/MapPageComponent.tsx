@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
+import { useMap } from 'react-leaflet';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import ClientOnly from '../components/clientonly';
@@ -10,17 +11,16 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
 import GeocoderControl from './GeocoderControl';
 
-
-// Далі інші імпорти і код компонента...
-
-
 // Динамічний імпорт react-leaflet компонентів
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
-const Circle = dynamic(() => import('react-leaflet').then(mod => mod.Circle), { ssr: false });
 
+// Динамічний імпорт для кластеризації та heat map
+const MarkerClusterGroup = dynamic(
+    () => import('react-leaflet-cluster'),
+    { ssr: false }
+);
 
 const blueIcon = L.icon({
     iconUrl: '/icons/marker-blue.svg',
@@ -37,6 +37,7 @@ const redIcon = L.icon({
 });
 
 const center: [number, number] = [48.3794, 31.1656];
+
 interface Record {
     id: string;
     latitude: number | null;
@@ -48,10 +49,234 @@ interface Record {
     current_community: string | null;
 }
 
+// Компонент для динамічної зміни tile layer
+function DynamicTileLayer({ isDarkMode }: { isDarkMode: boolean }) {
+    const map = useMap();
+
+    useEffect(() => {
+        // Видаляємо всі існуючі tile layers
+        map.eachLayer((layer) => {
+            if (layer instanceof L.TileLayer) {
+                map.removeLayer(layer);
+            }
+        });
+
+        // Додаємо новий tile layer залежно від теми
+        const tileUrl = isDarkMode
+            ? "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
+            : "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png";
+
+        const tileLayer = L.tileLayer(tileUrl, {
+            attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://stadiamaps.com/">Stadia Maps</a>',
+            maxZoom: 19,
+        });
+
+        // Додаємо новий layer на карту (він автоматично буде знизу)
+        tileLayer.addTo(map);
+
+        console.log('Tile layer changed to:', isDarkMode ? 'dark' : 'light');
+
+        return () => {
+            map.removeLayer(tileLayer);
+        };
+    }, [isDarkMode, map]);
+
+    return null;
+}
+
+// Компонент для динамічного керування heat map
+function HeatMapLayer({ records, isDarkMode }: { records: Record[]; isDarkMode: boolean }) {
+    const map = useMap();
+    const [heatLayer, setHeatLayer] = useState<any>(null);
+    const [currentZoom, setCurrentZoom] = useState(map.getZoom());
+    const [isHeatLibLoaded, setIsHeatLibLoaded] = useState(false);
+
+    // Завантажуємо бібліотеку leaflet.heat один раз
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !isHeatLibLoaded) {
+            import('leaflet.heat').then(() => {
+                setIsHeatLibLoaded(true);
+            });
+        }
+    }, [isHeatLibLoaded]);
+
+    // Слухаємо зміни zoom
+    useEffect(() => {
+        const handleZoom = () => {
+            setCurrentZoom(map.getZoom());
+        };
+
+        map.on('zoomend', handleZoom);
+        return () => {
+            map.off('zoomend', handleZoom);
+        };
+    }, [map]);
+
+    // Керуємо відображенням heat map
+    useEffect(() => {
+        if (!isHeatLibLoaded || records.length === 0) return;
+
+        const shouldShowHeatMap = currentZoom <= 9;
+
+        // Видаляємо старий layer при зміні теми або zoom
+        if (heatLayer) {
+            map.removeLayer(heatLayer);
+            setHeatLayer(null);
+        }
+
+        // Якщо потрібно показати heat map
+        if (shouldShowHeatMap) {
+            const heatPoints = records
+                .filter(r => r.latitude && r.longitude)
+                .map(r => [r.latitude!, r.longitude!, 0.5] as [number, number, number]);
+
+            if (heatPoints.length > 0) {
+                // Кольори залежно від теми - пастельні відтінки
+                const gradient = isDarkMode ? {
+                    0.0: 'rgba(147, 197, 253, 0.4)',   // Пастельний блакитний (dark mode)
+                    0.5: 'rgba(134, 239, 172, 0.5)',   // Пастельний зелений (dark mode)
+                    0.7: 'rgba(253, 224, 71, 0.6)',    // Пастельний жовтий (dark mode)
+                    1.0: 'rgba(252, 165, 165, 0.7)'    // Пастельний червоний (dark mode)
+                } : {
+                    0.0: 'rgba(191, 219, 254, 0.5)',   // Пастельний синій (light mode)
+                    0.5: 'rgba(167, 243, 208, 0.6)',   // Пастельний зелений (light mode)
+                    0.7: 'rgba(254, 240, 138, 0.7)',   // Пастельний жовтий (light mode)
+                    1.0: 'rgba(254, 202, 202, 0.8)'    // Пастельний червоний (light mode)
+                };
+
+                // @ts-ignore
+                const heat = L.heatLayer(heatPoints, {
+                    radius: 25,
+                    blur: 35,
+                    maxZoom: 9,
+                    max: 1.0,
+                    minOpacity: isDarkMode ? 0.3 : 0.4,
+                    gradient: gradient
+                }).addTo(map);
+
+                setHeatLayer(heat);
+            }
+        }
+    }, [currentZoom, isHeatLibLoaded, records, map, isDarkMode]);
+
+    // Cleanup при unmount
+    useEffect(() => {
+        return () => {
+            if (heatLayer && map) {
+                try {
+                    map.removeLayer(heatLayer);
+                } catch (e) {
+                    // Ігноруємо помилки при видаленні
+                }
+            }
+        };
+    }, [heatLayer, map]);
+
+    return null;
+}
+
 export default function MapPageComponent() {
     const [records, setRecords] = useState<Record[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isDarkMode, setIsDarkMode] = useState(false);
+    const [showClusters, setShowClusters] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('map_show_clusters');
+            return saved !== null ? saved === 'true' : true; // За замовчуванням true
+        }
+        return true;
+    });
+    const [showHeatMap, setShowHeatMap] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('map_show_heatmap');
+            return saved !== null ? saved === 'true' : false; // За замовчуванням false
+        }
+        return false;
+    });
+    const [showIndividualMarkers, setShowIndividualMarkers] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('map_show_individual');
+            return saved !== null ? saved === 'true' : false; // За замовчуванням false
+        }
+        return false;
+    });
     const router = useRouter();
+
+    // Визначаємо тему
+    useEffect(() => {
+        const checkDarkMode = () => {
+            // Пріоритет: localStorage > клас на html > системні налаштування
+            const savedTheme = localStorage.getItem('theme');
+            let isDark = false;
+            
+            if (savedTheme) {
+                // Якщо є збережена тема - використовуємо її
+                isDark = savedTheme === 'dark';
+            } else if (document.documentElement.classList.contains('dark')) {
+                // Якщо немає збереженої теми, але є клас - використовуємо клас
+                isDark = true;
+            } else {
+                // Якщо нічого немає - використовуємо системні налаштування
+                isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }
+            
+            console.log('Theme check:', {
+                savedTheme,
+                htmlHasDarkClass: document.documentElement.classList.contains('dark'),
+                systemPreference: window.matchMedia('(prefers-color-scheme: dark)').matches,
+                finalIsDark: isDark
+            });
+            setIsDarkMode(isDark);
+        };
+
+        checkDarkMode();
+
+        // Слухаємо зміни класу на HTML
+        const observer = new MutationObserver(() => {
+            console.log('HTML class changed');
+            checkDarkMode();
+        });
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+
+        // Слухаємо зміни в localStorage (для синхронізації між вкладками)
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'theme') {
+                console.log('localStorage theme changed to:', e.newValue);
+                checkDarkMode();
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+
+        // Слухаємо системні налаштування теми
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleMediaChange = () => {
+            console.log('System theme changed');
+            checkDarkMode();
+        };
+        mediaQuery.addEventListener('change', handleMediaChange);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('storage', handleStorageChange);
+            mediaQuery.removeEventListener('change', handleMediaChange);
+        };
+    }, []);
+
+    // Зберігаємо вибір користувача в localStorage
+    useEffect(() => {
+        localStorage.setItem('map_show_clusters', String(showClusters));
+    }, [showClusters]);
+
+    useEffect(() => {
+        localStorage.setItem('map_show_heatmap', String(showHeatMap));
+    }, [showHeatMap]);
+
+    useEffect(() => {
+        localStorage.setItem('map_show_individual', String(showIndividualMarkers));
+    }, [showIndividualMarkers]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -61,6 +286,21 @@ export default function MapPageComponent() {
             if (error) {
                 console.error('Помилка завантаження:', error);
             } else {
+                console.log('📊 Статистика завантажених даних:');
+                console.log('Всього записів отримано:', data?.length || 0);
+                
+                const withCoords = data?.filter(r => r.latitude && r.longitude) || [];
+                console.log('Записів з координатами:', withCoords.length);
+                
+                const withoutCoords = data?.filter(r => !r.latitude || !r.longitude) || [];
+                console.log('Записів БЕЗ координат:', withoutCoords.length);
+                
+                const regions = data?.filter(r => r.mark_type === 0) || [];
+                console.log('Регіонів (mark_type=0):', regions.length);
+                
+                const settlements = data?.filter(r => r.mark_type !== 0) || [];
+                console.log('Населених пунктів (mark_type≠0):', settlements.length);
+                
                 setRecords(data);
             }
             
@@ -70,72 +310,245 @@ export default function MapPageComponent() {
         fetchData();
     }, []);
 
+    // Логування для діагностики
+    console.log('MapPageComponent render, isDarkMode:', isDarkMode);
+
     return (
         <>
             <Header />
             <div style={{ height: 'calc(100vh - 80px)', width: '100%', position: 'relative' }}>
                 {isLoading ? (
-                     <div className="absolute z-[1001] top-0 left-0 w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                    <div className="absolute z-[1001] top-0 left-0 w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
                         <div className="flex flex-col items-center gap-4">
                             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                             <span className="text-lg font-medium text-gray-900 dark:text-gray-100">Завантаження карти...</span>
                         </div>
                     </div>
                 ) : (
-                    <ClientOnly>
+                    <>
+                        {/* Плаваюча панель управління */}
+                        <div className="fixed bottom-4 right-4 md:right-4 left-4 md:left-auto z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 md:p-4">
+                            {/* Перемикачі */}
+                            <div className="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700 flex flex-col items-center gap-3">
+                                {/* Перемикач Heat Map */}
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-center w-8">
+                                        <span className="text-2xl leading-none" title="Теплова карта">🌡️</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowHeatMap(!showHeatMap)}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                            showHeatMap 
+                                                ? 'bg-blue-600' 
+                                                : 'bg-gray-300 dark:bg-gray-600'
+                                        }`}
+                                        aria-label="Увімкнути/вимкнути теплову карту"
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                showHeatMap ? 'translate-x-6' : 'translate-x-1'
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
+
+                                {/* Перемикач Кластерів */}
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-center w-8">
+                                        <span className="text-2xl leading-none" title="Кластеризація">🎯</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowClusters(!showClusters)}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                            showClusters 
+                                                ? 'bg-blue-600' 
+                                                : 'bg-gray-300 dark:bg-gray-600'
+                                        }`}
+                                        aria-label="Увімкнути/вимкнути кластеризацію"
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                showClusters ? 'translate-x-6' : 'translate-x-1'
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
+
+                                {/* Перемикач Окремих позначок */}
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-center w-8">
+                                        <span className="text-2xl leading-none" title="Окремі позначки">📍</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowIndividualMarkers(!showIndividualMarkers)}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                            showIndividualMarkers 
+                                                ? 'bg-blue-600' 
+                                                : 'bg-gray-300 dark:bg-gray-600'
+                                        }`}
+                                        aria-label="Увімкнути/вимкнути окремі позначки"
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                showIndividualMarkers ? 'translate-x-6' : 'translate-x-1'
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Легенда */}
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 flex items-center justify-center flex-shrink-0">
+                                        <svg width="15" height="24" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" fill="#2563eb"/>
+                                            <circle cx="12.5" cy="12.5" r="4" fill="white"/>
+                                        </svg>
+                                    </div>
+                                    <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">Населений пункт</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 flex items-center justify-center flex-shrink-0">
+                                        <svg width="15" height="24" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" fill="#dc2626"/>
+                                            <circle cx="12.5" cy="12.5" r="4" fill="white"/>
+                                        </svg>
+                                    </div>
+                                    <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">Цілий регіон</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <ClientOnly>
                         {typeof window !== 'undefined' && (
                             <div style={{ height: '100%', width: '100%' }}>
-                                <MapContainer center={center} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true}>
-                                    <TileLayer
-                                        attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
-                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                    />
+                                <MapContainer 
+                                    center={center} 
+                                    zoom={6} 
+                                    style={{ height: '100%', width: '100%' }} 
+                                    scrollWheelZoom={true}
+                                >
+                                    {/* Dynamic Tile Layer - змінюється залежно від теми */}
+                                    <DynamicTileLayer isDarkMode={isDarkMode} />
+                                    
                                     <GeocoderControl />
-                                    {records.map((record) => {
-                                        if (!record.latitude || !record.longitude) return null;
-                                        const position: [number, number] = [record.latitude, record.longitude];
-                                        const isRegion = record.mark_type === 0;
-                                        console.log('mark_type:', record.mark_type, 'isRegion:', isRegion);
+                                    
+                                    {/* Heat Map Layer - показується якщо увімкнена */}
+                                    {showHeatMap && <HeatMapLayer records={records} isDarkMode={isDarkMode} />}
+                                    
+                                    {/* Відображення маркерів залежно від налаштувань */}
+                                    {showClusters ? (
+                                        /* Кластеризовані маркери */
+                                        <MarkerClusterGroup
+                                            chunkedLoading
+                                            spiderfyOnMaxZoom={true}
+                                            showCoverageOnHover={false}
+                                            zoomToBoundsOnClick={true}
+                                            maxClusterRadius={50}
+                                            iconCreateFunction={(cluster) => {
+                                                const count = cluster.getChildCount();
+                                                let size = 'small';
+                                                let className = 'marker-cluster-small';
+                                                
+                                                if (count > 150) {
+                                                    size = 'large';
+                                                    className = 'marker-cluster-large';
+                                                } else if (count > 50) {
+                                                    size = 'medium';
+                                                    className = 'marker-cluster-medium';
+                                                }
+                                                
+                                                return L.divIcon({
+                                                    html: `<div><span>${count}</span></div>`,
+                                                    className: `marker-cluster ${className}`,
+                                                    iconSize: L.point(40, 40)
+                                                });
+                                            }}
+                                        >
+                                            {records.map((record) => {
+                                                if (!record.latitude || !record.longitude) return null;
+                                                const position: [number, number] = [record.latitude, record.longitude];
+                                                const isRegion = record.mark_type === 0;
 
-                                        return (
-                                            <Marker key={record.id} position={position} icon={isRegion ? redIcon : blueIcon}>
-                                                <Popup>
-                                                    <div>
-                                                        <strong>{record.current_settlement_name || 'Невідома назва'}</strong>
-                                                        <br />
-                                                        <button
-                                                            className="text-blue-600 underline"
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
+                                                return (
+                                                    <Marker 
+                                                        key={record.id} 
+                                                        position={position} 
+                                                        icon={isRegion ? redIcon : blueIcon}
+                                                    >
+                                                        <Popup className="custom-popup">
+                                                            <div className="dark:text-gray-900">
+                                                                <strong>{record.current_settlement_name || 'Невідома назва'}</strong>
+                                                                <br />
+                                                                <button
+                                                                    className="text-blue-600 underline mt-2 hover:text-blue-800"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
 
-                                                                const params = new URLSearchParams();
-                                                                if (record.current_region) params.set('current_region', record.current_region);
-                                                                if (record.current_district) params.set('current_district', record.current_district);
-                                                                if (record.current_community) params.set('current_community', record.current_community);
-                                                                if (record.current_settlement_name) params.set('current_settlement_name', record.current_settlement_name);
+                                                                        const params = new URLSearchParams();
+                                                                        if (record.current_region) params.set('current_region', record.current_region);
+                                                                        if (record.current_district) params.set('current_district', record.current_district);
+                                                                        if (record.current_community) params.set('current_community', record.current_community);
+                                                                        if (record.current_settlement_name) params.set('current_settlement_name', record.current_settlement_name);
 
-                                                                const url = `/settlement?${params.toString()}`;
-                                                                window.open(url, '_blank', 'noopener,noreferrer');
-                                                            }}
-                                                        >
-                                                            Переглянути всі записи населеного пункту
-                                                        </button>
-                                                    </div>
-                                                </Popup>
-                                                {isRegion && (
-                                                    <>
-                                                        {console.log('Rendering circle for', record.id)}
-                                                        <Circle center={position} radius={20000} pathOptions={{ color: 'rgba(255,0,0,0.3)' }} />
-                                                    </>
+                                                                        const url = `/settlement?${params.toString()}`;
+                                                                        window.open(url, '_blank', 'noopener,noreferrer');
+                                                                    }}
+                                                                >
+                                                                    Переглянути всі записи населеного пункту
+                                                                </button>
+                                                            </div>
+                                                        </Popup>
+                                                    </Marker>
+                                                );
+                                            })}
+                                        </MarkerClusterGroup>
+                                    ) : showIndividualMarkers ? (
+                                        /* Окремі позначки без кластеризації */
+                                        records.map((record) => {
+                                            if (!record.latitude || !record.longitude) return null;
+                                            const position: [number, number] = [record.latitude, record.longitude];
+                                            const isRegion = record.mark_type === 0;
 
-                                                )}
-                                            </Marker>
-                                        );
-                                    })}
+                                            return (
+                                                <Marker 
+                                                    key={record.id} 
+                                                    position={position} 
+                                                    icon={isRegion ? redIcon : blueIcon}
+                                                >
+                                                    <Popup className="custom-popup">
+                                                        <div className="dark:text-gray-900">
+                                                            <strong>{record.current_settlement_name || 'Невідома назва'}</strong>
+                                                            <br />
+                                                            <button
+                                                                className="text-blue-600 underline mt-2 hover:text-blue-800"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+
+                                                                    const params = new URLSearchParams();
+                                                                    if (record.current_region) params.set('current_region', record.current_region);
+                                                                    if (record.current_district) params.set('current_district', record.current_district);
+                                                                    if (record.current_community) params.set('current_community', record.current_community);
+                                                                    if (record.current_settlement_name) params.set('current_settlement_name', record.current_settlement_name);
+
+                                                                    const url = `/settlement?${params.toString()}`;
+                                                                    window.open(url, '_blank', 'noopener,noreferrer');
+                                                                }}
+                                                            >
+                                                                Переглянути всі записи населеного пункту
+                                                            </button>
+                                                        </div>
+                                                    </Popup>
+                                                </Marker>
+                                            );
+                                        })
+                                    ) : null}
                                 </MapContainer>
                             </div>
                         )}
                     </ClientOnly>
+                    </>
                 )}
             </div>
         </>

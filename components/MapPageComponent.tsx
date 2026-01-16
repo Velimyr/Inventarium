@@ -16,7 +16,7 @@ const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapCo
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
 
-// Динамічний імпорт для кластеризації та heat map
+// Динамічний імпорт для кластеризації - тільки коли потрібно
 const MarkerClusterGroup = dynamic(
     () => import('react-leaflet-cluster'),
     { ssr: false }
@@ -36,7 +36,12 @@ const redIcon = L.icon({
     popupAnchor: [1, -41],
 });
 
-const center: [number, number] = [48.3794, 31.1656];
+const center: [number, number] = [50.4501, 30.5234]; // Київ
+
+// Константи для кешування
+const CACHE_KEY = 'map_records_cache';
+const CACHE_TIMESTAMP_KEY = 'map_records_cache_timestamp';
+const CACHE_DURATION = 1000 * 60 * 30; // 30 хвилин
 
 interface Record {
     id: string;
@@ -47,6 +52,24 @@ interface Record {
     current_region: string | null;
     current_district: string | null;
     current_community: string | null;
+}
+
+// Функція для фільтрації записів за zoom-рівнем
+// ТИМЧАСОВО ВІДКЛЮЧЕНО - показуємо всі записи
+function filterRecordsByZoom(records: Record[], zoom: number): Record[] {
+    // Показуємо ВСІ записи незалежно від zoom
+    return records;
+    
+    /* Для майбутньої оптимізації:
+    if (zoom < 8) {
+        return records.filter((r, index) => r.mark_type === 0 || index % 5 === 0);
+    } else if (zoom < 10) {
+        return records.filter((r, index) => r.mark_type === 0 || index % 3 === 0);
+    } else if (zoom < 12) {
+        return records.filter((r, index) => r.mark_type === 0 || index % 2 === 0);
+    }
+    return records;
+    */
 }
 
 // Компонент для динамічної зміни tile layer
@@ -70,18 +93,36 @@ function DynamicTileLayer({ isDarkMode }: { isDarkMode: boolean }) {
             attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://stadiamaps.com/">Stadia Maps</a>',
             maxZoom: 19,
             noWrap: true,
-            className: 'map-tiles',  // Додамо клас для CSS
+            className: 'map-tiles',
         });
 
-        // Додаємо новий layer на карту (він автоматично буде знизу)
         tileLayer.addTo(map);
-
-        console.log('Tile layer changed to:', isDarkMode ? 'dark' : 'light');
 
         return () => {
             map.removeLayer(tileLayer);
         };
     }, [isDarkMode, map]);
+
+    return null;
+}
+
+// Компонент для відслідковування zoom
+function ZoomTracker({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
+    const map = useMap();
+
+    useEffect(() => {
+        const handleZoom = () => {
+            onZoomChange(map.getZoom());
+        };
+
+        // Встановлюємо початковий zoom
+        onZoomChange(map.getZoom());
+
+        map.on('zoomend', handleZoom);
+        return () => {
+            map.off('zoomend', handleZoom);
+        };
+    }, [map, onZoomChange]);
 
     return null;
 }
@@ -93,14 +134,15 @@ function HeatMapLayer({ records, isDarkMode, colorScheme }: { records: Record[];
     const [currentZoom, setCurrentZoom] = useState(map.getZoom());
     const [isHeatLibLoaded, setIsHeatLibLoaded] = useState(false);
 
-    // Завантажуємо бібліотеку leaflet.heat один раз
+    // Завантажуємо бібліотеку leaflet.heat ТІЛЬКИ коли вона потрібна
     useEffect(() => {
-        if (typeof window !== 'undefined' && !isHeatLibLoaded) {
+        if (typeof window !== 'undefined' && !isHeatLibLoaded && records.length > 0) {
             import('leaflet.heat').then(() => {
+                console.log('✅ leaflet.heat завантажено');
                 setIsHeatLibLoaded(true);
             });
         }
-    }, [isHeatLibLoaded]);
+    }, [isHeatLibLoaded, records.length]);
 
     // Слухаємо зміни zoom
     useEffect(() => {
@@ -130,48 +172,46 @@ function HeatMapLayer({ records, isDarkMode, colorScheme }: { records: Record[];
         if (shouldShowHeatMap) {
             const heatPoints = records
                 .filter(r => r.latitude && r.longitude)
-                .map(r => [r.latitude!, r.longitude!, 0.05] as [number, number, number]); // Зменшено з 0.5 до 0.05
+                .map(r => [r.latitude!, r.longitude!, 0.05] as [number, number, number]);
 
             if (heatPoints.length > 0) {
                 // Вибір градієнту залежно від кольорової схеми і теми
                 let gradient;
                 
                 if (colorScheme === 'blue') {
-                    // Синя схема - різні відтінки синього
                     gradient = isDarkMode ? {
-                        0.0: 'rgba(191, 219, 254, 0.5)',  // Світло-блакитний
-                        0.3: 'rgba(96, 165, 250, 0.6)',   // Середній синій
-                        0.6: 'rgba(37, 99, 235, 0.7)',    // Яскравий синій
-                        0.8: 'rgba(29, 78, 216, 0.8)',    // Темно-синій
-                        1.0: 'rgba(30, 58, 138, 0.9)'     // Дуже темний синій
+                        0.0: 'rgba(191, 219, 254, 0.5)',
+                        0.3: 'rgba(96, 165, 250, 0.6)',
+                        0.6: 'rgba(37, 99, 235, 0.7)',
+                        0.8: 'rgba(29, 78, 216, 0.8)',
+                        1.0: 'rgba(30, 58, 138, 0.9)'
                     } : {
-                        0.0: 'rgba(219, 234, 254, 0.6)',  // Дуже світлий блакитний
-                        0.3: 'rgba(147, 197, 253, 0.7)',  // Світлий синій
-                        0.6: 'rgba(59, 130, 246, 0.8)',   // Середній синій
-                        0.8: 'rgba(37, 99, 235, 0.85)',   // Яскравий синій
-                        1.0: 'rgba(29, 78, 216, 0.9)'     // Темно-синій
+                        0.0: 'rgba(219, 234, 254, 0.6)',
+                        0.3: 'rgba(147, 197, 253, 0.7)',
+                        0.6: 'rgba(59, 130, 246, 0.8)',
+                        0.8: 'rgba(37, 99, 235, 0.85)',
+                        1.0: 'rgba(29, 78, 216, 0.9)'
                     };
                 } else {
-                    // RGB схема - контрастні та яскраві кольори
                     gradient = isDarkMode ? {
-                        0.0: 'rgba(34, 197, 94, 0.8)',    // ЯСКРАВИЙ зелений (green-500) - збільшена непрозорість
-                        0.35: 'rgba(234, 179, 8, 0.85)',  // Яскравий жовтий (yellow-500)
-                        0.65: 'rgba(249, 115, 22, 0.9)',  // Помаранчевий (orange-500)
-                        1.0: 'rgba(220, 38, 38, 1.0)'     // Яскраво-червоний (red-600) - повна непрозорість
+                        0.0: 'rgba(34, 197, 94, 0.8)',
+                        0.35: 'rgba(234, 179, 8, 0.85)',
+                        0.65: 'rgba(249, 115, 22, 0.9)',
+                        1.0: 'rgba(220, 38, 38, 1.0)'
                     } : {
-                        0.0: 'rgba(34, 197, 94, 0.85)',   // ЯСКРАВИЙ зелений (green-500) - збільшена непрозорість
-                        0.35: 'rgba(234, 179, 8, 0.9)',   // Яскравий жовтий (yellow-500)
-                        0.65: 'rgba(249, 115, 22, 0.95)', // Помаранчевий (orange-500)
-                        1.0: 'rgba(220, 38, 38, 1.0)'     // Яскраво-червоний (red-600) - повна непрозорість
+                        0.0: 'rgba(34, 197, 94, 0.85)',
+                        0.35: 'rgba(234, 179, 8, 0.9)',
+                        0.65: 'rgba(249, 115, 22, 0.95)',
+                        1.0: 'rgba(220, 38, 38, 1.0)'
                     };
                 }
 
                 // @ts-ignore
                 const heat = L.heatLayer(heatPoints, {
-                    radius: 20,  // Зменшено з 25 для більшої деталізації
-                    blur: 25,    // Зменшено з 35 для чіткіших меж
-                    maxZoom: 13,  // Heat map показується до зуму 13
-                    max: 1.0,    // Максимальна інтенсивність
+                    radius: 20,
+                    blur: 25,
+                    maxZoom: 13,
+                    max: 1.0,
                     minOpacity: isDarkMode ? 0.5 : 0.6,
                     gradient: gradient
                 }).addTo(map);
@@ -198,34 +238,37 @@ function HeatMapLayer({ records, isDarkMode, colorScheme }: { records: Record[];
 }
 
 export default function MapPageComponent() {
-    const [records, setRecords] = useState<Record[]>([]);
+    const [allRecords, setAllRecords] = useState<Record[]>([]); // Всі записи
+    const [visibleRecords, setVisibleRecords] = useState<Record[]>([]); // Відфільтровані для відображення
     const [isLoading, setIsLoading] = useState(true);
+    const [loadingStage, setLoadingStage] = useState<'initial' | 'regions' | 'all'>('initial');
+    const [currentZoom, setCurrentZoom] = useState(7);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [showClusters, setShowClusters] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('map_show_clusters');
-            return saved !== null ? saved === 'true' : true; // За замовчуванням true
+            return saved !== null ? saved === 'true' : true;
         }
         return true;
     });
     const [showHeatMap, setShowHeatMap] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('map_show_heatmap');
-            return saved !== null ? saved === 'true' : false; // За замовчуванням false
+            return saved !== null ? saved === 'true' : false;
         }
         return false;
     });
     const [showIndividualMarkers, setShowIndividualMarkers] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('map_show_individual');
-            return saved !== null ? saved === 'true' : false; // За замовчуванням false
+            return saved !== null ? saved === 'true' : false;
         }
         return false;
     });
     const [colorScheme, setColorScheme] = useState<'blue' | 'rgb'>(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('map_color_scheme');
-            return (saved === 'blue' ? 'blue' : 'rgb') as 'blue' | 'rgb'; // За замовчуванням rgb
+            return (saved === 'blue' ? 'blue' : 'rgb') as 'blue' | 'rgb';
         }
         return 'rgb';
     });
@@ -234,35 +277,23 @@ export default function MapPageComponent() {
     // Визначаємо тему
     useEffect(() => {
         const checkDarkMode = () => {
-            // Пріоритет: localStorage > клас на html > системні налаштування
             const savedTheme = localStorage.getItem('theme');
             let isDark = false;
             
             if (savedTheme) {
-                // Якщо є збережена тема - використовуємо її
                 isDark = savedTheme === 'dark';
             } else if (document.documentElement.classList.contains('dark')) {
-                // Якщо немає збереженої теми, але є клас - використовуємо клас
                 isDark = true;
             } else {
-                // Якщо нічого немає - використовуємо системні налаштування
                 isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             }
             
-            console.log('Theme check:', {
-                savedTheme,
-                htmlHasDarkClass: document.documentElement.classList.contains('dark'),
-                systemPreference: window.matchMedia('(prefers-color-scheme: dark)').matches,
-                finalIsDark: isDark
-            });
             setIsDarkMode(isDark);
         };
 
         checkDarkMode();
 
-        // Слухаємо зміни класу на HTML
         const observer = new MutationObserver(() => {
-            console.log('HTML class changed');
             checkDarkMode();
         });
         observer.observe(document.documentElement, {
@@ -270,19 +301,15 @@ export default function MapPageComponent() {
             attributeFilter: ['class']
         });
 
-        // Слухаємо зміни в localStorage (для синхронізації між вкладками)
         const handleStorageChange = (e: StorageEvent) => {
             if (e.key === 'theme') {
-                console.log('localStorage theme changed to:', e.newValue);
                 checkDarkMode();
             }
         };
         window.addEventListener('storage', handleStorageChange);
 
-        // Слухаємо системні налаштування теми
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         const handleMediaChange = () => {
-            console.log('System theme changed');
             checkDarkMode();
         };
         mediaQuery.addEventListener('change', handleMediaChange);
@@ -310,7 +337,6 @@ export default function MapPageComponent() {
     useEffect(() => {
         localStorage.setItem('map_color_scheme', colorScheme);
         
-        // Додаємо/видаляємо клас на body для CSS
         if (colorScheme === 'rgb') {
             document.body.classList.add('rgb-scheme');
         } else {
@@ -318,40 +344,103 @@ export default function MapPageComponent() {
         }
     }, [colorScheme]);
 
+    // 🚀 ОПТИМІЗОВАНЕ ЗАВАНТАЖЕННЯ ДАНИХ З КЕШУВАННЯМ
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
-            const { data, error } = await supabase.rpc('get_unique_settlement_records');
+            setLoadingStage('initial');
 
-            if (error) {
-                console.error('Помилка завантаження:', error);
-            } else {
-                console.log('📊 Статистика завантажених даних:');
-                console.log('Всього записів отримано:', data?.length || 0);
+            try {
+                // ТИМЧАСОВО ВІДКЛЮЧАЄМО КЕШ ДЛЯ ДІАГНОСТИКИ
+                // Очищаємо старий кеш
+                localStorage.removeItem(CACHE_KEY);
+                localStorage.removeItem(CACHE_TIMESTAMP_KEY);
                 
-                const withCoords = data?.filter(r => r.latitude && r.longitude) || [];
-                console.log('Записів з координатами:', withCoords.length);
+                /* КЕШ ВІДКЛЮЧЕНО - для тестування
+                // Крок 1: Перевіряємо кеш
+                const cachedData = localStorage.getItem(CACHE_KEY);
+                const cachedTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+
+                if (cachedData && cachedTimestamp) {
+                    const timestamp = parseInt(cachedTimestamp, 10);
+                    const age = Date.now() - timestamp;
+
+                    // Якщо кеш свіжий - використовуємо його
+                    if (age < CACHE_DURATION) {
+                        console.log('✅ Використовуємо закешовані дані (вік:', Math.round(age / 1000 / 60), 'хв)');
+                        const cached = JSON.parse(cachedData);
+                        setAllRecords(cached);
+                        setVisibleRecords(filterRecordsByZoom(cached, currentZoom));
+                        setIsLoading(false);
+                        setLoadingStage('all');
+                        return;
+                    } else {
+                        console.log('⏰ Кеш застарів, завантажуємо свіжі дані');
+                    }
+                }
+                */
+
+                // Крок 2: Завантажуємо спочатку тільки регіони для швидкого відображення
+                console.log('📍 Завантаження регіонів...');
+                setLoadingStage('regions');
                 
-                const withoutCoords = data?.filter(r => !r.latitude || !r.longitude) || [];
-                console.log('Записів БЕЗ координат:', withoutCoords.length);
-                
-                const regions = data?.filter(r => r.mark_type === 0) || [];
-                console.log('Регіонів (mark_type=0):', regions.length);
-                
-                const settlements = data?.filter(r => r.mark_type !== 0) || [];
-                console.log('Населених пунктів (mark_type≠0):', settlements.length);
-                
-                setRecords(data);
+                const { data: regionsData, error: regionsError } = await supabase
+                    .from('records')
+                    .select('id, latitude, longitude, mark_type, current_settlement_name, current_region, current_district, current_community')
+                    .eq('mark_type', 0)
+                    .not('latitude', 'is', null)
+                    .not('longitude', 'is', null);
+
+                if (regionsError) {
+                    console.error('Помилка завантаження регіонів:', regionsError);
+                } else {
+                    console.log('✅ Регіони завантажено:', regionsData?.length || 0);
+                    setVisibleRecords(regionsData || []);
+                    setIsLoading(false); // Карта вже показується з регіонами
+                }
+
+                // Крок 3: Завантажуємо всі дані в фоні
+                console.log('📦 Завантаження всіх даних...');
+                const { data: allData, error: allError } = await supabase.rpc('get_unique_settlement_records');
+
+                if (allError) {
+                    console.error('Помилка завантаження всіх даних:', allError);
+                } else {
+                    console.log('✅ Всі дані завантажено:', allData?.length || 0);
+                    
+                    // Зберігаємо в кеш
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(allData));
+                    localStorage.setItem(CACHE_TIMESTAMP_KEY, String(Date.now()));
+
+                    setAllRecords(allData || []);
+                    setVisibleRecords(filterRecordsByZoom(allData || [], currentZoom));
+                    setLoadingStage('all');
+
+                    console.log('📊 Статистика:');
+                    const withCoords = allData?.filter(r => r.latitude && r.longitude) || [];
+                    console.log('- Записів з координатами:', withCoords.length);
+                    const regions = allData?.filter(r => r.mark_type === 0) || [];
+                    console.log('- Регіонів:', regions.length);
+                    const settlements = allData?.filter(r => r.mark_type !== 0) || [];
+                    console.log('- Населених пунктів:', settlements.length);
+                }
+            } catch (error) {
+                console.error('Критична помилка завантаження:', error);
+                setIsLoading(false);
             }
-            
-            setIsLoading(false);
         };
 
         fetchData();
     }, []);
 
-    // Логування для діагностики
-    console.log('MapPageComponent render, isDarkMode:', isDarkMode);
+    // Фільтруємо записи при зміні zoom
+    useEffect(() => {
+        if (allRecords.length > 0) {
+            const filtered = filterRecordsByZoom(allRecords, currentZoom);
+            setVisibleRecords(filtered);
+            console.log(`🔍 Zoom ${currentZoom}: показуємо ${filtered.length} з ${allRecords.length} записів`);
+        }
+    }, [currentZoom, allRecords]);
 
     return (
         <>
@@ -361,11 +450,22 @@ export default function MapPageComponent() {
                     <div className="absolute z-[1001] top-0 left-0 w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
                         <div className="flex flex-col items-center gap-4">
                             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-lg font-medium text-gray-900 dark:text-gray-100">Завантаження карти...</span>
+                            <span className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                {loadingStage === 'initial' && 'Ініціалізація карти...'}
+                                {loadingStage === 'regions' && 'Завантаження регіонів...'}
+                            </span>
                         </div>
                     </div>
                 ) : (
                     <>
+                        {/* Індикатор фонового завантаження */}
+                        {loadingStage === 'regions' && (
+                            <div className="fixed top-20 right-4 z-[1001] bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-sm">Завантаження деталей...</span>
+                            </div>
+                        )}
+
                         {/* Плаваюча панель управління */}
                         <div className="fixed bottom-4 right-4 md:right-4 left-4 md:left-auto z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 md:p-4">
                             {/* Перемикачі */}
@@ -487,21 +587,23 @@ export default function MapPageComponent() {
                             <div style={{ height: '100%', width: '100%' }}>
                                 <MapContainer 
                                     center={center} 
-                                    zoom={6} 
+                                    zoom={7} 
                                     style={{ height: '100%', width: '100%' }} 
                                     scrollWheelZoom={true}
                                 >
-                                    {/* Dynamic Tile Layer - змінюється залежно від теми */}
+                                    {/* Dynamic Tile Layer */}
                                     <DynamicTileLayer isDarkMode={isDarkMode} />
+                                    
+                                    {/* Zoom Tracker */}
+                                    <ZoomTracker onZoomChange={setCurrentZoom} />
                                     
                                     <GeocoderControl />
                                     
-                                    {/* Heat Map Layer - показується якщо увімкнена */}
-                                    {showHeatMap && <HeatMapLayer records={records} isDarkMode={isDarkMode} colorScheme={colorScheme} />}
+                                    {/* Heat Map Layer - завантажується тільки при увімкненні */}
+                                    {showHeatMap && <HeatMapLayer records={visibleRecords} isDarkMode={isDarkMode} colorScheme={colorScheme} />}
                                     
-                                    {/* Відображення маркерів залежно від налаштувань */}
+                                    {/* Відображення маркерів */}
                                     {showClusters ? (
-                                        /* Кластеризовані маркери */
                                         <MarkerClusterGroup
                                             chunkedLoading
                                             spiderfyOnMaxZoom={true}
@@ -531,7 +633,7 @@ export default function MapPageComponent() {
                                                 });
                                             }}
                                         >
-                                            {records.map((record) => {
+                                            {visibleRecords.map((record) => {
                                                 if (!record.latitude || !record.longitude) return null;
                                                 const position: [number, number] = [record.latitude, record.longitude];
                                                 const isRegion = record.mark_type === 0;
@@ -570,8 +672,7 @@ export default function MapPageComponent() {
                                             })}
                                         </MarkerClusterGroup>
                                     ) : showIndividualMarkers ? (
-                                        /* Окремі позначки без кластеризації */
-                                        records.map((record) => {
+                                        visibleRecords.map((record) => {
                                             if (!record.latitude || !record.longitude) return null;
                                             const position: [number, number] = [record.latitude, record.longitude];
                                             const isRegion = record.mark_type === 0;

@@ -502,6 +502,15 @@
     "full_name_ukr": "Державний архів в Перемишлі",
     "full_name_native": "Archiwum Państwowe w Przemyślu",
     "site": "https://www.przemysl.ap.gov.pl/"
+  },
+  {
+    "id": "3f6c2b7e-9b4a-4f2c-a6b1-8e5d9c2a7f41",
+    "short_name": "APR",
+    "country": "Польща",
+    "full_name_ukr": "Державний архів в Жешуві",
+    "full_name_native": "Archiwum Państwowe w Rzeszowie",
+    "site": "https://rzeszow.ap.gov.pl/"
   }
+  
   
 ]

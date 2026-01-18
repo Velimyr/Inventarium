@@ -6,6 +6,7 @@ import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
 const Circle = dynamic(() => import('react-leaflet').then(mod => mod.Circle), { ssr: false });
@@ -27,40 +28,6 @@ interface CaseMapComponentProps {
     records: Record[];
 }
 
-// Компонент для динамічної зміни tile layer
-function DynamicTileLayer({ isDarkMode }: { isDarkMode: boolean }) {
-    const map = useMap();
-
-    useEffect(() => {
-        // Видаляємо всі існуючі tile layers
-        map.eachLayer((layer) => {
-            if (layer instanceof L.TileLayer) {
-                map.removeLayer(layer);
-            }
-        });
-
-        // Додаємо новий tile layer залежно від теми
-        const tileUrl = isDarkMode
-            ? "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
-            : "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png";
-
-        const tileLayer = L.tileLayer(tileUrl, {
-            attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://stadiamaps.com/">Stadia Maps</a>',
-            maxZoom: 19,
-            noWrap: true,
-            className: 'map-tiles',
-        });
-
-        tileLayer.addTo(map);
-
-        return () => {
-            map.removeLayer(tileLayer);
-        };
-    }, [isDarkMode, map]);
-
-    return null;
-}
-
 const blueIcon = L.icon({
     iconUrl: '/icons/marker-blue.svg',
     iconSize: [25, 41],
@@ -77,54 +44,6 @@ const redIcon = L.icon({
 
 export default function CaseMapComponent({ records }: CaseMapComponentProps) {
     const router = useRouter();
-    const [isDarkMode, setIsDarkMode] = useState(false);
-
-    // Визначаємо тему
-    useEffect(() => {
-        const checkDarkMode = () => {
-            const savedTheme = localStorage.getItem('theme');
-            let isDark = false;
-            
-            if (savedTheme) {
-                isDark = savedTheme === 'dark';
-            } else if (document.documentElement.classList.contains('dark')) {
-                isDark = true;
-            } else {
-                isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            }
-            
-            setIsDarkMode(isDark);
-        };
-
-        checkDarkMode();
-
-        const observer = new MutationObserver(() => {
-            checkDarkMode();
-        });
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ['class']
-        });
-
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'theme') {
-                checkDarkMode();
-            }
-        };
-        window.addEventListener('storage', handleStorageChange);
-
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        const handleMediaChange = () => {
-            checkDarkMode();
-        };
-        mediaQuery.addEventListener('change', handleMediaChange);
-
-        return () => {
-            observer.disconnect();
-            window.removeEventListener('storage', handleStorageChange);
-            mediaQuery.removeEventListener('change', handleMediaChange);
-        };
-    }, []);
 
     // Обчислюємо центр карти
     const getMapCenter = (): [number, number] => {
@@ -144,8 +63,10 @@ export default function CaseMapComponent({ records }: CaseMapComponentProps) {
             style={{ height: '100%', width: '100%' }} 
             scrollWheelZoom={true}
         >
-            {/* Динамічний tile layer - Stadia Maps */}
-            <DynamicTileLayer isDarkMode={isDarkMode} />
+            <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
             
             <GeocoderControl />
             

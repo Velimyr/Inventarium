@@ -13,6 +13,7 @@ import GeocoderControl from './GeocoderControl';
 
 // Динамічний імпорт react-leaflet компонентів
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
 
@@ -59,51 +60,6 @@ interface Record {
 function filterRecordsByZoom(records: Record[], zoom: number): Record[] {
     // Показуємо ВСІ записи незалежно від zoom
     return records;
-    
-    /* Для майбутньої оптимізації:
-    if (zoom < 8) {
-        return records.filter((r, index) => r.mark_type === 0 || index % 5 === 0);
-    } else if (zoom < 10) {
-        return records.filter((r, index) => r.mark_type === 0 || index % 3 === 0);
-    } else if (zoom < 12) {
-        return records.filter((r, index) => r.mark_type === 0 || index % 2 === 0);
-    }
-    return records;
-    */
-}
-
-// Компонент для динамічної зміни tile layer
-function DynamicTileLayer({ isDarkMode }: { isDarkMode: boolean }) {
-    const map = useMap();
-
-    useEffect(() => {
-        // Видаляємо всі існуючі tile layers
-        map.eachLayer((layer) => {
-            if (layer instanceof L.TileLayer) {
-                map.removeLayer(layer);
-            }
-        });
-
-        // Додаємо новий tile layer залежно від теми
-        const tileUrl = isDarkMode
-            ? "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
-            : "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png";
-
-        const tileLayer = L.tileLayer(tileUrl, {
-            attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://stadiamaps.com/">Stadia Maps</a>',
-            maxZoom: 19,
-            noWrap: true,
-            className: 'map-tiles',
-        });
-
-        tileLayer.addTo(map);
-
-        return () => {
-            map.removeLayer(tileLayer);
-        };
-    }, [isDarkMode, map]);
-
-    return null;
 }
 
 // Компонент для відслідковування zoom
@@ -128,7 +84,7 @@ function ZoomTracker({ onZoomChange }: { onZoomChange: (zoom: number) => void })
 }
 
 // Компонент для динамічного керування heat map
-function HeatMapLayer({ records, isDarkMode, colorScheme }: { records: Record[]; isDarkMode: boolean; colorScheme: 'blue' | 'rgb' }) {
+function HeatMapLayer({ records, colorScheme }: { records: Record[]; colorScheme: 'blue' | 'rgb' }) {
     const map = useMap();
     const [heatLayer, setHeatLayer] = useState<any>(null);
     const [currentZoom, setCurrentZoom] = useState(map.getZoom());
@@ -162,7 +118,7 @@ function HeatMapLayer({ records, isDarkMode, colorScheme }: { records: Record[];
 
         const shouldShowHeatMap = currentZoom <= 13;
 
-        // Видаляємо старий layer при зміні теми або zoom або кольорової схеми
+        // Видаляємо старий layer при зміні zoom або кольорової схеми
         if (heatLayer) {
             map.removeLayer(heatLayer);
             setHeatLayer(null);
@@ -175,17 +131,11 @@ function HeatMapLayer({ records, isDarkMode, colorScheme }: { records: Record[];
                 .map(r => [r.latitude!, r.longitude!, 0.05] as [number, number, number]);
 
             if (heatPoints.length > 0) {
-                // Вибір градієнту залежно від кольорової схеми і теми
+                // Вибір градієнту залежно від кольорової схеми
                 let gradient;
                 
                 if (colorScheme === 'blue') {
-                    gradient = isDarkMode ? {
-                        0.0: 'rgba(191, 219, 254, 0.5)',
-                        0.3: 'rgba(96, 165, 250, 0.6)',
-                        0.6: 'rgba(37, 99, 235, 0.7)',
-                        0.8: 'rgba(29, 78, 216, 0.8)',
-                        1.0: 'rgba(30, 58, 138, 0.9)'
-                    } : {
+                    gradient = {
                         0.0: 'rgba(219, 234, 254, 0.6)',
                         0.3: 'rgba(147, 197, 253, 0.7)',
                         0.6: 'rgba(59, 130, 246, 0.8)',
@@ -193,12 +143,7 @@ function HeatMapLayer({ records, isDarkMode, colorScheme }: { records: Record[];
                         1.0: 'rgba(29, 78, 216, 0.9)'
                     };
                 } else {
-                    gradient = isDarkMode ? {
-                        0.0: 'rgba(34, 197, 94, 0.8)',
-                        0.35: 'rgba(234, 179, 8, 0.85)',
-                        0.65: 'rgba(249, 115, 22, 0.9)',
-                        1.0: 'rgba(220, 38, 38, 1.0)'
-                    } : {
+                    gradient = {
                         0.0: 'rgba(34, 197, 94, 0.85)',
                         0.35: 'rgba(234, 179, 8, 0.9)',
                         0.65: 'rgba(249, 115, 22, 0.95)',
@@ -212,14 +157,14 @@ function HeatMapLayer({ records, isDarkMode, colorScheme }: { records: Record[];
                     blur: 25,
                     maxZoom: 13,
                     max: 1.0,
-                    minOpacity: isDarkMode ? 0.5 : 0.6,
+                    minOpacity: 0.6,
                     gradient: gradient
                 }).addTo(map);
 
                 setHeatLayer(heat);
             }
         }
-    }, [currentZoom, isHeatLibLoaded, records, map, isDarkMode, colorScheme]);
+    }, [currentZoom, isHeatLibLoaded, records, map, colorScheme]);
 
     // Cleanup при unmount
     useEffect(() => {
@@ -238,12 +183,11 @@ function HeatMapLayer({ records, isDarkMode, colorScheme }: { records: Record[];
 }
 
 export default function MapPageComponent() {
-    const [allRecords, setAllRecords] = useState<Record[]>([]); // Всі записи
-    const [visibleRecords, setVisibleRecords] = useState<Record[]>([]); // Відфільтровані для відображення
+    const [allRecords, setAllRecords] = useState<Record[]>([]);
+    const [visibleRecords, setVisibleRecords] = useState<Record[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [loadingStage, setLoadingStage] = useState<'initial' | 'regions' | 'all'>('initial');
     const [currentZoom, setCurrentZoom] = useState(7);
-    const [isDarkMode, setIsDarkMode] = useState(false);
     const [showClusters, setShowClusters] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('map_show_clusters');
@@ -273,53 +217,6 @@ export default function MapPageComponent() {
         return 'rgb';
     });
     const router = useRouter();
-
-    // Визначаємо тему
-    useEffect(() => {
-        const checkDarkMode = () => {
-            const savedTheme = localStorage.getItem('theme');
-            let isDark = false;
-            
-            if (savedTheme) {
-                isDark = savedTheme === 'dark';
-            } else if (document.documentElement.classList.contains('dark')) {
-                isDark = true;
-            } else {
-                isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            }
-            
-            setIsDarkMode(isDark);
-        };
-
-        checkDarkMode();
-
-        const observer = new MutationObserver(() => {
-            checkDarkMode();
-        });
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ['class']
-        });
-
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'theme') {
-                checkDarkMode();
-            }
-        };
-        window.addEventListener('storage', handleStorageChange);
-
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        const handleMediaChange = () => {
-            checkDarkMode();
-        };
-        mediaQuery.addEventListener('change', handleMediaChange);
-
-        return () => {
-            observer.disconnect();
-            window.removeEventListener('storage', handleStorageChange);
-            mediaQuery.removeEventListener('change', handleMediaChange);
-        };
-    }, []);
 
     // Зберігаємо вибір користувача в localStorage
     useEffect(() => {
@@ -351,36 +248,9 @@ export default function MapPageComponent() {
             setLoadingStage('initial');
 
             try {
-                // ТИМЧАСОВО ВІДКЛЮЧАЄМО КЕШ ДЛЯ ДІАГНОСТИКИ
-                // Очищаємо старий кеш
                 localStorage.removeItem(CACHE_KEY);
                 localStorage.removeItem(CACHE_TIMESTAMP_KEY);
-                
-                /* КЕШ ВІДКЛЮЧЕНО - для тестування
-                // Крок 1: Перевіряємо кеш
-                const cachedData = localStorage.getItem(CACHE_KEY);
-                const cachedTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
 
-                if (cachedData && cachedTimestamp) {
-                    const timestamp = parseInt(cachedTimestamp, 10);
-                    const age = Date.now() - timestamp;
-
-                    // Якщо кеш свіжий - використовуємо його
-                    if (age < CACHE_DURATION) {
-                        console.log('✅ Використовуємо закешовані дані (вік:', Math.round(age / 1000 / 60), 'хв)');
-                        const cached = JSON.parse(cachedData);
-                        setAllRecords(cached);
-                        setVisibleRecords(filterRecordsByZoom(cached, currentZoom));
-                        setIsLoading(false);
-                        setLoadingStage('all');
-                        return;
-                    } else {
-                        console.log('⏰ Кеш застарів, завантажуємо свіжі дані');
-                    }
-                }
-                */
-
-                // Крок 2: Завантажуємо спочатку тільки регіони для швидкого відображення
                 console.log('📍 Завантаження регіонів...');
                 setLoadingStage('regions');
                 
@@ -396,10 +266,9 @@ export default function MapPageComponent() {
                 } else {
                     console.log('✅ Регіони завантажено:', regionsData?.length || 0);
                     setVisibleRecords(regionsData || []);
-                    setIsLoading(false); // Карта вже показується з регіонами
+                    setIsLoading(false);
                 }
 
-                // Крок 3: Завантажуємо всі дані в фоні
                 console.log('📦 Завантаження всіх даних...');
                 const { data: allData, error: allError } = await supabase.rpc('get_unique_settlement_records');
 
@@ -408,7 +277,6 @@ export default function MapPageComponent() {
                 } else {
                     console.log('✅ Всі дані завантажено:', allData?.length || 0);
                     
-                    // Зберігаємо в кеш
                     localStorage.setItem(CACHE_KEY, JSON.stringify(allData));
                     localStorage.setItem(CACHE_TIMESTAMP_KEY, String(Date.now()));
 
@@ -458,7 +326,6 @@ export default function MapPageComponent() {
                     </div>
                 ) : (
                     <>
-                        {/* Індикатор фонового завантаження */}
                         {loadingStage === 'regions' && (
                             <div className="fixed top-20 right-4 z-[1001] bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -466,11 +333,8 @@ export default function MapPageComponent() {
                             </div>
                         )}
 
-                        {/* Плаваюча панель управління */}
                         <div className="fixed bottom-4 right-4 md:right-4 left-4 md:left-auto z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 md:p-4">
-                            {/* Перемикачі */}
                             <div className="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700 flex flex-col items-center gap-3">
-                                {/* Перемикач Heat Map */}
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center justify-center w-8">
                                         <span className="text-2xl leading-none" title="Теплова карта">🌡️</span>
@@ -478,21 +342,17 @@ export default function MapPageComponent() {
                                     <button
                                         onClick={() => setShowHeatMap(!showHeatMap)}
                                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                            showHeatMap 
-                                                ? 'bg-blue-600' 
-                                                : 'bg-gray-300 dark:bg-gray-600'
+                                            showHeatMap ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
                                         }`}
                                         aria-label="Увімкнути/вимкнути теплову карту"
                                     >
-                                        <span
-                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                                                 showHeatMap ? 'translate-x-6' : 'translate-x-1'
                                             }`}
                                         />
                                     </button>
                                 </div>
 
-                                {/* Перемикач Кластерів */}
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center justify-center w-8">
                                         <span className="text-2xl leading-none" title="Кластеризація">🎯</span>
@@ -500,21 +360,17 @@ export default function MapPageComponent() {
                                     <button
                                         onClick={() => setShowClusters(!showClusters)}
                                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                            showClusters 
-                                                ? 'bg-blue-600' 
-                                                : 'bg-gray-300 dark:bg-gray-600'
+                                            showClusters ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
                                         }`}
                                         aria-label="Увімкнути/вимкнути кластеризацію"
                                     >
-                                        <span
-                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                                                 showClusters ? 'translate-x-6' : 'translate-x-1'
                                             }`}
                                         />
                                     </button>
                                 </div>
 
-                                {/* Перемикач Окремих позначок */}
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center justify-center w-8">
                                         <span className="text-2xl leading-none" title="Окремі позначки">📍</span>
@@ -522,21 +378,17 @@ export default function MapPageComponent() {
                                     <button
                                         onClick={() => setShowIndividualMarkers(!showIndividualMarkers)}
                                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                            showIndividualMarkers 
-                                                ? 'bg-blue-600' 
-                                                : 'bg-gray-300 dark:bg-gray-600'
+                                            showIndividualMarkers ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
                                         }`}
                                         aria-label="Увімкнути/вимкнути окремі позначки"
                                     >
-                                        <span
-                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                                                 showIndividualMarkers ? 'translate-x-6' : 'translate-x-1'
                                             }`}
                                         />
                                     </button>
                                 </div>
 
-                                {/* Перемикач кольорової схеми */}
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center justify-center w-8">
                                         <span className="text-2xl leading-none" title="Кольорова схема (Синя / RGB)">🎨</span>
@@ -550,8 +402,7 @@ export default function MapPageComponent() {
                                         }`}
                                         aria-label="Перемкнути кольорову схему"
                                     >
-                                        <span
-                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                                                 colorScheme === 'rgb' ? 'translate-x-6' : 'translate-x-1'
                                             }`}
                                         />
@@ -559,7 +410,6 @@ export default function MapPageComponent() {
                                 </div>
                             </div>
 
-                            {/* Легенда */}
                             <div className="flex flex-col items-center gap-2">
                                 <div className="flex items-center gap-2">
                                     <div className="w-8 flex items-center justify-center flex-shrink-0">
@@ -591,18 +441,17 @@ export default function MapPageComponent() {
                                     style={{ height: '100%', width: '100%' }} 
                                     scrollWheelZoom={true}
                                 >
-                                    {/* Dynamic Tile Layer */}
-                                    <DynamicTileLayer isDarkMode={isDarkMode} />
+                                    <TileLayer
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                    />
                                     
-                                    {/* Zoom Tracker */}
                                     <ZoomTracker onZoomChange={setCurrentZoom} />
                                     
                                     <GeocoderControl />
                                     
-                                    {/* Heat Map Layer - завантажується тільки при увімкненні */}
-                                    {showHeatMap && <HeatMapLayer records={visibleRecords} isDarkMode={isDarkMode} colorScheme={colorScheme} />}
+                                    {showHeatMap && <HeatMapLayer records={visibleRecords} colorScheme={colorScheme} />}
                                     
-                                    {/* Відображення маркерів */}
                                     {showClusters ? (
                                         <MarkerClusterGroup
                                             chunkedLoading

@@ -7,13 +7,7 @@ import Header from '../components/header';
 import ClientOnly from '../components/clientonly';
 import { ChevronDown } from 'lucide-react';
 
-// Динамічний імпорт react-leaflet компонентів БЕЗ SSR
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
-const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
-const Circle = dynamic(() => import('react-leaflet').then(mod => mod.Circle), { ssr: false });
-const GeocoderControl = dynamic(() => import('../components/GeocoderControl'), { ssr: false });
+const CaseMapComponent = dynamic(() => import('../components/CaseMapComponent'), { ssr: false });
 
 interface Record {
     id: string;
@@ -46,32 +40,6 @@ export default function CasePage() {
     const [records, setRecords] = useState<Record[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [caseInfo, setCaseInfo] = useState<any>(null);
-    const [icons, setIcons] = useState<any>({ blueIcon: null, redIcon: null });
-
-    // Створюємо іконки тільки на клієнті після монтування
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            import('leaflet').then((L) => {
-                const leaflet = L.default || L;
-                setIcons({
-                    blueIcon: leaflet.icon({
-                        iconUrl: '/icons/marker-blue.svg',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41],
-                        popupAnchor: [1, -41],
-                    }),
-                    redIcon: leaflet.icon({
-                        iconUrl: '/icons/marker-red.svg',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41],
-                        popupAnchor: [1, -41],
-                    })
-                });
-            }).catch(err => {
-                console.error('Failed to load Leaflet:', err);
-            });
-        }
-    }, []);
 
     useEffect(() => {
         if (!case_signature) return;
@@ -99,17 +67,6 @@ export default function CasePage() {
 
         fetchRecords();
     }, [case_signature]);
-
-    // Обчислюємо центр карти на основі записів
-    const getMapCenter = (): [number, number] => {
-        const validRecords = records.filter(r => r.latitude && r.longitude);
-        if (validRecords.length === 0) return [48.3794, 31.1656];
-
-        const avgLat = validRecords.reduce((sum, r) => sum + (r.latitude || 0), 0) / validRecords.length;
-        const avgLon = validRecords.reduce((sum, r) => sum + (r.longitude || 0), 0) / validRecords.length;
-
-        return [avgLat, avgLon];
-    };
 
     return (
         <>
@@ -140,57 +97,7 @@ export default function CasePage() {
                             </div>
                         ) : (
                             <ClientOnly>
-                                <MapContainer 
-                                    center={getMapCenter()} 
-                                    zoom={8} 
-                                    style={{ height: '100%', width: '100%' }} 
-                                    scrollWheelZoom={true}
-                                >
-                                    <TileLayer
-                                        attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
-                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                    />
-                                    <GeocoderControl />
-                                    {records.map((record) => {
-                                        if (!record.latitude || !record.longitude) return null;
-                                        const position: [number, number] = [record.latitude, record.longitude];
-                                        const isRegion = record.mark_type === 0;
-
-                                        return (
-                                            <Marker 
-                                                key={record.id} 
-                                                position={position} 
-                                                icon={isRegion ? (icons.redIcon || undefined) : (icons.blueIcon || undefined)}
-                                            >
-                                                <Popup>
-                                                    <div>
-                                                        <strong>{record.current_settlement_name || 'Невідома назва'}</strong>
-                                                        {record.current_settlement_type && (
-                                                            <span> ({record.current_settlement_type})</span>
-                                                        )}
-                                                        <br />
-                                                        {record.old_settlement_name && (
-                                                            <>
-                                                                <span className="text-sm text-gray-600">
-                                                                    Історична назва: {record.old_settlement_type} {record.old_settlement_name}
-                                                                </span>
-                                                                <br />
-                                                            </>
-                                                        )}
-                                                        {record.inventory_start_page && (
-                                                            <span className="text-sm text-gray-600">
-                                                                Сторінка: {record.inventory_start_page}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </Popup>
-                                                {isRegion && (
-                                                    <Circle center={position} radius={20000} pathOptions={{ color: 'rgba(255,0,0,0.3)' }} />
-                                                )}
-                                            </Marker>
-                                        );
-                                    })}
-                                </MapContainer>
+                                <CaseMapComponent records={records} />
                             </ClientOnly>
                         )}
                     </div>

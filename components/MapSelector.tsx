@@ -18,6 +18,8 @@ function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
 }
 
 export default function MapSelector({ latitude, longitude, onPositionChange }: MapSelectorProps) {
+  console.log('🗺️ MapSelector RENDERED!', { latitude, longitude });
+  
   const parsedLat = parseFloat(latitude);
   const parsedLng = parseFloat(longitude);
   const hasValidCoords = !isNaN(parsedLat) && !isNaN(parsedLng);
@@ -41,34 +43,35 @@ export default function MapSelector({ latitude, longitude, onPositionChange }: M
     if (hasValidCoords) {
       setMarkerPosition(L.latLng(parsedLat, parsedLng));
     }
-  }, [parsedLat, parsedLng]);
+  }, [parsedLat, parsedLng, hasValidCoords]);
 
   useEffect(() => {
-  if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
-    setMarkerPosition(L.latLng(parsedLat, parsedLng));
-  } else {
-    // якщо координати порожні або некоректні → прибираємо маркер
-    setMarkerPosition(null);
-  }
-}, [parsedLat, parsedLng]);
+    if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+      setMarkerPosition(L.latLng(parsedLat, parsedLng));
+    } else {
+      // якщо координати порожні або некоректні → прибираємо маркер
+      setMarkerPosition(null);
+    }
+  }, [parsedLat, parsedLng]);
 
   return (
     <div className="h-64 border dark:border-gray-600 rounded overflow-hidden">
       <MapContainer
-        center={hasValidCoords ? [parsedLat, parsedLng] : [48.3794, 31.1656]}
-        zoom={6}
+        center={hasValidCoords ? [parsedLat, parsedLng] : [50.4501, 30.5234]} // Київ
+        zoom={7}
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer
-          attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
+        
         <MapClickHandler />
         {markerPosition && <Marker position={markerPosition} />}
         {hasValidCoords && <RecenterMap lat={parsedLat} lng={parsedLng} />}    
       </MapContainer>
       <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">
-        Натисніть на карту, щоб вибрати координати: {latitude}, {longitude}
+        !!!Натисніть на карту, щоб вибрати координати: {latitude}, {longitude}
       </p>
     </div>
   );

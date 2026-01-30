@@ -1,6 +1,7 @@
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import { useState, useEffect } from 'react';
 import L from 'leaflet';
+import GeocoderControl from './GeocoderControl';
 
 interface MapSelectorProps {
   latitude: string;
@@ -55,23 +56,28 @@ export default function MapSelector({ latitude, longitude, onPositionChange }: M
   }, [parsedLat, parsedLng]);
 
   return (
-    <div className="h-64 border dark:border-gray-600 rounded overflow-hidden">
-      <MapContainer
-        center={hasValidCoords ? [parsedLat, parsedLng] : [50.4501, 30.5234]} // Київ
-        zoom={7}
-        style={{ height: '100%', width: '100%' }}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
-        
-        <MapClickHandler />
-        {markerPosition && <Marker position={markerPosition} />}
-        {hasValidCoords && <RecenterMap lat={parsedLat} lng={parsedLng} />}    
-      </MapContainer>
-      <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">
-        !!!Натисніть на карту, щоб вибрати координати: {latitude}, {longitude}
+    <div className="space-y-2">
+      {/* Карта */}
+      <div className="h-64 border dark:border-gray-600 rounded-lg overflow-hidden">
+        <MapContainer
+          center={hasValidCoords ? [parsedLat, parsedLng] : [50.4501, 30.5234]}
+          zoom={7}
+          style={{ height: '100%', width: '100%' }}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          />
+          
+          <MapClickHandler />
+          <GeocoderControl />
+          {markerPosition && <Marker position={markerPosition} />}
+          {hasValidCoords && <RecenterMap lat={parsedLat} lng={parsedLng} />}    
+        </MapContainer>
+      </div>
+      
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Натисніть на карту або скористайтесь пошуком (🔍). Координати: {latitude}, {longitude}
       </p>
     </div>
   );

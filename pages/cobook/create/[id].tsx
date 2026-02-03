@@ -51,17 +51,20 @@ function isPdf(file: File): boolean {
     return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 }
 
-const STAGE_LABELS: Record<string, string> = {
-    idle: '',
-    init: 'Ініціалізація сеансу…',
-    'upload-init': 'Підготовка завантження…',
-    uploading: 'Завантаження файлів…',
-    finalizing: 'Фіналізація завантаження…',
-    confirming: 'Підтверждення створення проекту…',
-    polling: 'Обробка проекту…',
-    done: 'Проект створено успішно',
-    error: 'Помилка',
-};
+const STAGE_STEPS = [
+    { key: 'init', label: 'Ініціалізація сеансу', stageLabel: 'Ініціалізація сеансу…' },
+    { key: 'upload-init', label: 'Підготовка завантаження', stageLabel: 'Підготовка завантаження…' },
+    { key: 'uploading', label: 'Завантаження файлів', stageLabel: 'Завантаження файлів…' },
+    { key: 'finalizing', label: 'Фіналізація', stageLabel: 'Фіналізація завантаження…' },
+    { key: 'confirming', label: 'Підтверждення', stageLabel: 'Підтверждення створення проекту…' },
+    { key: 'polling', label: 'Обробка проекту', stageLabel: 'Обробка проекту…' },
+    { key: 'done', label: 'Проект створено', stageLabel: 'Проект створено успішно' },
+] as const;
+
+const STAGE_LABELS = STAGE_STEPS.reduce((acc, step) => {
+    acc[step.key] = step.stageLabel;
+    return acc;
+}, { idle: '', error: 'Помилка' } as Record<FlowStage, string>);
 
 const STAGE_PROGRESS_LABELS: Record<string, string> = {
     initializing: 'Ініціалізація',
@@ -69,6 +72,25 @@ const STAGE_PROGRESS_LABELS: Record<string, string> = {
     commands: 'Створення задач',
     completed: 'Завершено',
     error: 'Помилка',
+};
+
+const getFriendlyError = (failedStage: FlowStage): string => {
+    switch (failedStage) {
+        case 'init':
+            return 'Не вдалося ініціалізувати сеанс. Спробуйте ще раз.';
+        case 'upload-init':
+            return 'Не вдалося підготувати завантаження файлів. Спробуйте ще раз.';
+        case 'uploading':
+            return 'Помилка під час завантаження файлів. Спробуйте ще раз.';
+        case 'finalizing':
+            return 'Не вдалося завершити завантаження файлів. Спробуйте ще раз.';
+        case 'confirming':
+            return 'Не вдалося підтвердити створення проекту. Спробуйте ще раз.';
+        case 'polling':
+            return 'Проект обробляється занадто довго або сталася помилка. Спробуйте ще раз.';
+        default:
+            return 'Сталася помилка під час створення проекту. Спробуйте ще раз.';
+    }
 };
 
 // ---------------------------------------------------------------------------
@@ -100,6 +122,12 @@ export default function CobookCreatePage() {
     const [flowError, setFlowError] = useState<string | null>(null);
     const [errorStep, setErrorStep] = useState<FlowStage | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const stageRef = useRef<FlowStage>('idle');
+    const setStageSafe = (nextStage: FlowStage, label?: string) => {
+        stageRef.current = nextStage;
+        setStage(nextStage);
+        if (label !== undefined) setStageLabel(label);
+    };
 
     // refs for flow state (avoid stale closures in polling)
     const initHashRef = useRef<string | null>(null);
@@ -272,13 +300,11 @@ export default function CobookCreatePage() {
 
         try {
             // 1. POST /api/projects/init
-            setStage('init');
-            setStageLabel(STAGE_LABELS['init']);
+            setStageSafe('init', STAGE_LABELS['init']);
             const settlement = record?.current_settlement_name || '';
             const caseSignature = record?.case_signature || '';
-            const title = settlement && caseSignature
-                ? `${settlement} (${caseSignature})`
-                : settlement || caseSignature || 'Інвентарний опис';
+            const titleBase = settlement ? `Інвентар: ${settlement}` : 'Інвентар';
+            const title = caseSignature ? `${titleBase} (${caseSignature})` : titleBase;
             const initResp = await apiPost('/api/projects/init', {
                 source: 'inventarium',
                 meta: {
@@ -293,8 +319,7 @@ export default function CobookCreatePage() {
             initHashRef.current = initHash;
 
             // 2. POST /api/uploads/init
-            setStage('upload-init');
-            setStageLabel(STAGE_LABELS['upload-init']);
+            setStageSafe('upload-init', STAGE_LABELS['upload-init']);
             const totalBytes = files.reduce((sum, e) => sum + e.file.size, 0);
             const uploadInitResp = await apiPost('/api/uploads/init', {
                 expected_files_count: hasPdf ? 1 : files.length,
@@ -306,8 +331,7 @@ export default function CobookCreatePage() {
             uploadIdRef.current = uploadId;
 
             // 3. Upload files
-            setStage('uploading');
-            setStageLabel(STAGE_LABELS['uploading']);
+            setStageSafe('uploading', STAGE_LABELS['uploading']);
 
             if (hasPdf) {
                 const pdfIndex = files.findIndex(e => isPdf(e.file));
@@ -338,13 +362,11 @@ export default function CobookCreatePage() {
             }
 
             // 4. POST /api/uploads/{upload_id}/finalize
-            setStage('finalizing');
-            setStageLabel(STAGE_LABELS['finalizing']);
+            setStageSafe('finalizing', STAGE_LABELS['finalizing']);
             await apiPost(`/api/uploads/${uploadId}/finalize`, { init_hash: initHash });
 
             // 5. Poll upload status until ready
-            setStage('polling');
-            setStageLabel('Очікування готовності завантаження…');
+            setStageSafe('polling', 'Очікування готовності завантаження…');
             let uploadReady = false;
             let attempts = 0;
             const maxAttempts = 60; // 2 minutes max
@@ -372,24 +394,22 @@ export default function CobookCreatePage() {
             }
 
             // 6. POST /api/projects/confirm
-            setStage('confirming');
-            setStageLabel(STAGE_LABELS['confirming']);
-            const confirmResp = await apiPost('/api/projects/confirmx', {
+            setStageSafe('confirming', STAGE_LABELS['confirming']);
+            const confirmResp = await apiPost('/api/projects/confirm', {
                 init_hash: initHash,
                 upload_id: uploadId,
             });
             applyStatus(confirmResp);
 
             // 7. Poll project creation status
-            setStage('polling');
-            setStageLabel(STAGE_LABELS['polling']);
+            setStageSafe('polling', STAGE_LABELS['polling']);
             startPolling();
 
         } catch (err: any) {
-            setErrorStep(stage); // Remember which step failed
-            setStage('error');
-            setStageLabel(STAGE_LABELS['error']);
-            setFlowError(err.message || String(err));
+            console.error('Cobook flow error:', err);
+            setErrorStep(stageRef.current); // Remember which step failed
+            setStageSafe('error', STAGE_LABELS['error']);
+            setFlowError(getFriendlyError(stageRef.current));
             setFiles(prev => prev.map(e => (e.status === 'uploading' ? { ...e, status: 'error' } : e)));
         }
     };
@@ -415,8 +435,7 @@ export default function CobookCreatePage() {
             if (payload.project_url) {
                 setProjectUrl(payload.project_url);
             }
-            setStage('done');
-            setStageLabel(STAGE_LABELS['done']);
+            setStageSafe('done', STAGE_LABELS['done']);
             setProgressPercent(100);
             setProgressStageLabel('');
             if (pollRef.current) {
@@ -426,9 +445,9 @@ export default function CobookCreatePage() {
             return;
         }
         if (payload?.status === 'failed') {
-            setStage('error');
-            setStageLabel(STAGE_LABELS['error']);
-            setFlowError(payload?.error_message || 'Неизвестна помилка при створенні проекту.');
+            setErrorStep(stageRef.current);
+            setStageSafe('error', STAGE_LABELS['error']);
+            setFlowError(getFriendlyError(stageRef.current));
             if (pollRef.current) {
                 clearInterval(pollRef.current);
                 pollRef.current = null;
@@ -459,8 +478,7 @@ export default function CobookCreatePage() {
         }
         initHashRef.current = null;
         uploadIdRef.current = null;
-        setStage('idle');
-        setStageLabel('');
+        setStageSafe('idle', '');
         setProgressPercent(null);
         setProgressStageLabel('');
         setProjectUrl(null);
@@ -476,6 +494,12 @@ export default function CobookCreatePage() {
     const isDone = stage === 'done';
     const isRunning = ['init', 'upload-init', 'uploading', 'finalizing', 'confirming', 'polling'].includes(stage);
     const isError = stage === 'error';
+    const projectTitleDisplay = (() => {
+        const settlement = record?.current_settlement_name || '';
+        const caseSignature = record?.case_signature || '';
+        const titleBase = settlement ? `Інвентар: ${settlement}` : 'Інвентар';
+        return caseSignature ? `${titleBase} (${caseSignature})` : titleBase;
+    })();
 
     // ---------------------------------------------------------------------------
     // Render
@@ -527,9 +551,7 @@ export default function CobookCreatePage() {
                                         <div className="flex flex-col gap-[4px]">
                                             <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Назва проекту</p>
                                             <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">
-                                                {record.current_settlement_name && record.case_signature
-                                                    ? `${record.current_settlement_name} (${record.case_signature})`
-                                                    : record.current_settlement_name || record.case_signature || '—'}
+                                                {projectTitleDisplay}
                                             </p>
                                         </div>
                                         <div className="flex flex-col gap-[4px]">
@@ -581,7 +603,7 @@ export default function CobookCreatePage() {
                             >
                                 <Upload className="w-6 h-6 text-gray-400 dark:text-gray-500 mx-auto mb-[8px]" strokeWidth={1.6} />
                                 <p className="text-gray-900 dark:text-[#F3F4F6] text-[15px] lg:text-[16px] font-medium">
-                                    Перетягніть файли сюди або натнатисніть для вибору
+                                    Перетягніть файли сюди або натисніть для вибору
                                 </p>
                                 <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-60 mt-[4px]">
                                     JPG, PNG, TIFF або один PDF
@@ -594,6 +616,37 @@ export default function CobookCreatePage() {
                                     onChange={handleFileInput}
                                     className="hidden"
                                 />
+                            </div>
+
+                            {/* Upload constraints card */}
+                            <div className="p-[16px] lg:p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
+                                <h3 className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[15px] font-semibold mb-[12px]">Обмеження завантаження</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-[20px] gap-y-[8px]">
+                                    <div className="flex items-start gap-[8px]">
+                                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[6px] flex-shrink-0"></span>
+                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">До 500 файлів за сесію</p>
+                                    </div>
+                                    <div className="flex items-start gap-[8px]">
+                                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[6px] flex-shrink-0"></span>
+                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Кожен файл до 20 МБ</p>
+                                    </div>
+                                    <div className="flex items-start gap-[8px]">
+                                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[6px] flex-shrink-0"></span>
+                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Сумарний розмір до 100 МБ</p>
+                                    </div>
+                                    <div className="flex items-start gap-[8px]">
+                                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[6px] flex-shrink-0"></span>
+                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Формати: JPG, PNG, TIF/TIFF, PDF</p>
+                                    </div>
+                                    <div className="flex items-start gap-[8px]">
+                                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[6px] flex-shrink-0"></span>
+                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Мультисторінкові TIFF не приймаються</p>
+                                    </div>
+                                    <div className="flex items-start gap-[8px]">
+                                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[6px] flex-shrink-0"></span>
+                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">PDF — лише один файл окремо</p>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* File list */}
@@ -767,15 +820,7 @@ export default function CobookCreatePage() {
                             <div className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col gap-[14px]">
                                 <h3 className="text-gray-900 dark:text-[#F3F4F6] text-[15px] lg:text-[16px] font-semibold">Кроки створення</h3>
 
-                                {([
-                                    { key: 'init', label: 'Ініціалізація сеансу' },
-                                    { key: 'upload-init', label: 'Підготовка завантаження' },
-                                    { key: 'uploading', label: 'Завантаження файлів' },
-                                    { key: 'finalizing', label: 'Фіналізація' },
-                                    { key: 'confirming', label: 'Підтверждення' },
-                                    { key: 'polling', label: 'Обробка проекту' },
-                                    { key: 'done', label: 'Проект створено' },
-                                ] as const).map((step, i) => {
+                                {STAGE_STEPS.map((step, i) => {
                                     const stageOrder = ['idle', 'init', 'upload-init', 'uploading', 'finalizing', 'confirming', 'polling', 'done', 'error'];
                                     const currentIdx = stageOrder.indexOf(stage === 'error' ? 'error' : stage);
                                     const stepIdx = stageOrder.indexOf(step.key);

@@ -1,0 +1,916 @@
+{
+  "POST /projects/init": [
+    {
+      "status": 401,
+      "code": "UNAUTHORIZED",
+      "message": "Unauthorized",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 403,
+      "code": "PERMISSION_DENIED",
+      "message": "Permission denied",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / SOURCE_REQUIRED",
+      "message": "The source field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / SOURCE_INVALID",
+      "message": "The source must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / SOURCE_TOO_LONG",
+      "message": "The source may not be greater than 50 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / SOURCE_REF_INVALID",
+      "message": "The source ref must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / SOURCE_REF_TOO_LONG",
+      "message": "The source ref may not be greater than 255 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_REQUIRED",
+      "message": "The meta field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_INVALID",
+      "message": "The meta must be an array.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_TITLE_REQUIRED",
+      "message": "The meta.title field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_TITLE_INVALID",
+      "message": "The meta.title must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_TITLE_TOO_LONG",
+      "message": "The meta.title may not be greater than 255 characters.",
+      "message_ua": "Довжина поля meta.title не може перевищувати 255 символів."
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_SETTLEMENT_INVALID",
+      "message": "The meta.settlement must be a string.",
+      "message_ua": "Поле meta.settlement має бути рядком."
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_SETTLEMENT_TOO_LONG",
+      "message": "The meta.settlement may not be greater than 255 characters.",
+      "message_ua": "Довжина поля meta.settlement не може перевищувати 255 символів."
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_CIPHER_INVALID",
+      "message": "The meta.cipher must be a string.",
+      "message_ua": "Поле meta.cipher має бути рядком."
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_CIPHER_TOO_LONG",
+      "message": "The meta.cipher may not be greater than 255 characters.",
+      "message_ua": "Довжина поля meta.cipher не може перевищувати 255 символів."
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_DATE_INVALID",
+      "message": "The meta.date must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_DATE_TOO_LONG",
+      "message": "The meta.date may not be greater than 64 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_LATITUDE_INVALID",
+      "message": "The meta.latitude must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_LATITUDE_TOO_LONG",
+      "message": "The meta.latitude may not be greater than 64 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_LONGITUDE_INVALID",
+      "message": "The meta.longitude must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_LONGITUDE_TOO_LONG",
+      "message": "The meta.longitude may not be greater than 64 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_ARCHIVE_INVALID",
+      "message": "The meta.archive must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_ARCHIVE_TOO_LONG",
+      "message": "The meta.archive may not be greater than 255 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_FUND_INVALID",
+      "message": "The meta.fund must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_FUND_TOO_LONG",
+      "message": "The meta.fund may not be greater than 255 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_OPIS_INVALID",
+      "message": "The meta.opis must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_OPIS_TOO_LONG",
+      "message": "The meta.opis may not be greater than 255 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_SPRAVA_INVALID",
+      "message": "The meta.sprava must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_SPRAVA_TOO_LONG",
+      "message": "The meta.sprava may not be greater than 255 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_SOURCE_LINK_INVALID",
+      "message": "The meta.source_link must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_SOURCE_LINK_TOO_LONG",
+      "message": "The meta.source_link may not be greater than 2048 characters.",
+      "message_ua":"Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / META_UNKNOWN_FIELD",
+      "message": "Unknown meta field: unknown_key.",
+      "message_ua":"Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 500,
+      "code": "INTERNAL_ERROR",
+      "message": "Internal Server Error",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    }
+  ],
+  "POST /uploads/init": [
+    {
+      "status": 401,
+      "code": "UNAUTHORIZED",
+      "message": "Unauthorized",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 403,
+      "code": "PERMISSION_DENIED",
+      "message": "Permission denied",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 410,
+      "code": "INIT_HASH_INVALID_OR_EXPIRED",
+      "message": "Init link is invalid or expired",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / EXPECTED_FILES_COUNT_INVALID",
+      "message": "The expected files count must be an integer.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / EXPECTED_FILES_COUNT_MIN",
+      "message": "The expected files count must be at least 1.",
+      "message_ua": "Помилка з завантаженням файлу. Має бути завантажено хоча б один файл"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / EXPECTED_FILES_COUNT_EXCEEDS_MAX",
+      "message": "Maximum :max files per session.",
+      "message_ua": "Помилка з завантаженням файлів. Завантажено забагато файлів"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / TOTAL_BYTES_EXPECTED_INVALID",
+      "message": "The total bytes expected must be an integer.",
+      "message_ua": "Помилка з завантаженням файлів. Проблема з розміром файлів"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / TOTAL_BYTES_EXPECTED_MIN",
+      "message": "The total bytes expected must be at least 1.",
+      "message_ua": "Помилка з завантаженням файлів. Проблема з розміром файлів"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / TOTAL_BYTES_EXCEEDS_MAX",
+      "message": "Total files size exceeds :limit MB.",
+      "message_ua": "Помилка з завантаженням файлів. Проблема з розміром файлів"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_REQUIRED",
+      "message": "The init hash field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_INVALID",
+      "message": "The init hash must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_SIZE",
+      "message": "The init hash must be 64 characters.",
+      "message_ua":"Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / SOURCE_INVALID",
+      "message": "The source must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / SOURCE_TOO_LONG",
+      "message": "The source may not be greater than 50 characters.",
+      "message_ua":"Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 503,
+      "code": "UPLOADS_DISABLED",
+      "message": "Uploads are temporarily disabled.",
+      "message_ua": "Завантаження тимчасово відключені. Спробуйте повторити завантаження пізніше"
+    },
+    {
+      "status": 500,
+      "code": "INTERNAL_ERROR",
+      "message": "Internal Server Error",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    }
+  ],
+  "POST /uploads/{upload}/file": [
+    {
+      "status": 401,
+      "code": "UNAUTHORIZED",
+      "message": "Unauthorized",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 403,
+      "code": "PERMISSION_DENIED",
+      "message": "Permission denied",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / FILE_REQUIRED",
+      "message": "The file field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_REQUIRED",
+      "message": "The init hash field is required.",
+      "message_ua":"Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_INVALID",
+      "message": "The init hash must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_SIZE",
+      "message": "The init hash must be 64 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INDEX_INVALID",
+      "message": "The index must be an integer.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INDEX_MIN",
+      "message": "The index must be at least 0.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 404,
+      "code": "UPLOAD_NOT_FOUND",
+      "message": "Upload not found or unavailable.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 410,
+      "code": "UPLOAD_SESSION_EXPIRED",
+      "message": "Upload session expired.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 409,
+      "code": "UPLOAD_SESSION_COMPLETED",
+      "message": "Upload session already finished.",
+      "message_ua":"Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 409,
+      "code": "PDF_ALREADY_UPLOADED",
+      "message": "PDF already uploaded. Mixing formats is not allowed.",
+      "message_ua": "PDF вже завантажено. Змішування форматів не дозволяється."
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / FILES_COUNT_LIMIT",
+      "message": "Maximum :max files per session.",
+      "message_ua": "Помилка з завантаженням файлу. Перевищено кількість дозволених файлів"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / FILES_COUNT_EXCEEDS_EXPECTED",
+      "message": "More files uploaded than expected.",
+      "message_ua": "Помилка з завантаженням файлу. Перевищено кількість дозволених файлів"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / FILE_INVALID_EXTENSION",
+      "message": "Format :ext is not supported.",
+      "message_ua": "Помилка з завантаженням файлу. Формат файлу не підтримується"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / FILE_MULTIPAGE_TIFF",
+      "message": "Multipage TIFF is not supported. Split the file into separate pages.",
+      "message_ua": "Багатосторінковий TIFF не підтримується. Будь ласка, розділіть файл на окремі сторінки."
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / FILE_TOO_LARGE",
+      "message": "File :name is larger than the allowed :limit MB.",
+      "message_ua": "Помилка з завантаженням файлу. Перевищено ліміт файлів"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / TOTAL_BYTES_EXCEEDS_MAX",
+      "message": "Total files size exceeds :limit MB.",
+      "message_ua": "Помилка з завантаженням файлу. Перевищено ліміт файлів"
+    },
+    {
+      "status": 500,
+      "code": "INTERNAL_ERROR",
+      "message": "Internal Server Error",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    }
+  ],
+  "POST /uploads/{upload}/chunk": [
+    {
+      "status": 401,
+      "code": "UNAUTHORIZED",
+      "message": "Unauthorized",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 403,
+      "code": "PERMISSION_DENIED",
+      "message": "Permission denied",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / CHUNK_REQUIRED",
+      "message": "The chunk field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / CHUNK_INDEX_REQUIRED",
+      "message": "The chunk index field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / CHUNK_INDEX_INVALID",
+      "message": "The chunk index must be an integer.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / CHUNK_INDEX_MIN",
+      "message": "The chunk index must be at least 0.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / TOTAL_CHUNKS_REQUIRED",
+      "message": "The total chunks field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / TOTAL_CHUNKS_INVALID",
+      "message": "The total chunks must be an integer.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / TOTAL_CHUNKS_MIN",
+      "message": "The total chunks must be at least 1.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / FILE_NAME_REQUIRED",
+      "message": "The file name field is required.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / FILE_NAME_INVALID",
+      "message": "The file name must be a string.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / FILE_NAME_TOO_LONG",
+      "message": "The file name may not be greater than 255 characters.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / TOTAL_BYTES_REQUIRED",
+      "message": "The total bytes field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / TOTAL_BYTES_INVALID",
+      "message": "The total bytes must be an integer.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / TOTAL_BYTES_MIN",
+      "message": "The total bytes must be at least 1.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_REQUIRED",
+      "message": "The init hash field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_INVALID",
+      "message": "The init hash must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_SIZE",
+      "message": "The init hash must be 64 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 404,
+      "code": "UPLOAD_NOT_FOUND",
+      "message": "Upload not found or unavailable.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 410,
+      "code": "UPLOAD_SESSION_EXPIRED",
+      "message": "Upload session expired.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 409,
+      "code": "UPLOAD_SESSION_COMPLETED",
+      "message": "Upload session already finished.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 409,
+      "code": "PDF_MIXED_WITH_IMAGES",
+      "message": "PDF cannot be mixed with other files.",
+      "message_ua": "Помилка з завантаженням файлу. PDF не можна змішувати з іншими файлами."
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INVALID_CHUNK_COUNT",
+      "message": "Invalid total chunks count.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / PDF_ONLY_ALLOWED",
+      "message": "Only PDF format is allowed.",
+      "message_ua": "Помилка з завантаженням файлу. Дозволено лише формат PDF."
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / PDF_TOO_LARGE",
+      "message": "PDF is larger than the allowed :limit MB.",
+      "message_ua": "Помилка з завантаженням файлу. Розмір PDF перевищує дозволений ліміт МБ."
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / CHUNK_TOO_LARGE",
+      "message": "Chunk size exceeds 50 MB.",
+      "message_ua": "Помилка з завантаженням файлу. Розмір фрагмента перевищує 50 МБ."
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / TOTAL_BYTES_EXCEEDS_MAX",
+      "message": "Total files size exceeds :limit MB.",
+      "message_ua": "Помилка з завантаженням файлу. Загальний розмір файлів перевищує ліміт МБ."
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / PDF_TOO_MANY_PAGES",
+      "message": "PDF has too many pages (max :max).",
+      "message_ua": "Помилка з завантаженням файлу. У PDF забагато сторінок"
+    },
+    {
+      "status": 500,
+      "code": "INTERNAL_ERROR",
+      "message": "Internal Server Error",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    }
+  ],
+  "POST /uploads/{upload}/finalize": [
+    {
+      "status": 401,
+      "code": "UNAUTHORIZED",
+      "message": "Unauthorized",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 403,
+      "code": "PERMISSION_DENIED",
+      "message": "Permission denied",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_REQUIRED",
+      "message": "The init hash field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_INVALID",
+      "message": "The init hash must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_SIZE",
+      "message": "The init hash must be 64 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 404,
+      "code": "UPLOAD_NOT_FOUND",
+      "message": "Upload not found or unavailable.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 410,
+      "code": "UPLOAD_SESSION_EXPIRED",
+      "message": "Upload session expired.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 409,
+      "code": "UPLOAD_SESSION_COMPLETED",
+      "message": "Upload session already finished.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 409,
+      "code": "NO_FILES_UPLOADED",
+      "message": "No files have been uploaded.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 409,
+      "code": "NOT_ALL_FILES_UPLOADED",
+      "message": "Not all files have been uploaded.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 500,
+      "code": "INTERNAL_ERROR",
+      "message": "Internal Server Error",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    }
+  ],
+  "POST /uploads/{upload}/cancel": [
+    {
+      "status": 401,
+      "code": "UNAUTHORIZED",
+      "message": "Unauthorized",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 403,
+      "code": "PERMISSION_DENIED",
+      "message": "Permission denied",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_REQUIRED",
+      "message": "The init hash field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_INVALID",
+      "message": "The init hash must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_SIZE",
+      "message": "The init hash must be 64 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 404,
+      "code": "UPLOAD_NOT_FOUND",
+      "message": "Upload not found or unavailable.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 410,
+      "code": "UPLOAD_SESSION_EXPIRED",
+      "message": "Upload session expired.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 500,
+      "code": "INTERNAL_ERROR",
+      "message": "Internal Server Error",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    }
+  ],
+  "GET /uploads/{upload}/status": [
+    {
+      "status": 401,
+      "code": "UNAUTHORIZED",
+      "message": "Unauthorized",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 403,
+      "code": "PERMISSION_DENIED",
+      "message": "Permission denied",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_REQUIRED",
+      "message": "The init hash field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_INVALID",
+      "message": "The init hash must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_SIZE",
+      "message": "The init hash must be 64 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 404,
+      "code": "UPLOAD_NOT_FOUND",
+      "message": "Upload not found or unavailable.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 410,
+      "code": "UPLOAD_SESSION_EXPIRED",
+      "message": "Upload session expired.",
+      "message_ua": "Помилка з завантаженням файлу. Спробуйте завантажити інший файл"
+    },
+    {
+      "status": 500,
+      "code": "INTERNAL_ERROR",
+      "message": "Internal Server Error",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    }
+  ],
+  "GET /uploads/params": [
+    {
+      "status": 401,
+      "code": "UNAUTHORIZED",
+      "message": "Unauthorized",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 403,
+      "code": "PERMISSION_DENIED",
+      "message": "Permission denied",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 500,
+      "code": "INTERNAL_ERROR",
+      "message": "Internal Server Error",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    }
+  ],
+  "POST /projects/confirm": [
+    {
+      "status": 401,
+      "code": "UNAUTHORIZED",
+      "message": "Unauthorized",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 403,
+      "code": "PERMISSION_DENIED",
+      "message": "Permission denied",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 410,
+      "code": "INIT_HASH_INVALID_OR_EXPIRED",
+      "message": "Init link is invalid or expired",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_REQUIRED",
+      "message": "The init hash field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_INVALID",
+      "message": "The init hash must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_SIZE",
+      "message": "The init hash must be 64 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / UPLOAD_ID_REQUIRED",
+      "message": "The upload id field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / UPLOAD_ID_INVALID",
+      "message": "The upload id must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 409,
+      "code": "INVALID_UPLOAD_ID",
+      "message": "Invalid upload_id.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 409,
+      "code": "UPLOAD_NOT_READY",
+      "message": "Upload is not ready yet.",
+      "message_ua": "Помилка з завантаженням файлів. Завантаження ще не готове"
+    },
+    {
+      "status": 404,
+      "code": "UPLOAD_NOT_FOUND",
+      "message": "Upload not found or unavailable.",
+      "message_ua": "Помилка з завантаженням файлів. Завантаження не знайдено або воно недоступне."
+    },
+    {
+      "status": 410,
+      "code": "UPLOAD_SESSION_EXPIRED",
+      "message": "Upload session expired.",
+      "message_ua": "Помилка з завантаженням файлів. Час сесії завантаження вичерпано."
+    },
+    {
+      "status": 409,
+      "code": "UPLOAD_SESSION_COMPLETED",
+      "message": "Upload session already finished.",
+      "message_ua": "Помилка з завантаженням файлів. Сесія завантаження вже завершена."
+    },
+    {
+      "status": 500,
+      "code": "INTERNAL_ERROR",
+      "message": "Internal Server Error",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    }
+  ],
+  "GET /projects/confirm/status": [
+    {
+      "status": 401,
+      "code": "UNAUTHORIZED",
+      "message": "Unauthorized",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 403,
+      "code": "PERMISSION_DENIED",
+      "message": "Permission denied",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 410,
+      "code": "INIT_HASH_INVALID_OR_EXPIRED",
+      "message": "Init link is invalid or expired",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_REQUIRED",
+      "message": "The init hash field is required.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_INVALID",
+      "message": "The init hash must be a string.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 422,
+      "code": "VALIDATION_ERROR / INIT_HASH_SIZE",
+      "message": "The init hash must be 64 characters.",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    },
+    {
+      "status": 500,
+      "code": "INTERNAL_ERROR",
+      "message": "Internal Server Error",
+      "message_ua": "Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше"
+    }
+  ]
+}

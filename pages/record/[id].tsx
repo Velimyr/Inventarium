@@ -451,7 +451,7 @@ export default function RecordPage() {
                         <div className="flex flex-col gap-[15px]">
                             <div className="flex items-center gap-[10px]">
                                 <BookOpen className="w-5 h-5 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={2} />
-                                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">Проект транскрибування інвентарного опису в CoBook</h2>
+                                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">Проект транскрибування інвентаря в CoBook</h2>
                             </div>
 
                             {hasCobookLink ? (

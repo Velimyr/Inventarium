@@ -7,6 +7,7 @@ import Toast from '../../../components/Toast';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { ArrowLeft, Upload, FileText, CheckCircle, AlertTriangle, Loader2, X, BookOpen } from 'lucide-react';
 import cobookConfig from '../cobook.json';
+import cobookErrors from '../cobook_errors.json';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -49,6 +50,122 @@ function formatBytes(bytes: number): string {
 
 function isPdf(file: File): boolean {
     return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+}
+
+// ---------------------------------------------------------------------------
+// Error handling helpers
+// ---------------------------------------------------------------------------
+function extractErrorCode(errorData: any): string | null {
+    try {
+        const message = errorData?.message || errorData?.error_message || errorData?.detail || null;
+        // If internal_code !== 'VALIDATION_ERROR' → return internal_code
+        if (errorData?.internal_code && errorData.internal_code !== 'VALIDATION_ERROR') {
+            console.info('CoBook API error:', {
+                internal_code: errorData.internal_code,
+                message,
+                extracted_code: errorData.internal_code,
+            });
+            return errorData.internal_code;
+        }
+        
+        // If internal_code === 'VALIDATION_ERROR' → look in error_codes
+        if (errorData?.internal_code === 'VALIDATION_ERROR' && errorData?.error_codes) {
+            const values = Object.values(errorData.error_codes);
+            for (const value of values) {
+                if (Array.isArray(value) && value.length > 0) {
+                    const code = value[0];
+                    if (typeof code === 'string' && code.length > 0) {
+                        console.info('CoBook API validation error:', {
+                            internal_code: errorData.internal_code,
+                            message,
+                            extracted_code: code,
+                            error_codes: errorData.error_codes,
+                        });
+                        return code;
+                    }
+                }
+            }
+            console.info('CoBook API validation error (no code found):', {
+                internal_code: errorData.internal_code,
+                message,
+                error_codes: errorData.error_codes,
+            });
+        }
+    } catch (err) {
+        console.error('Error extracting error code:', err);
+    }
+    
+    return null;
+}
+
+function normalizeEndpoint(path: string): string {
+    // Map actual API paths to error JSON keys
+    if (path.startsWith('/api/projects/init')) return 'POST /projects/init';
+    if (path.startsWith('/api/uploads/init')) return 'POST /uploads/init';
+    if (path.match(/^\/api\/uploads\/[^/]+\/file$/)) return 'POST /uploads/{upload}/file';
+    if (path.match(/^\/api\/uploads\/[^/]+\/chunk$/)) return 'POST /uploads/{upload}/chunk';
+    if (path.match(/^\/api\/uploads\/[^/]+\/finalize$/)) return 'POST /uploads/{upload}/finalize';
+    if (path.match(/^\/api\/uploads\/[^/]+\/status/)) return 'GET /uploads/{upload}/status';
+    if (path.startsWith('/api/projects/confirm/status')) return 'GET /projects/confirm/status';
+    if (path.startsWith('/api/projects/confirm')) return 'POST /projects/confirm';
+    
+    return path;
+}
+
+function getErrorMessage(path: string, errorCode: string): string {
+    const DEFAULT_ERROR = 'Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше';
+    
+    try {
+        const endpoint = normalizeEndpoint(path);
+        const errors = (cobookErrors as any)[endpoint];
+        
+        if (!errors || !Array.isArray(errors)) {
+            console.info('CoBook error mapping: endpoint not found', {
+                endpoint,
+                errorCode,
+                availableEndpoints: Object.keys(cobookErrors || {}).slice(0, 5),
+            });
+            return DEFAULT_ERROR;
+        }
+        
+        const errorEntry = errors.find((e: any) => e.code === errorCode);
+        
+        if (errorEntry && errorEntry.message_ua) {
+            console.info('CoBook error mapping: matched', {
+                endpoint,
+                errorCode,
+                message_ua: errorEntry.message_ua,
+            });
+            return errorEntry.message_ua;
+        }
+
+        const compositeEntry = errors.find((e: any) => {
+            if (!e?.code || typeof e.code !== 'string') return false;
+            if (!e.code.includes(' / ')) return false;
+            const parts = e.code.split(' / ').map((p: string) => p.trim()).filter(Boolean);
+            return parts.includes(errorCode);
+        });
+
+        if (compositeEntry && compositeEntry.message_ua) {
+            console.info('CoBook error mapping: matched composite', {
+                endpoint,
+                errorCode,
+                composite_code: compositeEntry.code,
+                message_ua: compositeEntry.message_ua,
+            });
+            return compositeEntry.message_ua;
+        }
+        
+        console.info('CoBook error mapping: code not found', {
+            endpoint,
+            errorCode,
+            availableCodes: errors.map((e: any) => e.code).slice(0, 5),
+        });
+    } catch (err) {
+        console.error('Error looking up error message:', err);
+    }
+    
+    return DEFAULT_ERROR;
 }
 
 const STAGE_STEPS = [
@@ -227,7 +344,13 @@ export default function CobookCreatePage() {
             body: JSON.stringify(body),
         });
         const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) throw new Error(`Помилка ${resp.status}: ${data.message || JSON.stringify(data)}`);
+        if (!resp.ok) {
+            const errorCode = extractErrorCode(data);
+            const errorMessage = errorCode 
+                ? getErrorMessage(path, errorCode)
+                : 'Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше';
+            throw new Error(errorMessage);
+        }
         return data;
     };
 
@@ -240,12 +363,19 @@ export default function CobookCreatePage() {
             },
         });
         const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) throw new Error(`Помилка ${resp.status}: ${data.message || JSON.stringify(data)}`);
+        if (!resp.ok) {
+            const errorCode = extractErrorCode(data);
+            const errorMessage = errorCode 
+                ? getErrorMessage(path, errorCode)
+                : 'Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше';
+            throw new Error(errorMessage);
+        }
         return data;
     };
 
     const apiUploadFile = async (uploadId: string, file: File, index: number, initHash: string) => {
-        const url = `${baseUrl}/api/uploads/${uploadId}/file`;
+        const path = `/api/uploads/${uploadId}/file`;
+        const url = `${baseUrl}${path}`;
         const fd = new FormData();
         fd.append('file', file, file.name);
         fd.append('index', String(index));
@@ -256,12 +386,19 @@ export default function CobookCreatePage() {
             body: fd,
         });
         const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) throw new Error(`Помилка завантаження ${file.name}: ${resp.status} ${data.message || JSON.stringify(data)}`);
+        if (!resp.ok) {
+            const errorCode = extractErrorCode(data);
+            const errorMessage = errorCode 
+                ? getErrorMessage(path, errorCode)
+                : 'Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше';
+            throw new Error(errorMessage);
+        }
         return data;
     };
 
     const apiUploadChunk = async (uploadId: string, chunk: Blob, chunkIndex: number, totalChunks: number, fileName: string, totalBytes: number, initHash: string) => {
-        const url = `${baseUrl}/api/uploads/${uploadId}/chunk`;
+        const path = `/api/uploads/${uploadId}/chunk`;
+        const url = `${baseUrl}${path}`;
         const fd = new FormData();
         fd.append('chunk', chunk, fileName);
         fd.append('chunk_index', String(chunkIndex));
@@ -275,7 +412,13 @@ export default function CobookCreatePage() {
             body: fd,
         });
         const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) throw new Error(`Помилка чанка ${chunkIndex + 1}/${totalChunks}: ${resp.status} ${data.message || JSON.stringify(data)}`);
+        if (!resp.ok) {
+            const errorCode = extractErrorCode(data);
+            const errorMessage = errorCode 
+                ? getErrorMessage(path, errorCode)
+                : 'Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше';
+            throw new Error(errorMessage);
+        }
         return data;
     };
 
@@ -409,7 +552,8 @@ export default function CobookCreatePage() {
             console.error('Cobook flow error:', err);
             setErrorStep(stageRef.current); // Remember which step failed
             setStageSafe('error', STAGE_LABELS['error']);
-            setFlowError(getFriendlyError(stageRef.current));
+            // Use the error message from API if available, otherwise use generic message
+            setFlowError(err.message || 'Виникли технічні проблеми при створенні проєкту. Повторіть спробу пізніше');
             setFiles(prev => prev.map(e => (e.status === 'uploading' ? { ...e, status: 'error' } : e)));
         }
     };
@@ -525,7 +669,7 @@ export default function CobookCreatePage() {
                     {/* Page title */}
                     <div className="flex flex-wrap items-baseline gap-[12px] mb-[24px] lg:mb-[30px]">
                         <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold">
-                            Створення проекту в CoBook
+                            Створення проекту транскрибування інвентаря в CoBook
                         </h1>
                     </div>
 
@@ -547,7 +691,7 @@ export default function CobookCreatePage() {
 
                                 <div className="flex flex-col gap-[14px]">
                                     {/* First row: Project title, Signature, Year */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-[20px] gap-y-[14px]">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-[20px] gap-y-[14px] mt-[25px]">
                                         <div className="flex flex-col gap-[4px]">
                                             <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Назва проекту</p>
                                             <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">
@@ -565,7 +709,7 @@ export default function CobookCreatePage() {
                                     </div>
 
                                     {/* Second row: Full current administrative division */}
-                                    <div className="flex flex-col gap-[4px]">
+                                    <div className="flex flex-col gap-[4px] mt-[25px]">
                                         <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Населений пункт (сучасний адмінподіл)</p>
                                         <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">
                                             {[
@@ -608,6 +752,29 @@ export default function CobookCreatePage() {
                                 <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-60 mt-[4px]">
                                     JPG, PNG, TIFF або один PDF
                                 </p>
+                                
+                                {/* Upload constraints */}
+                                <div className="mt-[16px] pt-[16px] border-t border-gray-300 dark:border-[#374151]">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-[16px] gap-y-[6px] max-w-[500px] mx-auto">
+                                        <div className="flex items-start gap-[6px]">
+                                            <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[5px] flex-shrink-0"></span>
+                                            <p className="text-gray-700 dark:text-white text-[12px] opacity-70">До 500 файлів за сесію</p>
+                                        </div>
+                                        <div className="flex items-start gap-[6px]">
+                                            <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[5px] flex-shrink-0"></span>
+                                            <p className="text-gray-700 dark:text-white text-[12px] opacity-70">Кожен файл до 20 МБ</p>
+                                        </div>
+                                        <div className="flex items-start gap-[6px]">
+                                            <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[5px] flex-shrink-0"></span>
+                                            <p className="text-gray-700 dark:text-white text-[12px] opacity-70">Сумарний розмір до 100 МБ</p>
+                                        </div>
+                                        <div className="flex items-start gap-[6px]">
+                                            <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[5px] flex-shrink-0"></span>
+                                            <p className="text-gray-700 dark:text-white text-[12px] opacity-70">Формати: JPG, PNG, TIF/TIFF, PDF</p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -616,37 +783,6 @@ export default function CobookCreatePage() {
                                     onChange={handleFileInput}
                                     className="hidden"
                                 />
-                            </div>
-
-                            {/* Upload constraints card */}
-                            <div className="p-[16px] lg:p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
-                                <h3 className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[15px] font-semibold mb-[12px]">Обмеження завантаження</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-[20px] gap-y-[8px]">
-                                    <div className="flex items-start gap-[8px]">
-                                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[6px] flex-shrink-0"></span>
-                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">До 500 файлів за сесію</p>
-                                    </div>
-                                    <div className="flex items-start gap-[8px]">
-                                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[6px] flex-shrink-0"></span>
-                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Кожен файл до 20 МБ</p>
-                                    </div>
-                                    <div className="flex items-start gap-[8px]">
-                                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[6px] flex-shrink-0"></span>
-                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Сумарний розмір до 100 МБ</p>
-                                    </div>
-                                    <div className="flex items-start gap-[8px]">
-                                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[6px] flex-shrink-0"></span>
-                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Формати: JPG, PNG, TIF/TIFF, PDF</p>
-                                    </div>
-                                    <div className="flex items-start gap-[8px]">
-                                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[6px] flex-shrink-0"></span>
-                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Мультисторінкові TIFF не приймаються</p>
-                                    </div>
-                                    <div className="flex items-start gap-[8px]">
-                                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 mt-[6px] flex-shrink-0"></span>
-                                        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">PDF — лише один файл окремо</p>
-                                    </div>
-                                </div>
                             </div>
 
                             {/* File list */}

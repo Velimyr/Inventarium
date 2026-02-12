@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
-import Header from '../components/header';
-import { useUser } from '../contexts/UserContext';
+import { supabase } from '../../lib/supabaseClient';
+import Header from '../../components/header';
+import { useUser } from '../../contexts/UserContext';
 import { Trophy, Medal, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Leader {

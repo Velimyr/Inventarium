@@ -311,10 +311,10 @@ export default function StatsPage() {
               description={getUnidentifiedText(unidentifiedCount || 0)}
             />
             <ActionCard
-              href="/marathon1"
+              href="/marathons/second"
               icon={<Award className="w-6 h-6 text-[#2563EB]" strokeWidth={2} />}
-              title="Інвентарний марафон"
-              description="Марафон вже завершено"
+              title="Другий Інвентарний Марафон"
+              description="15.02.2026 - 15.04.2026"
             />
           </div>
         </div>

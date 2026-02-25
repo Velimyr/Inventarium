@@ -34,7 +34,7 @@ export default function RecordPage() {
             created_at, mark_type, archive, fonds, series, record, old_province, old_district,
             old_community, old_settlement_type, old_settlement_name, current_region,
             current_district, current_community, current_settlement_type, current_settlement_name,
-            cobook_link
+            cobook_link, cobook_transcript
         `).eq('id', id).single();
         if (error) {
             console.error('Помилка:', error);
@@ -459,7 +459,7 @@ export default function RecordPage() {
                                     <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80">
                                         Для цього інвентарного опису вже існує проект транскрибування в CoBook.
                                     </p>
-                                    <div>
+                                    <div className="flex flex-wrap gap-[10px]">
                                         <a
                                             href={`https://cobook.today/${record.cobook_link}`}
                                             target="_blank"
@@ -469,6 +469,17 @@ export default function RecordPage() {
                                             <ExternalLink className="w-4 h-4 text-white flex-shrink-0" strokeWidth={1.6} />
                                             <span className="text-white text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Переглянути проект</span>
                                         </a>
+                                        {record.cobook_transcript && (
+                                            <a
+                                                href={record.cobook_transcript}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="inline-flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
+                                            >
+                                                <FileText className="w-4 h-4 text-white flex-shrink-0" strokeWidth={1.6} />
+                                                <span className="text-white text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Транскрипція інвентаря</span>
+                                            </a>
+                                        )}
                                     </div>
                                 </div>
                             ) : (

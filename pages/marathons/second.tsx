@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Header from '../../components/header';
 import { useUser } from '../../contexts/UserContext';
-import { Trophy, Medal, ChevronDown, ChevronUp, Loader2, BookOpen } from 'lucide-react';
+import { Trophy, Medal, ChevronDown, ChevronUp, Loader2, BookOpen, AlertTriangle } from 'lucide-react';
 import cobookConfig from '../cobook/cobook.json';
 
 interface UserTotals {
@@ -70,13 +70,11 @@ export default function Marathon2Page() {
         
         setMarathonData(data.marathon);
         
-        // Сортуємо користувачів за bookpoints
         const sortedUsers = [...(data.users || [])].sort((a, b) => 
           b.totals.bookpoints - a.totals.bookpoints
         );
         setUsers(sortedUsers);
 
-        // Знаходимо статистику поточного користувача
         if (user) {
           const currentUserNickname = user.user_metadata?.name || user.email;
           const myData = sortedUsers.find(u => u.nickname === currentUserNickname);
@@ -136,6 +134,17 @@ export default function Marathon2Page() {
               <div className="mt-[10px] p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] space-y-[15px] text-gray-900 dark:text-white text-[14px] lg:text-[16px]">
                 <p><strong>Другий Інвентарний Марафон</strong> <br /> Проходить з 15 лютого по 15 квітня 2026 року.</p>
                 <p>Завдання учасників — створювати проєкти транскрибування інвентарів у системі <strong>CoBook</strong> та заробляти <strong>BookPoints</strong> за транскрипції та індексацію.</p>
+
+                {/* UPD Block 1 — before "Як набрати BookPoints" */}
+                <div className="flex items-start gap-[12px] p-[15px] rounded-lg border border-orange-300 dark:border-orange-600 border-l-4 border-l-orange-500 bg-orange-50 dark:bg-orange-900/20">
+                  <AlertTriangle className="w-5 h-5 text-orange-500 dark:text-orange-400 flex-shrink-0 mt-0.5" strokeWidth={2} />
+                  <div className="flex flex-col gap-[6px]">
+                    <p className="font-bold text-orange-700 dark:text-orange-400 text-[14px] lg:text-[15px]">UPD. Важливе оновлення правил!!!</p>
+                    <p className="text-gray-900 dark:text-white text-[14px] lg:text-[15px]">
+                      Частина інвентарів, що знаходяться в реєстрі містять не рукописний, а друкований текст. Транскрибувати такі інвентарі значно простіше аніж рукописні тексти тож ми вносимо зміни в правила: За транскрибування інвентарів з друкованим текстом користувач отримуватиме знижені BookPoints з коефіцієнтом <strong>0.3</strong>. Це правило стосуватиметься всіх інвентарів транскрибованих після <strong>25 лютого 2026 року</strong>.
+                    </p>
+                  </div>
+                </div>
 
                 <div className="space-y-[15px]">
                   <h3 className="text-[16px] lg:text-[18px] font-semibold">Як набрати BookPoints:</h3>
@@ -209,6 +218,18 @@ export default function Marathon2Page() {
                 <p className="font-semibold text-center pt-[10px]">
                   Долучайтесь до Другого Інвентарного Марафону, транскрибуйте інвентарі в CoBook — та набирайте BookPoints для перемоги!
                 </p>
+
+                {/* UPD Block 2 — at the very end */}
+                <div className="flex items-start gap-[12px] p-[15px] rounded-lg border border-orange-300 dark:border-orange-600 border-l-4 border-l-orange-500 bg-orange-50 dark:bg-orange-900/20">
+                  <AlertTriangle className="w-5 h-5 text-orange-500 dark:text-orange-400 flex-shrink-0 mt-0.5" strokeWidth={2} />
+                  <div className="flex flex-col gap-[6px]">
+                    <p className="font-bold text-orange-700 dark:text-orange-400 text-[14px] lg:text-[15px]">UPD. Важливе оновлення правил!!!</p>
+                    <p className="text-gray-900 dark:text-white text-[14px] lg:text-[15px]">
+                      Ми вважаємо що змагання має бути чесним і справедливим. Тож після завершення Марафону — буде виконана перевірка якості транскрибованих інвентарів потенційних переможців. Якщо в їх транскрибуваннях будуть знайдені помилки — BookPoints за ці транскрибування можуть бути знижені.
+                    </p>
+                  </div>
+                </div>
+
               </div>
             )}
           </section>
@@ -260,18 +281,14 @@ export default function Marathon2Page() {
                           const currentUserNickname = user?.user_metadata?.name || user?.email;
                           const isCurrentUser = u.nickname === currentUserNickname;
                           
-                          // Кольори для топ-3
                           let bgClass = '';
-                          let textClass = 'text-gray-900 dark:text-white';
+                          const textClass = 'text-gray-900 dark:text-white';
                           
                           if (i === 0) {
-                            // Золото
                             bgClass = 'bg-gradient-to-r from-yellow-100 to-yellow-50 dark:from-yellow-900/40 dark:to-yellow-800/20';
                           } else if (i === 1) {
-                            // Срібло
                             bgClass = 'bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700/40 dark:to-gray-600/20';
                           } else if (i === 2) {
-                            // Бронза
                             bgClass = 'bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900/40 dark:to-orange-800/20';
                           }
                           

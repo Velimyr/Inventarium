@@ -188,6 +188,7 @@ export default function MapPageComponent() {
     const [isLoading, setIsLoading] = useState(true);
     const [loadingStage, setLoadingStage] = useState<'initial' | 'regions' | 'all'>('initial');
     const [currentZoom, setCurrentZoom] = useState(7);
+    const [isPanelOpen, setIsPanelOpen] = useState(false); // Панель згорнута за замовчуванням на мобільних
     const [showClusters, setShowClusters] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('map_show_clusters');
@@ -283,14 +284,6 @@ export default function MapPageComponent() {
                     setAllRecords(allData || []);
                     setVisibleRecords(filterRecordsByZoom(allData || [], currentZoom));
                     setLoadingStage('all');
-
-                    console.log('📊 Статистика:');
-                    const withCoords = allData?.filter(r => r.latitude && r.longitude) || [];
-                    console.log('- Записів з координатами:', withCoords.length);
-                    const regions = allData?.filter(r => r.mark_type === 0) || [];
-                    console.log('- Регіонів:', regions.length);
-                    const settlements = allData?.filter(r => r.mark_type !== 0) || [];
-                    console.log('- Населених пунктів:', settlements.length);
                 }
             } catch (error) {
                 console.error('Критична помилка завантаження:', error);
@@ -306,7 +299,6 @@ export default function MapPageComponent() {
         if (allRecords.length > 0) {
             const filtered = filterRecordsByZoom(allRecords, currentZoom);
             setVisibleRecords(filtered);
-            console.log(`🔍 Zoom ${currentZoom}: показуємо ${filtered.length} з ${allRecords.length} записів`);
         }
     }, [currentZoom, allRecords]);
 
@@ -333,101 +325,124 @@ export default function MapPageComponent() {
                             </div>
                         )}
 
+                        {/* Панель керування */}
                         <div className="fixed bottom-4 right-4 md:right-4 left-4 md:left-auto z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 md:p-4">
-                            <div className="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700 flex flex-col items-center gap-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex items-center justify-center w-8">
-                                        <span className="text-2xl leading-none" title="Теплова карта">🌡️</span>
-                                    </div>
-                                    <button
-                                        onClick={() => setShowHeatMap(!showHeatMap)}
-                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                            showHeatMap ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-                                        }`}
-                                        aria-label="Увімкнути/вимкнути теплову карту"
-                                    >
-                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                showHeatMap ? 'translate-x-6' : 'translate-x-1'
+                            
+                            {/* Кнопка тогглер — тільки на мобільних */}
+                            <button
+                                className="flex md:hidden items-center justify-between w-full"
+                                onClick={() => setIsPanelOpen(!isPanelOpen)}
+                                aria-label="Відкрити/закрити панель керування картою"
+                            >
+                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Налаштування карти</span>
+                                <svg
+                                    className={`w-4 h-4 ml-2 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${isPanelOpen ? 'rotate-180' : ''}`}
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            {/* Вміст панелі — завжди видимий на десктопі, колапс на мобільних */}
+                            <div className={`${isPanelOpen ? 'mt-3' : 'hidden'} md:block`}>
+                                <div className="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700 flex flex-col items-center gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center justify-center w-8">
+                                            <span className="text-2xl leading-none" title="Теплова карта">🌡️</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowHeatMap(!showHeatMap)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                showHeatMap ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
                                             }`}
-                                        />
-                                    </button>
+                                            aria-label="Увімкнути/вимкнути теплову карту"
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                    showHeatMap ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                            />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center justify-center w-8">
+                                            <span className="text-2xl leading-none" title="Кластеризація">🎯</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowClusters(!showClusters)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                showClusters ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                                            }`}
+                                            aria-label="Увімкнути/вимкнути кластеризацію"
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                    showClusters ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                            />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center justify-center w-8">
+                                            <span className="text-2xl leading-none" title="Окремі позначки">📍</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowIndividualMarkers(!showIndividualMarkers)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                showIndividualMarkers ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                                            }`}
+                                            aria-label="Увімкнути/вимкнути окремі позначки"
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                    showIndividualMarkers ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                            />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center justify-center w-8">
+                                            <span className="text-2xl leading-none" title="Кольорова схема (Синя / RGB)">🎨</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setColorScheme(colorScheme === 'blue' ? 'rgb' : 'blue')}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                colorScheme === 'rgb' 
+                                                    ? 'bg-gradient-to-r from-green-500 via-yellow-500 to-red-500' 
+                                                    : 'bg-blue-600'
+                                            }`}
+                                            aria-label="Перемкнути кольорову схему"
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                    colorScheme === 'rgb' ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                            />
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <div className="flex items-center gap-3">
-                                    <div className="flex items-center justify-center w-8">
-                                        <span className="text-2xl leading-none" title="Кластеризація">🎯</span>
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 flex items-center justify-center flex-shrink-0">
+                                            <svg width="15" height="24" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" fill="#2563eb"/>
+                                                <circle cx="12.5" cy="12.5" r="4" fill="white"/>
+                                            </svg>
+                                        </div>
+                                        <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">Населений пункт</span>
                                     </div>
-                                    <button
-                                        onClick={() => setShowClusters(!showClusters)}
-                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                            showClusters ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-                                        }`}
-                                        aria-label="Увімкнути/вимкнути кластеризацію"
-                                    >
-                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                showClusters ? 'translate-x-6' : 'translate-x-1'
-                                            }`}
-                                        />
-                                    </button>
-                                </div>
-
-                                <div className="flex items-center gap-3">
-                                    <div className="flex items-center justify-center w-8">
-                                        <span className="text-2xl leading-none" title="Окремі позначки">📍</span>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 flex items-center justify-center flex-shrink-0">
+                                            <svg width="15" height="24" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" fill="#dc2626"/>
+                                                <circle cx="12.5" cy="12.5" r="4" fill="white"/>
+                                            </svg>
+                                        </div>
+                                        <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">Цілий регіон</span>
                                     </div>
-                                    <button
-                                        onClick={() => setShowIndividualMarkers(!showIndividualMarkers)}
-                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                            showIndividualMarkers ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-                                        }`}
-                                        aria-label="Увімкнути/вимкнути окремі позначки"
-                                    >
-                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                showIndividualMarkers ? 'translate-x-6' : 'translate-x-1'
-                                            }`}
-                                        />
-                                    </button>
-                                </div>
-
-                                <div className="flex items-center gap-3">
-                                    <div className="flex items-center justify-center w-8">
-                                        <span className="text-2xl leading-none" title="Кольорова схема (Синя / RGB)">🎨</span>
-                                    </div>
-                                    <button
-                                        onClick={() => setColorScheme(colorScheme === 'blue' ? 'rgb' : 'blue')}
-                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                            colorScheme === 'rgb' 
-                                                ? 'bg-gradient-to-r from-green-500 via-yellow-500 to-red-500' 
-                                                : 'bg-blue-600'
-                                        }`}
-                                        aria-label="Перемкнути кольорову схему"
-                                    >
-                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                colorScheme === 'rgb' ? 'translate-x-6' : 'translate-x-1'
-                                            }`}
-                                        />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col items-center gap-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 flex items-center justify-center flex-shrink-0">
-                                        <svg width="15" height="24" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" fill="#2563eb"/>
-                                            <circle cx="12.5" cy="12.5" r="4" fill="white"/>
-                                        </svg>
-                                    </div>
-                                    <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">Населений пункт</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 flex items-center justify-center flex-shrink-0">
-                                        <svg width="15" height="24" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" fill="#dc2626"/>
-                                            <circle cx="12.5" cy="12.5" r="4" fill="white"/>
-                                        </svg>
-                                    </div>
-                                    <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">Цілий регіон</span>
                                 </div>
                             </div>
                         </div>

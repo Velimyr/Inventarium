@@ -46,6 +46,9 @@ export default function ReviewEditedRecordsPage() {
         notes: 'Примітки',
     };
 
+    // Fields excluded from display and updates
+    const EXCLUDED_FIELDS = ['id', 'approved', 'email', 'created_by', 'created_at', 'comment', 'json_full_data', 'is_ukrainian_archive', 'CoBook_link'];
+
     useEffect(() => {
         if (userLoading) return;
 
@@ -157,7 +160,7 @@ export default function ReviewEditedRecordsPage() {
 
         const updateData: Record<string, any> = { id: recordEdit.id };
         Object.entries(fieldsToUpdate).forEach(([field, checked]) => {
-            if (checked && field !== 'approved' && field !== 'email' && field !== 'is_ukrainian_archive' && field !== 'comment' && field !== 'json_full_data') {
+            if (checked && !EXCLUDED_FIELDS.includes(field)) {
                 const value = recordEdit[field];
                 updateData[field] = value === '' ? null : value;
             }
@@ -333,7 +336,7 @@ export default function ReviewEditedRecordsPage() {
 
     const editFields = Object.entries(recordEdit)
         .filter(([key, value]) => {
-            if (['id', 'approved', 'email', 'created_by', 'created_at', 'comment', 'json_full_data', 'is_ukrainian_archive'].includes(key)) return false;
+            if (EXCLUDED_FIELDS.includes(key)) return false;
             return value !== recordOriginal[key];
         });
 

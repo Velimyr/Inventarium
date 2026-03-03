@@ -510,6 +510,14 @@
     "full_name_ukr": "Державний архів в Жешуві",
     "full_name_native": "Archiwum Państwowe w Rzeszowie",
     "site": "https://rzeszow.ap.gov.pl/"
+  },
+  {
+    "id": "3f7c2a9e-6b4d-4f81-9c2e-8a1d5b7e4c63",
+    "short_name": "НБ ЛНУ ім. І.Франка",
+    "country": "Україна",
+    "full_name_ukr": "Наукова Бібліотека Львівського Національного Університету ім. І.Франка",
+    "full_name_native": "Наукова Бібліотека Львівського Національного Університету ім. І.Франка",
+    "site": "https://www.lnulibrary.lviv.ua/"
   }
   
   

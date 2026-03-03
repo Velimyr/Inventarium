@@ -47,7 +47,7 @@ export default function ReviewEditedRecordsPage() {
     };
 
     // Fields excluded from display and updates
-    const EXCLUDED_FIELDS = ['id', 'approved', 'email', 'created_by', 'created_at', 'comment', 'json_full_data', 'is_ukrainian_archive', 'CoBook_link'];
+    const EXCLUDED_FIELDS = ['id', 'approved', 'email', 'created_by', 'created_at', 'comment', 'json_full_data', 'is_ukrainian_archive', 'cobook_link'];
 
     useEffect(() => {
         if (userLoading) return;

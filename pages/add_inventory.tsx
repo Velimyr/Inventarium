@@ -191,17 +191,12 @@ export default function AddInventoryPage() {
             }
         }
 
+        // ВИПРАВЛЕНО: використовуємо Number() замість parseInt() для суворої перевірки
+        // parseInt("5abc") === 5, але Number("5abc") === NaN — текст з цифрами більше не пройде
         if (formData.pages_count) {
-            const pages = parseInt(formData.pages_count);
-            if (isNaN(pages) || pages <= 0) {
-                return 'Поле "Кількість сторінок справи" має бути числом більшим за 0.';
-            }
-        }
-
-        if (formData.inventory_start_page) {
-            const page = parseInt(formData.inventory_start_page);
-            if (isNaN(page) || page <= 0) {
-                return 'Поле "Сторінка початку інвентарю" має бути числом більшим за 0.';
+            const pages = Number(formData.pages_count);
+            if (isNaN(pages) || !Number.isInteger(pages) || pages <= 0) {
+                return 'Поле "Кількість сторінок справи" має бути цілим числом більшим за 0.';
             }
         }
 
@@ -294,8 +289,8 @@ export default function AddInventoryPage() {
             latitude: formData.latitude ? parseFloat(formData.latitude) : null,
             longitude: formData.longitude ? parseFloat(formData.longitude) : null,
             mark_type: formData.mark_type ? parseInt(formData.mark_type) : null,
-            pages_count: formData.pages_count ? parseInt(formData.pages_count) : null,
-            inventory_start_page: formData.inventory_start_page ? parseInt(formData.inventory_start_page) : null,
+            pages_count: formData.pages_count ? Number(formData.pages_count) : null,
+            inventory_start_page: formData.inventory_start_page || null,
             inventory_year: formData.inventory_year ? parseInt(formData.inventory_year) : null,
             created_by: user?.id || null,
         };

@@ -176,7 +176,8 @@ export default function AdminPage() {
         longitude: parseFloatOrNull(formData.longitude) ?? parseFloatOrNull(originalCoords.longitude),
         pages_count: parseIntegerOrNull(recordToInsert.pages_count ?? formData.pages_count),
         inventory_year: parseIntegerOrNull(recordToInsert.inventory_year ?? formData.inventory_year),
-        inventory_start_page: parseIntegerOrNull(recordToInsert.inventory_start_page ?? formData.inventory_start_page),
+        // ВИПРАВЛЕНО: зберігаємо як рядок, без конвертації в число
+        inventory_start_page: recordToInsert.inventory_start_page ?? formData.inventory_start_page ?? null,
         created_by: formData.created_by ? formData.created_by : (user?.id || null),
       };
 

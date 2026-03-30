@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { useUser } from '../contexts/UserContext';
 import { BarChart3, FileText, Bell, Edit, Search, Send, ArrowRight } from 'lucide-react';
+import { isAdminUser } from '../lib/adminUsers';
 
 export default function AdminDashboard() {
   const { user, loading: userLoading } = useUser();
@@ -25,13 +26,9 @@ export default function AdminDashboard() {
     }
 
     const checkAdminAndLoadData = async () => {
-      const { data: adminData, error: adminError } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('id', user.id)
-        .single();
+      const hasAdminAccess = await isAdminUser(supabase, user.id);
 
-      if (adminError || !adminData) {
+      if (!hasAdminAccess) {
         setError('⛔ У вас немає доступу до цієї сторінки');
         setLoading(false);
         return;

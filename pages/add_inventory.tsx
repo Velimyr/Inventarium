@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
 import { sendNotification } from '../components/notifications';
+import { getAdminUserIds } from '../lib/adminUsers';
 import { Save, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -304,11 +305,9 @@ export default function AddInventoryPage() {
             setSuccess(true);
 
             //Відправка повідомлення адмінам по новий доданий інвентар
-            const { data: admins, error: adminError } = await supabase
-                .from('admin_users')
-                .select('id');
+            const adminIds = await getAdminUserIds(supabase);
 
-            if (!adminError && admins && admins.length > 0) {
+            if (adminIds.length > 0) {
                 const messageText =
                     `Новий інвентар очікує на перевірку.\n\n` +
                     `**Дані інвентаря:**\n\n` +
@@ -318,11 +317,11 @@ export default function AddInventoryPage() {
                     `Населений пункт: ${formData.current_settlement_type} ${formData.current_settlement_name}\n\n` +
                     `Email автора: ${formData.email}`;
 
-                for (const admin of admins) {
+                for (const adminId of adminIds) {
                     try {
                         await sendNotification({
                             fromUserId: user?.id || 'system',
-                            toUserId: admin.id,
+                            toUserId: adminId,
                             messageType: 'new',
                             messageText
                         });

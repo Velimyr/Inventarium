@@ -5,6 +5,7 @@ import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
 import ReactMarkdown from 'react-markdown';
 import { Send, User, Users, Search, Eye, EyeOff, ChevronDown } from 'lucide-react';
+import { getAdminUserIds, isAdminUser } from '../lib/adminUsers';
 
 export default function AdminSendMessagesPage() {
   const { user, loading: userLoading } = useUser();
@@ -42,13 +43,9 @@ export default function AdminSendMessagesPage() {
     }
 
     const fetchAdminData = async () => {
-      const { data: adminData } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('id', user.id)
-        .single();
+      const hasAdminAccess = await isAdminUser(supabase, user.id);
 
-      if (!adminData) {
+      if (!hasAdminAccess) {
         setError('⛔ У вас немає доступу до цієї сторінки');
         setLoading(false);
         return;
@@ -57,10 +54,18 @@ export default function AdminSendMessagesPage() {
       setIsAdmin(true);
 
       // Завантажуємо список адміністраторів
+      const adminIds = await getAdminUserIds(supabase);
+      if (adminIds.length === 0) {
+        setAdmins([]);
+        setSelectedAdmin(user.id);
+        setLoading(false);
+        return;
+      }
+
       const { data: adminsList } = await supabase
         .from('profiles')
         .select('user_id, email')
-        .in('user_id', (await supabase.from('admin_users').select('id')).data?.map(a => a.id) || []);
+        .in('user_id', adminIds);
 
       setAdmins(adminsList || []);
       setSelectedAdmin(user.id); // За замовчуванням поточний адмін

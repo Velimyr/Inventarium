@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { useUser } from '../contexts/UserContext';
 import { Edit, Archive, Bell, Plus, HelpCircle, Award } from 'lucide-react';
+import { isAdminUser } from '../lib/adminUsers';
 
 export default function StatsPage() {
   const { user, loading: userLoading } = useUser();
@@ -30,13 +31,7 @@ export default function StatsPage() {
 
     const fetchStats = async () => {
       try {
-        const { data: adminData } = await supabase
-          .from('admin_users')
-          .select('id')
-          .eq('id', user.id)
-          .single();
-
-        setIsAdmin(!!adminData);
+        setIsAdmin(await isAdminUser(supabase, user.id));
 
         // Get date one month ago
         const oneMonthAgo = new Date();

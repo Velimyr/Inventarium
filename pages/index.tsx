@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import FooterDonate from '../components/FooterDonate';
 import { useUser } from '../contexts/UserContext';
 import { Search, Map, FileText, Plus } from "lucide-react";
+import { isAdminUser } from '../lib/adminUsers';
 
 export default function Home() {
   const { user, loading: userLoading } = useUser();
@@ -46,13 +47,7 @@ export default function Home() {
     if (!user) return;
 
     try {
-      const { data: adminData } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('id', user.id)
-        .single();
-
-      setIsAdmin(!!adminData);
+      setIsAdmin(await isAdminUser(supabase, user.id));
 
       const { count: userApproved } = await supabase
         .from('records')

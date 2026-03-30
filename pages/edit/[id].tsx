@@ -8,6 +8,7 @@ import { useUser } from '../../contexts/UserContext';
 import { Save } from 'lucide-react';
 import Link from 'next/link';
 import { sendNotification } from '../../components/notifications';
+import { getAdminUserIds } from '../../lib/adminUsers';
 
 const EditableInventoryForm = dynamic(() => import('../../components/EditableInventoryForm'), {
     ssr: false,
@@ -173,20 +174,18 @@ export default function EditSingleRecordPage() {
 
             if (error) throw error;
              //Відправка повідомлення адмінам по новий доданий інвентар
-             const { data: admins, error: adminError } = await supabase
-             .from('admin_users')
-             .select('id');
+             const adminIds = await getAdminUserIds(supabase);
 
-         if (!adminError && admins && admins.length > 0) {
+         if (adminIds.length > 0) {
              const messageText =
                  `Інвентар відредаговано ${id} і він очікує на перевірку.\n\n`  +
                  `Email автора редагування: ${emailFromUser}`;
 
-             for (const admin of admins) {
+             for (const adminId of adminIds) {
                  try {
                      await sendNotification({
                          fromUserId: user?.id || 'system',
-                         toUserId: admin.id,
+                         toUserId: adminId,
                          messageType: 'new_edit',
                          messageText
                      });

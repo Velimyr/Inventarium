@@ -8,6 +8,7 @@ import SubscriptionNotifier from '../components/SubscriptionNotifier';
 import regionStructure from '../public/data/region_structure.json';
 import { sendNotification } from '../components/notifications';
 import { Save, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { isAdminUser } from '../lib/adminUsers';
 
 const getSettlementCodeByPath = (
   structure: any,
@@ -61,13 +62,9 @@ export default function AdminPage() {
     }
 
     const fetchAdminAndRecords = async () => {
-      const { data: adminData } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('id', user.id)
-        .single();
+      const hasAdminAccess = await isAdminUser(supabase, user.id);
 
-      if (!adminData) {
+      if (!hasAdminAccess) {
         setError('⛔ У вас немає доступу до цієї сторінки');
         setLoading(false);
         return;

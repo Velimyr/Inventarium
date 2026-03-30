@@ -4,6 +4,7 @@ import Header from '../components/header';
 import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
 import { Search, Check, RotateCcw, ChevronDown, ChevronRight, ExternalLink, MapPin, Mail } from 'lucide-react';
+import { isAdminUser } from '../lib/adminUsers';
 
 export default function AdminNotIdentifyPage() {
   const { user, loading: userLoading } = useUser();
@@ -29,13 +30,9 @@ export default function AdminNotIdentifyPage() {
     }
 
     const fetchAdminAndRecords = async () => {
-      const { data: adminData } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('id', user.id)
-        .single();
+      const hasAdminAccess = await isAdminUser(supabase, user.id);
 
-      if (!adminData) {
+      if (!hasAdminAccess) {
         setError('⛔ У вас немає доступу до цієї сторінки');
         setLoading(false);
         return;

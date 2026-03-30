@@ -8,6 +8,7 @@ import Header from '../../components/header';
 import { useUser } from '../../contexts/UserContext';
 import Link from 'next/link';
 import { sendNotification } from '../../components/notifications';
+import { getAdminUserIds } from '../../lib/adminUsers';
 import { MapPin, FileText, Save, X, Check, ChevronDown } from 'lucide-react';
 
 const MapSelector = dynamic(() => import('../../components/MapSelector'), { ssr: false });
@@ -467,21 +468,19 @@ export default function NotIdentifyDetails() {
 
         setRecord({ ...record, status: 'review' });
 
-        const { data: admins, error: adminError } = await supabase
-            .from('admin_users')
-            .select('id');
+        const adminIds = await getAdminUserIds(supabase);
 
-        if (!adminError && admins && admins.length > 0) {
+        if (adminIds.length > 0) {
             const recordUrl = `${window.location.origin}/unidentified/${id}`
             const messageText =
                 `Новий інвентар ідентифіковано, він очікує на перевірку.\n\n` +
                 `[Переглянути щойно ідентифікований інвентар](${recordUrl})`
 
-            for (const admin of admins) {
+            for (const adminId of adminIds) {
                 try {
                     await sendNotification({
                         fromUserId: user?.id || 'system',
-                        toUserId: admin.id,
+                        toUserId: adminId,
                         messageType: 'new_identified',
                         messageText
                     });

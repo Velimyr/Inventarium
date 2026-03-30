@@ -5,6 +5,7 @@ import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
 import { sendNotification } from '../components/notifications';
 import { FileText, Check, X, ChevronLeft, ChevronRight, ExternalLink, Mail } from 'lucide-react';
+import { isAdminUser } from '../lib/adminUsers';
 
 export default function ReviewEditedRecordsPage() {
     const { user, loading: userLoading } = useUser();
@@ -58,13 +59,9 @@ export default function ReviewEditedRecordsPage() {
         }
 
         const checkAdmin = async () => {
-            const { data: adminData, error } = await supabase
-                .from('admin_users')
-                .select('id')
-                .eq('id', user.id)
-                .single();
+            const hasAdminAccess = await isAdminUser(supabase, user.id);
 
-            if (error || !adminData) {
+            if (!hasAdminAccess) {
                 setIsAdmin(false);
                 setLoading(false);
                 return;

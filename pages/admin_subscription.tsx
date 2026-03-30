@@ -5,6 +5,7 @@ import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
 import regionStructureRaw from '../public/data/region_structure.json';
 import { Bell, Check, X, User, MapPin } from 'lucide-react';
+import { isAdminUser } from '../lib/adminUsers';
 
 export default function AdminSubscriptionPage() {
   const { user, loading: userLoading } = useUser();
@@ -50,13 +51,9 @@ export default function AdminSubscriptionPage() {
     setRegionStructure(regionStructureRaw);
 
     const fetchAdminAndSubscriptions = async () => {
-      const { data: adminData } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('id', user.id)
-        .single();
+      const hasAdminAccess = await isAdminUser(supabase, user.id);
 
-      if (!adminData) {
+      if (!hasAdminAccess) {
         setError('⛔ У вас немає доступу до цієї сторінки');
         setLoading(false);
         return;

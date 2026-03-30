@@ -7,6 +7,7 @@ import {
   BarChart, Bar, CartesianGrid, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
+import { isAdminUser } from '../lib/adminUsers';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,13 +38,9 @@ export default function StatsPage() {
     }
 
     const load = async () => {
-      const { data: adminData, error: adminError } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('id', user.id)
-        .single();
+      const hasAdminAccess = await isAdminUser(supabase, user.id);
 
-      if (adminError || !adminData) {
+      if (!hasAdminAccess) {
         setError('⛔ У вас немає доступу до цієї сторінки');
         setLoading(false);
         return;

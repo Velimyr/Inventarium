@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { useUser } from '../contexts/UserContext';
-import { BarChart3, FileText, Bell, Edit, Search, Send, ArrowRight } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
+import { BarChart3, FileText, Bell, Edit, Search, Send, ArrowRight, CheckCheck } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { user, loading: userLoading } = useUser();
@@ -148,6 +148,30 @@ export default function AdminDashboard() {
                 type="button"
               >
                 <span className="text-[14px] lg:text-[16px] font-medium">Почати обробку інвентарів</span>
+                <ArrowRight className="w-5 h-5" strokeWidth={2} />
+              </button>
+            </section>
+
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
+              <div>
+                <div className="flex items-center gap-[10px] mb-[15px]">
+                  <CheckCheck className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                  <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                    Масове підтвердження
+                  </h2>
+                </div>
+                <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80">
+                  Підтвердити необроблені інвентарі пакетно за автором
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  window.location.href = '/admin_approve_mass';
+                }}
+                className="flex items-center justify-center gap-[8px] w-full h-[40px] bg-[#14AE5C] hover:bg-[#0F8A4A] text-white rounded transition-colors mt-[15px]"
+                type="button"
+              >
+                <span className="text-[14px] lg:text-[16px] font-medium">Відкрити масове підтвердження</span>
                 <ArrowRight className="w-5 h-5" strokeWidth={2} />
               </button>
             </section>

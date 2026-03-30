@@ -5,6 +5,28 @@ import { useUser } from '../contexts/UserContext';
 import { Edit, Archive, Bell, Plus, HelpCircle, Award } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
 
+function getOneMonthAgoISO() {
+  const now = new Date();
+  const previousMonthLastDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    0
+  ).getDate();
+  const safeDay = Math.min(now.getDate(), previousMonthLastDay);
+
+  const oneMonthAgo = new Date(
+    now.getFullYear(),
+    now.getMonth() - 1,
+    safeDay,
+    now.getHours(),
+    now.getMinutes(),
+    now.getSeconds(),
+    now.getMilliseconds()
+  );
+
+  return oneMonthAgo.toISOString();
+}
+
 export default function StatsPage() {
   const { user, loading: userLoading } = useUser();
 
@@ -33,10 +55,9 @@ export default function StatsPage() {
       try {
         setIsAdmin(await isAdminUser(supabase, user.id));
 
-        // Get date one month ago
-        const oneMonthAgo = new Date();
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-        const oneMonthAgoISO = oneMonthAgo.toISOString();
+        // Clamp the day to the last valid day of the previous month,
+        // so 30/31st do not overflow back into the current month.
+        const oneMonthAgoISO = getOneMonthAgoISO();
 
         // Total approved records
         const { count: totalApproved } = await supabase

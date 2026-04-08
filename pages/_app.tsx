@@ -9,6 +9,7 @@ import Head from 'next/head';
 import { useEffect } from 'react';
 import { UserProvider } from '../contexts/UserContext';
 import { useRouter } from 'next/router';
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -46,6 +47,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <Component {...pageProps} />
         <Analytics />
       </UserProvider>
+      <SpeedInsights/>
     </>
   );
 }

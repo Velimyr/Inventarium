@@ -47,8 +47,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     getUser();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false); 
+      const nextUser = session?.user ?? null;
+      setUser((prev: any) => {
+        if (prev?.id === nextUser?.id) return prev;
+        return nextUser;
+      });
+      setLoading(false);
     });
 
     return () => {

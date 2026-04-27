@@ -22,6 +22,7 @@ interface Props {
   periodId: string;
   onHover?: (props: AreaFeatureProperties | null) => void;
   showVoievodstvoCenters?: boolean;
+  showPovitCenters?: boolean;
   showStarostvoCenters?: boolean;
 }
 
@@ -29,6 +30,7 @@ export default function HistoricalOverlay({
   periodId,
   onHover,
   showVoievodstvoCenters = true,
+  showPovitCenters = true,
   showStarostvoCenters = true,
 }: Props) {
   const map = useMap();
@@ -119,8 +121,9 @@ export default function HistoricalOverlay({
       style: () => (isDarkRef.current ? STYLES.DarkBorderStyle : STYLES.BaseBorderStyle),
     });
 
-    const filterPrimary = (f: GeoJSON.Feature) => f.properties!.adminLevel !== 3;
-    const filterSecondary = (f: GeoJSON.Feature) => f.properties!.adminLevel === 3;
+    const filterLevel1 = (f: GeoJSON.Feature) => f.properties!.adminLevel === 1;
+    const filterLevel2 = (f: GeoJSON.Feature) => f.properties!.adminLevel === 2;
+    const filterLevel3 = (f: GeoJSON.Feature) => f.properties!.adminLevel === 3;
 
     const buildCitiesLayer = (filterFn: (f: GeoJSON.Feature) => boolean) =>
       L.geoJSON(data.points, {
@@ -156,13 +159,15 @@ export default function HistoricalOverlay({
         },
       });
 
-    const citiesPrimary = showVoievodstvoCenters ? buildCitiesLayer(filterPrimary) : null;
-    const citiesSecondary = showStarostvoCenters ? buildCitiesLayer(filterSecondary) : null;
+    const citiesL1 = showVoievodstvoCenters ? buildCitiesLayer(filterLevel1) : null;
+    const citiesL2 = showPovitCenters ? buildCitiesLayer(filterLevel2) : null;
+    const citiesL3 = showStarostvoCenters ? buildCitiesLayer(filterLevel3) : null;
 
     layerGroup.addLayer(regionsLayer);
     layerGroup.addLayer(bordersLayer);
-    if (citiesPrimary) layerGroup.addLayer(citiesPrimary);
-    if (citiesSecondary) layerGroup.addLayer(citiesSecondary);
+    if (citiesL1) layerGroup.addLayer(citiesL1);
+    if (citiesL2) layerGroup.addLayer(citiesL2);
+    if (citiesL3) layerGroup.addLayer(citiesL3);
 
     regionsLayerRef.current = regionsLayer;
     bordersLayerRef.current = bordersLayer;
@@ -172,12 +177,13 @@ export default function HistoricalOverlay({
     return () => {
       layerGroup.removeLayer(regionsLayer);
       layerGroup.removeLayer(bordersLayer);
-      if (citiesPrimary) layerGroup.removeLayer(citiesPrimary);
-      if (citiesSecondary) layerGroup.removeLayer(citiesSecondary);
+      if (citiesL1) layerGroup.removeLayer(citiesL1);
+      if (citiesL2) layerGroup.removeLayer(citiesL2);
+      if (citiesL3) layerGroup.removeLayer(citiesL3);
       regionsLayerRef.current = null;
       bordersLayerRef.current = null;
     };
-  }, [map, data, layerGroup, onHover, showVoievodstvoCenters, showStarostvoCenters]);
+  }, [map, data, layerGroup, onHover, showVoievodstvoCenters, showPovitCenters, showStarostvoCenters]);
 
   // Restyle on theme change
   useEffect(() => {

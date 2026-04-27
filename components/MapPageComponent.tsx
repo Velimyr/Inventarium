@@ -247,6 +247,13 @@ export default function MapPageComponent() {
         }
         return true;
     });
+    const [showPovitCenters, setShowPovitCenters] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('map_show_povit_centers');
+            return saved !== null ? saved === 'true' : true;
+        }
+        return true;
+    });
     const [showStarostvoCenters, setShowStarostvoCenters] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('map_show_starostvo_centers');
@@ -269,6 +276,10 @@ export default function MapPageComponent() {
     useEffect(() => {
         localStorage.setItem('map_show_voievodstvo_centers', String(showVoievodstvoCenters));
     }, [showVoievodstvoCenters]);
+
+    useEffect(() => {
+        localStorage.setItem('map_show_povit_centers', String(showPovitCenters));
+    }, [showPovitCenters]);
 
     useEffect(() => {
         localStorage.setItem('map_show_starostvo_centers', String(showStarostvoCenters));
@@ -577,6 +588,17 @@ export default function MapPageComponent() {
                                             <label className={`flex items-center gap-2 text-xs ${!showHistorical ? 'opacity-50' : ''}`}>
                                                 <input
                                                     type="checkbox"
+                                                    checked={showPovitCenters}
+                                                    disabled={!showHistorical}
+                                                    onChange={(e) => setShowPovitCenters(e.target.checked)}
+                                                    className="w-4 h-4 accent-blue-600 disabled:cursor-not-allowed"
+                                                />
+                                                <span className="text-gray-700 dark:text-gray-300">Показати центри повітів</span>
+                                            </label>
+
+                                            <label className={`flex items-center gap-2 text-xs ${!showHistorical ? 'opacity-50' : ''}`}>
+                                                <input
+                                                    type="checkbox"
                                                     checked={showStarostvoCenters}
                                                     disabled={!showHistorical}
                                                     onChange={(e) => setShowStarostvoCenters(e.target.checked)}
@@ -613,6 +635,7 @@ export default function MapPageComponent() {
                                             periodId={historicalPeriod}
                                             onHover={setHoveredHistoricalRegion}
                                             showVoievodstvoCenters={showVoievodstvoCenters}
+                                            showPovitCenters={showPovitCenters}
                                             showStarostvoCenters={showStarostvoCenters}
                                         />
                                     )}

@@ -10,6 +10,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
 import GeocoderControl from './GeocoderControl';
+import HistoricalInfoCard from './historical-map/HistoricalInfoCard';
+import type { AreaFeatureProperties } from './historical-map/types';
 
 // Динамічний імпорт react-leaflet компонентів
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -20,6 +22,12 @@ const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ss
 // Динамічний імпорт для кластеризації - тільки коли потрібно
 const MarkerClusterGroup = dynamic(
     () => import('react-leaflet-cluster'),
+    { ssr: false }
+);
+
+// Історична карта (опційний шар)
+const HistoricalOverlay = dynamic(
+    () => import('./historical-map/HistoricalOverlay'),
     { ssr: false }
 );
 
@@ -217,7 +225,28 @@ export default function MapPageComponent() {
         }
         return 'rgb';
     });
+    const [showHistorical, setShowHistorical] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('map_show_historical') === 'true';
+        }
+        return false;
+    });
+    const [historicalPeriod, setHistoricalPeriod] = useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('map_historical_period') || '1640';
+        }
+        return '1640';
+    });
+    const [hoveredHistoricalRegion, setHoveredHistoricalRegion] = useState<AreaFeatureProperties | null>(null);
     const router = useRouter();
+
+    useEffect(() => {
+        localStorage.setItem('map_show_historical', String(showHistorical));
+    }, [showHistorical]);
+
+    useEffect(() => {
+        localStorage.setItem('map_historical_period', historicalPeriod);
+    }, [historicalPeriod]);
 
     // Зберігаємо вибір користувача в localStorage
     useEffect(() => {
@@ -405,6 +434,49 @@ export default function MapPageComponent() {
 
                                     <div className="flex items-center gap-3">
                                         <div className="flex items-center justify-center w-8">
+                                            <span className="text-2xl leading-none" title="Історична карта (воєводства)">🏰</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowHistorical(!showHistorical)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                showHistorical ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                                            }`}
+                                            aria-label="Увімкнути/вимкнути історичну карту"
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                    showHistorical ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                            />
+                                        </button>
+                                    </div>
+
+                                    {showHistorical && (
+                                        <div className="flex items-center gap-2 ml-11">
+                                            <button
+                                                onClick={() => setHistoricalPeriod('1640')}
+                                                className={`px-3 py-1 text-xs rounded transition-colors ${
+                                                    historicalPeriod === '1640'
+                                                        ? 'bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900'
+                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                                                }`}
+                                            >
+                                                1640
+                                            </button>
+                                            <button
+                                                onClick={() => setHistoricalPeriod('1760')}
+                                                className={`px-3 py-1 text-xs rounded transition-colors ${
+                                                    historicalPeriod === '1760'
+                                                        ? 'bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900'
+                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                                                }`}
+                                            >
+                                                1760
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center justify-center w-8">
                                             <span className="text-2xl leading-none" title="Кольорова схема (Синя / RGB)">🎨</span>
                                         </div>
                                         <button
@@ -464,7 +536,14 @@ export default function MapPageComponent() {
                                     <ZoomTracker onZoomChange={setCurrentZoom} />
                                     
                                     <GeocoderControl />
-                                    
+
+                                    {showHistorical && (
+                                        <HistoricalOverlay
+                                            periodId={historicalPeriod}
+                                            onHover={setHoveredHistoricalRegion}
+                                        />
+                                    )}
+
                                     {showHeatMap && <HeatMapLayer records={visibleRecords} colorScheme={colorScheme} />}
                                     
                                     {showClusters ? (
@@ -575,6 +654,7 @@ export default function MapPageComponent() {
                                         })
                                     ) : null}
                                 </MapContainer>
+                                {showHistorical && <HistoricalInfoCard region={hoveredHistoricalRegion} />}
                             </div>
                         )}
                     </ClientOnly>

@@ -196,7 +196,10 @@ export default function MapPageComponent() {
     const [isLoading, setIsLoading] = useState(true);
     const [loadingStage, setLoadingStage] = useState<'initial' | 'regions' | 'all'>('initial');
     const [currentZoom, setCurrentZoom] = useState(7);
-    const [isPanelOpen, setIsPanelOpen] = useState(false); // Панель згорнута за замовчуванням на мобільних
+    const [isPanelOpen, setIsPanelOpen] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        return window.innerWidth >= 768;
+    }); // На мобільних згорнута, на десктопі відкрита
     const [showClusters, setShowClusters] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('map_show_clusters');
@@ -237,7 +240,22 @@ export default function MapPageComponent() {
         }
         return '1640';
     });
+    const [showVoievodstvoCenters, setShowVoievodstvoCenters] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('map_show_voievodstvo_centers');
+            return saved !== null ? saved === 'true' : true;
+        }
+        return true;
+    });
+    const [showStarostvoCenters, setShowStarostvoCenters] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('map_show_starostvo_centers');
+            return saved !== null ? saved === 'true' : true;
+        }
+        return true;
+    });
     const [hoveredHistoricalRegion, setHoveredHistoricalRegion] = useState<AreaFeatureProperties | null>(null);
+    const [activeMapTab, setActiveMapTab] = useState<'regular' | 'historical'>('regular');
     const router = useRouter();
 
     useEffect(() => {
@@ -247,6 +265,14 @@ export default function MapPageComponent() {
     useEffect(() => {
         localStorage.setItem('map_historical_period', historicalPeriod);
     }, [historicalPeriod]);
+
+    useEffect(() => {
+        localStorage.setItem('map_show_voievodstvo_centers', String(showVoievodstvoCenters));
+    }, [showVoievodstvoCenters]);
+
+    useEffect(() => {
+        localStorage.setItem('map_show_starostvo_centers', String(showStarostvoCenters));
+    }, [showStarostvoCenters]);
 
     // Зберігаємо вибір користувача в localStorage
     useEffect(() => {
@@ -355,11 +381,11 @@ export default function MapPageComponent() {
                         )}
 
                         {/* Панель керування */}
-                        <div className="fixed bottom-4 right-4 md:right-4 left-4 md:left-auto z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 md:p-4">
-                            
-                            {/* Кнопка тогглер — тільки на мобільних */}
+                        <div className="fixed bottom-4 right-4 md:right-4 left-4 md:left-auto md:w-[320px] z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 md:p-4">
+
+                            {/* Заголовок з тогглером згортання */}
                             <button
-                                className="flex md:hidden items-center justify-between w-full"
+                                className="flex items-center justify-between w-full"
                                 onClick={() => setIsPanelOpen(!isPanelOpen)}
                                 aria-label="Відкрити/закрити панель керування картою"
                             >
@@ -375,148 +401,193 @@ export default function MapPageComponent() {
                                 </svg>
                             </button>
 
-                            {/* Вміст панелі — завжди видимий на десктопі, колапс на мобільних */}
-                            <div className={`${isPanelOpen ? 'mt-3' : 'hidden'} md:block`}>
-                                <div className="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700 flex flex-col items-center gap-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center justify-center w-8">
-                                            <span className="text-2xl leading-none" title="Теплова карта">🌡️</span>
-                                        </div>
+                            {isPanelOpen && (
+                                <div className="mt-3">
+                                    {/* Таби */}
+                                    <div className="flex border-b border-gray-200 dark:border-gray-700 mb-3">
                                         <button
-                                            onClick={() => setShowHeatMap(!showHeatMap)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                                showHeatMap ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                                            onClick={() => setActiveMapTab('regular')}
+                                            className={`flex-1 py-2 text-xs font-medium transition-colors border-b-2 -mb-px ${
+                                                activeMapTab === 'regular'
+                                                    ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                                             }`}
-                                            aria-label="Увімкнути/вимкнути теплову карту"
                                         >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                    showHeatMap ? 'translate-x-6' : 'translate-x-1'
-                                                }`}
-                                            />
+                                            Звичайна карта
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveMapTab('historical')}
+                                            className={`flex-1 py-2 text-xs font-medium transition-colors border-b-2 -mb-px ${
+                                                activeMapTab === 'historical'
+                                                    ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
+                                        >
+                                            Історична карта
                                         </button>
                                     </div>
 
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center justify-center w-8">
-                                            <span className="text-2xl leading-none" title="Кластеризація">🎯</span>
-                                        </div>
-                                        <button
-                                            onClick={() => setShowClusters(!showClusters)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                                showClusters ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-                                            }`}
-                                            aria-label="Увімкнути/вимкнути кластеризацію"
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                    showClusters ? 'translate-x-6' : 'translate-x-1'
-                                                }`}
-                                            />
-                                        </button>
-                                    </div>
+                                    {activeMapTab === 'regular' && (
+                                        <>
+                                            <div className="grid grid-cols-2 gap-y-3 gap-x-2 mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xl leading-none" title="Теплова карта">🌡️</span>
+                                                    <button
+                                                        onClick={() => setShowHeatMap(!showHeatMap)}
+                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                            showHeatMap ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                                                        }`}
+                                                        aria-label="Увімкнути/вимкнути теплову карту"
+                                                    >
+                                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                                showHeatMap ? 'translate-x-6' : 'translate-x-1'
+                                                            }`}
+                                                        />
+                                                    </button>
+                                                </div>
 
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center justify-center w-8">
-                                            <span className="text-2xl leading-none" title="Окремі позначки">📍</span>
-                                        </div>
-                                        <button
-                                            onClick={() => setShowIndividualMarkers(!showIndividualMarkers)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                                showIndividualMarkers ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-                                            }`}
-                                            aria-label="Увімкнути/вимкнути окремі позначки"
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                    showIndividualMarkers ? 'translate-x-6' : 'translate-x-1'
-                                                }`}
-                                            />
-                                        </button>
-                                    </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xl leading-none" title="Кластеризація">🎯</span>
+                                                    <button
+                                                        onClick={() => setShowClusters(!showClusters)}
+                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                            showClusters ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                                                        }`}
+                                                        aria-label="Увімкнути/вимкнути кластеризацію"
+                                                    >
+                                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                                showClusters ? 'translate-x-6' : 'translate-x-1'
+                                                            }`}
+                                                        />
+                                                    </button>
+                                                </div>
 
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center justify-center w-8">
-                                            <span className="text-2xl leading-none" title="Історична карта (воєводства)">🏰</span>
-                                        </div>
-                                        <button
-                                            onClick={() => setShowHistorical(!showHistorical)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                                showHistorical ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-                                            }`}
-                                            aria-label="Увімкнути/вимкнути історичну карту"
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                    showHistorical ? 'translate-x-6' : 'translate-x-1'
-                                                }`}
-                                            />
-                                        </button>
-                                    </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xl leading-none" title="Окремі позначки">📍</span>
+                                                    <button
+                                                        onClick={() => setShowIndividualMarkers(!showIndividualMarkers)}
+                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                            showIndividualMarkers ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                                                        }`}
+                                                        aria-label="Увімкнути/вимкнути окремі позначки"
+                                                    >
+                                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                                showIndividualMarkers ? 'translate-x-6' : 'translate-x-1'
+                                                            }`}
+                                                        />
+                                                    </button>
+                                                </div>
 
-                                    {showHistorical && (
-                                        <div className="flex items-center gap-2 ml-11">
-                                            <button
-                                                onClick={() => setHistoricalPeriod('1640')}
-                                                className={`px-3 py-1 text-xs rounded transition-colors ${
-                                                    historicalPeriod === '1640'
-                                                        ? 'bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900'
-                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                                                }`}
-                                            >
-                                                1640
-                                            </button>
-                                            <button
-                                                onClick={() => setHistoricalPeriod('1760')}
-                                                className={`px-3 py-1 text-xs rounded transition-colors ${
-                                                    historicalPeriod === '1760'
-                                                        ? 'bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900'
-                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                                                }`}
-                                            >
-                                                1760
-                                            </button>
-                                        </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xl leading-none" title="Кольорова схема (Синя / RGB)">🎨</span>
+                                                    <button
+                                                        onClick={() => setColorScheme(colorScheme === 'blue' ? 'rgb' : 'blue')}
+                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                            colorScheme === 'rgb'
+                                                                ? 'bg-gradient-to-r from-green-500 via-yellow-500 to-red-500'
+                                                                : 'bg-blue-600'
+                                                        }`}
+                                                        aria-label="Перемкнути кольорову схему"
+                                                    >
+                                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                                colorScheme === 'rgb' ? 'translate-x-6' : 'translate-x-1'
+                                                            }`}
+                                                        />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-row items-center gap-4">
+                                                <div className="flex items-center gap-2">
+                                                    <svg width="15" height="24" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                                                        <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" fill="#2563eb"/>
+                                                        <circle cx="12.5" cy="12.5" r="4" fill="white"/>
+                                                    </svg>
+                                                    <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">Населений пункт</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <svg width="15" height="24" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                                                        <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" fill="#dc2626"/>
+                                                        <circle cx="12.5" cy="12.5" r="4" fill="white"/>
+                                                    </svg>
+                                                    <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">Цілий регіон</span>
+                                                </div>
+                                            </div>
+                                        </>
                                     )}
 
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center justify-center w-8">
-                                            <span className="text-2xl leading-none" title="Кольорова схема (Синя / RGB)">🎨</span>
-                                        </div>
-                                        <button
-                                            onClick={() => setColorScheme(colorScheme === 'blue' ? 'rgb' : 'blue')}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                                colorScheme === 'rgb' 
-                                                    ? 'bg-gradient-to-r from-green-500 via-yellow-500 to-red-500' 
-                                                    : 'bg-blue-600'
-                                            }`}
-                                            aria-label="Перемкнути кольорову схему"
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                    colorScheme === 'rgb' ? 'translate-x-6' : 'translate-x-1'
-                                                }`}
-                                            />
-                                        </button>
-                                    </div>
-                                </div>
+                                    {activeMapTab === 'historical' && (
+                                        <div className="grid grid-cols-1 gap-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl leading-none" title="Історична карта (воєводства)">🏰</span>
+                                                <button
+                                                    onClick={() => setShowHistorical(!showHistorical)}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                        showHistorical ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                                                    }`}
+                                                    aria-label="Увімкнути/вимкнути історичну карту"
+                                                >
+                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                            showHistorical ? 'translate-x-6' : 'translate-x-1'
+                                                        }`}
+                                                    />
+                                                </button>
+                                                <span className="text-xs text-gray-700 dark:text-gray-300">
+                                                    Воєводства
+                                                </span>
+                                            </div>
 
-                                <div className="flex flex-col items-center gap-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-8 flex items-center justify-center flex-shrink-0">
-                                            <svg width="15" height="24" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" fill="#2563eb"/>
-                                                <circle cx="12.5" cy="12.5" r="4" fill="white"/>
-                                            </svg>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">Період:</span>
+                                                <button
+                                                    onClick={() => setHistoricalPeriod('1640')}
+                                                    disabled={!showHistorical}
+                                                    className={`px-3 py-1 text-xs rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                        historicalPeriod === '1640'
+                                                            ? 'bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900'
+                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                                                    }`}
+                                                >
+                                                    1640
+                                                </button>
+                                                <button
+                                                    onClick={() => setHistoricalPeriod('1760')}
+                                                    disabled={!showHistorical}
+                                                    className={`px-3 py-1 text-xs rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                        historicalPeriod === '1760'
+                                                            ? 'bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900'
+                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                                                    }`}
+                                                >
+                                                    1760
+                                                </button>
+                                            </div>
+
+                                            <label className={`flex items-center gap-2 text-xs ${!showHistorical ? 'opacity-50' : ''}`}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={showVoievodstvoCenters}
+                                                    disabled={!showHistorical}
+                                                    onChange={(e) => setShowVoievodstvoCenters(e.target.checked)}
+                                                    className="w-4 h-4 accent-blue-600 disabled:cursor-not-allowed"
+                                                />
+                                                <span className="text-gray-700 dark:text-gray-300">Показати центри воєводств</span>
+                                            </label>
+
+                                            <label className={`flex items-center gap-2 text-xs ${!showHistorical ? 'opacity-50' : ''}`}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={showStarostvoCenters}
+                                                    disabled={!showHistorical}
+                                                    onChange={(e) => setShowStarostvoCenters(e.target.checked)}
+                                                    className="w-4 h-4 accent-blue-600 disabled:cursor-not-allowed"
+                                                />
+                                                <span className="text-gray-700 dark:text-gray-300">Показати центри староств</span>
+                                            </label>
                                         </div>
-                                        <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">Населений пункт</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-8 flex items-center justify-center flex-shrink-0">
-                                            <svg width="15" height="24" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" fill="#dc2626"/>
-                                                <circle cx="12.5" cy="12.5" r="4" fill="white"/>
-                                            </svg>
-                                        </div>
-                                        <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">Цілий регіон</span>
-                                    </div>
+                                    )}
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         <ClientOnly>
@@ -541,6 +612,8 @@ export default function MapPageComponent() {
                                         <HistoricalOverlay
                                             periodId={historicalPeriod}
                                             onHover={setHoveredHistoricalRegion}
+                                            showVoievodstvoCenters={showVoievodstvoCenters}
+                                            showStarostvoCenters={showStarostvoCenters}
                                         />
                                     )}
 

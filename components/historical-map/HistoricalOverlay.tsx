@@ -21,9 +21,16 @@ function applyLabelOpacity(zoom: number) {
 interface Props {
   periodId: string;
   onHover?: (props: AreaFeatureProperties | null) => void;
+  showVoievodstvoCenters?: boolean;
+  showStarostvoCenters?: boolean;
 }
 
-export default function HistoricalOverlay({ periodId, onHover }: Props) {
+export default function HistoricalOverlay({
+  periodId,
+  onHover,
+  showVoievodstvoCenters = true,
+  showStarostvoCenters = true,
+}: Props) {
   const map = useMap();
   const isDark = useIsDark();
   const isDarkRef = useRef(isDark);
@@ -149,13 +156,13 @@ export default function HistoricalOverlay({ periodId, onHover }: Props) {
         },
       });
 
-    const citiesPrimary = buildCitiesLayer(filterPrimary);
-    const citiesSecondary = buildCitiesLayer(filterSecondary);
+    const citiesPrimary = showVoievodstvoCenters ? buildCitiesLayer(filterPrimary) : null;
+    const citiesSecondary = showStarostvoCenters ? buildCitiesLayer(filterSecondary) : null;
 
     layerGroup.addLayer(regionsLayer);
     layerGroup.addLayer(bordersLayer);
-    layerGroup.addLayer(citiesPrimary);
-    layerGroup.addLayer(citiesSecondary);
+    if (citiesPrimary) layerGroup.addLayer(citiesPrimary);
+    if (citiesSecondary) layerGroup.addLayer(citiesSecondary);
 
     regionsLayerRef.current = regionsLayer;
     bordersLayerRef.current = bordersLayer;
@@ -165,12 +172,12 @@ export default function HistoricalOverlay({ periodId, onHover }: Props) {
     return () => {
       layerGroup.removeLayer(regionsLayer);
       layerGroup.removeLayer(bordersLayer);
-      layerGroup.removeLayer(citiesPrimary);
-      layerGroup.removeLayer(citiesSecondary);
+      if (citiesPrimary) layerGroup.removeLayer(citiesPrimary);
+      if (citiesSecondary) layerGroup.removeLayer(citiesSecondary);
       regionsLayerRef.current = null;
       bordersLayerRef.current = null;
     };
-  }, [map, data, layerGroup, onHover]);
+  }, [map, data, layerGroup, onHover, showVoievodstvoCenters, showStarostvoCenters]);
 
   // Restyle on theme change
   useEffect(() => {

@@ -41,17 +41,6 @@ html.dark body {
 .level2-city-label { font-size: 12px; }
 .level3-city-label { font-size: 10px; }
 
-html.dark .level1-city-label,
-html.dark .level2-city-label,
-html.dark .level3-city-label {
-  color: #f1f5f9;
-  text-shadow:
-    -1px -1px 0 rgba(15, 23, 42, 0.9),
-     1px -1px 0 rgba(15, 23, 42, 0.9),
-    -1px  1px 0 rgba(15, 23, 42, 0.9),
-     1px  1px 0 rgba(15, 23, 42, 0.9);
-}
-
 .level1-city-label::before,
 .level2-city-label::before,
 .level3-city-label::before {

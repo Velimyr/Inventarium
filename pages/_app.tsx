@@ -6,6 +6,7 @@ import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
 import '../styles/marker-cluster.css'; 
 import { Analytics } from '@vercel/analytics/react';
 import Head from 'next/head';
+import Script from 'next/script';
 import { useEffect } from 'react';
 import { UserProvider } from '../contexts/UserContext';
 import { useRouter } from 'next/router';
@@ -48,6 +49,12 @@ export default function App({ Component, pageProps }: AppProps) {
         <Analytics />
       </UserProvider>
       <SpeedInsights/>
+      <Script
+        src="https://descriptor-strider-ai.vercel.app/widget.js"
+        data-partner-key="blkch_3400f0916fe2a601b8f24fb3e4171f343e78885943a842ff9a213ba07a40072a"
+        data-partner-id="inventarium"
+        strategy="afterInteractive"
+      />
     </>
   );
 }

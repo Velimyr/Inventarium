@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Святкові кульки 🎈
- * Літають по головній сторінці один раз на рік — 29 червня.
- * Кульки можна лопати кліком (десктоп) або дотиком (мобільні).
+ * Вільно літають по всьому екрану головної сторінки — один раз на рік, 29 червня.
+ * Кульку можна лопнути кліком (десктоп) або дотиком (мобільні).
  *
  * Для попереднього перегляду в будь-який день: додати ?balloons=1 до URL.
  */
@@ -27,173 +27,255 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-type BalloonParams = {
-  left: number; // vw
-  width: number; // px
+type Spec = {
   color: string;
-  duration: number; // s (підйом)
-  sway: number; // px амплітуда коливання
+  w: number; // ширина кульки, px
+  h: number; // повна висота вузла (з ниткою), px
 };
 
-function makeParams(): BalloonParams {
-  const width = rand(38, 64);
-  return {
-    left: rand(2, 92),
-    width,
-    color: pick(COLORS),
-    duration: rand(9, 17),
-    sway: rand(20, 55) * (Math.random() < 0.5 ? -1 : 1),
-  };
-}
-
-function Balloon() {
-  const [params, setParams] = useState<BalloonParams>(makeParams);
-  const [cycle, setCycle] = useState(0);
-  const [popped, setPopped] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Невелика випадкова затримка старту, щоб кульки не злітали одночасно
-  const startDelay = useRef(rand(0, 8)).current;
-
-  const respawn = useCallback(() => {
-    setParams(makeParams());
-    setPopped(false);
-    setCycle((c) => c + 1);
-  }, []);
-
-  const handlePop = useCallback(
-    (e: React.PointerEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (popped) return;
-      setPopped(true);
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(respawn, 480);
-    },
-    [popped, respawn]
-  );
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  const height = params.width * 1.22;
-
-  return (
-    <div
-      key={cycle}
-      className="balloon-rise"
-      style={
-        {
-          left: `${params.left}vw`,
-          animationDuration: `${params.duration}s`,
-          animationDelay: cycle === 0 ? `${startDelay}s` : '0s',
-          animationPlayState: popped ? 'paused' : 'running',
-          ['--sway' as string]: `${params.sway}px`,
-        } as React.CSSProperties
-      }
-      onAnimationEnd={(e) => {
-        // Підйом анімується на самому елементі (target === currentTarget);
-        // pop/burst — на дочірніх вузлах, тож їх ігноруємо.
-        if (e.target === e.currentTarget && !popped) respawn();
-      }}
-    >
-      <button
-        type="button"
-        aria-label="Лопнути кульку"
-        className={`balloon-hit${popped ? ' is-popped' : ''}`}
-        onPointerDown={handlePop}
-        style={{ width: params.width, height: height + 26 }}
-      >
-        <svg
-          width={params.width}
-          height={height + 26}
-          viewBox={`0 0 ${params.width} ${height + 26}`}
-          className="balloon-svg"
-          aria-hidden="true"
-        >
-          {/* нитка */}
-          <path
-            d={`M ${params.width / 2} ${height} q 6 10 -2 16 q -8 6 0 ${10}`}
-            stroke={params.color}
-            strokeWidth={1.2}
-            fill="none"
-            opacity={0.6}
-          />
-          {/* тіло кульки */}
-          <ellipse
-            cx={params.width / 2}
-            cy={height / 2}
-            rx={params.width / 2 - 2}
-            ry={height / 2 - 2}
-            fill={params.color}
-          />
-          {/* вузлик */}
-          <path
-            d={`M ${params.width / 2 - 4} ${height - 3} L ${params.width / 2 + 4} ${height - 3} L ${params.width / 2} ${height + 4} Z`}
-            fill={params.color}
-          />
-          {/* відблиск */}
-          <ellipse
-            cx={params.width / 2 - params.width * 0.16}
-            cy={height / 2 - height * 0.18}
-            rx={params.width * 0.12}
-            ry={height * 0.16}
-            fill="#ffffff"
-            opacity={0.45}
-          />
-        </svg>
-
-        {/* частинки при лусканні */}
-        {popped && (
-          <span className="burst" aria-hidden="true">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <span
-                key={i}
-                className="burst-piece"
-                style={
-                  {
-                    background: params.color,
-                    ['--angle' as string]: `${i * 45}deg`,
-                  } as React.CSSProperties
-                }
-              />
-            ))}
-          </span>
-        )}
-      </button>
-    </div>
-  );
-}
+type Physics = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  phase: number; // фаза похитування
+  wobble: number; // амплітуда похитування
+  popped: boolean;
+};
 
 export default function Balloons() {
-  const [show, setShow] = useState(false);
-  const [count, setCount] = useState(0);
+  const [specs, setSpecs] = useState<Spec[] | null>(null);
 
+  const physicsRef = useRef<Physics[]>([]);
+  const nodesRef = useRef<(HTMLButtonElement | null)[]>([]);
+  const rafRef = useRef<number | null>(null);
+  const timersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+
+  // Гейтинг: показуємо лише 29 червня або за ?balloons=1
   useEffect(() => {
     const now = new Date();
-    const isBalloonDay = now.getMonth() === 5 && now.getDate() === 29; // 29 червня
+    const isBalloonDay = now.getMonth() === 5 && now.getDate() === 29;
     const forced =
       typeof window !== 'undefined' &&
       new URLSearchParams(window.location.search).has('balloons');
 
     if (!isBalloonDay && !forced) return;
 
-    // Менше кульок на вузьких екранах
     const isMobile = window.innerWidth < 640;
-    setCount(isMobile ? 9 : 16);
-    setShow(true);
+    const count = isMobile ? 10 : 18;
+
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+
+    const newSpecs: Spec[] = [];
+    const phys: Physics[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const w = rand(36, 62);
+      const h = w * 1.22 + 26;
+      newSpecs.push({ color: pick(COLORS), w, h });
+
+      const speed = rand(0.35, 0.9);
+      const angle = rand(0, Math.PI * 2);
+      phys.push({
+        x: rand(0, Math.max(0, W - w)),
+        y: rand(0, Math.max(0, H - h)),
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        phase: rand(0, Math.PI * 2),
+        wobble: rand(0.3, 0.9),
+        popped: false,
+      });
+    }
+
+    physicsRef.current = phys;
+    nodesRef.current = new Array(count).fill(null);
+    setSpecs(newSpecs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!show) return null;
+  // Цикл анімації
+  useEffect(() => {
+    if (!specs) return;
+
+    let W = window.innerWidth;
+    let H = window.innerHeight;
+    const onResize = () => {
+      W = window.innerWidth;
+      H = window.innerHeight;
+    };
+    window.addEventListener('resize', onResize);
+
+    let last = performance.now();
+
+    const tick = (t: number) => {
+      // нормалізуємо до ~60fps, щоб швидкість не залежала від частоти кадрів
+      const dt = Math.min(3, (t - last) / 16.67);
+      last = t;
+
+      const phys = physicsRef.current;
+      for (let i = 0; i < phys.length; i++) {
+        const p = phys[i];
+        const node = nodesRef.current[i];
+        if (!node) continue;
+        if (p.popped) continue; // лопнута — стоїть на місці поки грає ефект
+
+        const spec = specs[i];
+        p.phase += 0.02 * dt;
+
+        p.x += p.vx * dt;
+        p.y += (p.vy + Math.sin(p.phase) * 0.12) * dt;
+
+        const maxX = Math.max(0, W - spec.w);
+        const maxY = Math.max(0, H - spec.h);
+
+        if (p.x <= 0) {
+          p.x = 0;
+          p.vx = Math.abs(p.vx);
+        } else if (p.x >= maxX) {
+          p.x = maxX;
+          p.vx = -Math.abs(p.vx);
+        }
+        if (p.y <= 0) {
+          p.y = 0;
+          p.vy = Math.abs(p.vy);
+        } else if (p.y >= maxY) {
+          p.y = maxY;
+          p.vy = -Math.abs(p.vy);
+        }
+
+        const tilt = Math.sin(p.phase) * 6 * p.wobble + p.vx * 4;
+        node.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) rotate(${tilt}deg)`;
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+
+    const timers = timersRef.current;
+    return () => {
+      window.removeEventListener('resize', onResize);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      timers.forEach((id) => clearTimeout(id));
+      timers.clear();
+    };
+  }, [specs]);
+
+  const pop = (i: number, e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const p = physicsRef.current[i];
+    const node = nodesRef.current[i];
+    if (!p || !node || p.popped) return;
+
+    p.popped = true;
+    node.classList.add('is-popped');
+
+    const id = setTimeout(() => {
+      // Відроджуємо кульку в новій випадковій точці
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      const spec = specs![i];
+      const speed = rand(0.35, 0.9);
+      const angle = rand(0, Math.PI * 2);
+
+      p.x = rand(0, Math.max(0, W - spec.w));
+      p.y = Math.max(0, H - spec.h); // з'являється знизу
+      p.vx = Math.cos(angle) * speed;
+      p.vy = -Math.abs(Math.sin(angle) * speed); // спершу вгору
+      p.popped = false;
+
+      node.classList.remove('is-popped');
+      node.style.transform = `translate3d(${p.x}px, ${p.y}px, 0)`;
+      timersRef.current.delete(i);
+    }, 460);
+
+    timersRef.current.set(i, id);
+  };
+
+  if (!specs) return null;
 
   return (
     <div className="balloons-overlay" aria-hidden="true">
-      {Array.from({ length: count }).map((_, i) => (
-        <Balloon key={i} />
-      ))}
+      {specs.map((spec, i) => {
+        const p = physicsRef.current[i];
+        const bodyH = spec.h - 26;
+        return (
+          <button
+            key={i}
+            type="button"
+            aria-label="Лопнути кульку"
+            className="balloon-hit"
+            ref={(el) => {
+              nodesRef.current[i] = el;
+            }}
+            onPointerDown={(e) => pop(i, e)}
+            style={{
+              width: spec.w,
+              height: spec.h,
+              transform: p
+                ? `translate3d(${p.x}px, ${p.y}px, 0)`
+                : undefined,
+            }}
+          >
+            <svg
+              width={spec.w}
+              height={spec.h}
+              viewBox={`0 0 ${spec.w} ${spec.h}`}
+              className="balloon-svg"
+              aria-hidden="true"
+            >
+              {/* нитка */}
+              <path
+                d={`M ${spec.w / 2} ${bodyH} q 6 10 -2 16 q -8 6 0 10`}
+                stroke={spec.color}
+                strokeWidth={1.2}
+                fill="none"
+                opacity={0.6}
+              />
+              {/* тіло */}
+              <ellipse
+                cx={spec.w / 2}
+                cy={bodyH / 2}
+                rx={spec.w / 2 - 2}
+                ry={bodyH / 2 - 2}
+                fill={spec.color}
+              />
+              {/* вузлик */}
+              <path
+                d={`M ${spec.w / 2 - 4} ${bodyH - 3} L ${spec.w / 2 + 4} ${bodyH - 3} L ${spec.w / 2} ${bodyH + 4} Z`}
+                fill={spec.color}
+              />
+              {/* відблиск */}
+              <ellipse
+                cx={spec.w / 2 - spec.w * 0.16}
+                cy={bodyH / 2 - bodyH * 0.18}
+                rx={spec.w * 0.12}
+                ry={bodyH * 0.16}
+                fill="#ffffff"
+                opacity={0.45}
+              />
+            </svg>
+
+            {/* частинки при лусканні */}
+            <span className="burst" aria-hidden="true">
+              {Array.from({ length: 8 }).map((_, k) => (
+                <span
+                  key={k}
+                  className="burst-piece"
+                  style={
+                    {
+                      background: spec.color,
+                      ['--angle' as string]: `${k * 45}deg`,
+                    } as React.CSSProperties
+                  }
+                />
+              ))}
+            </span>
+          </button>
+        );
+      })}
 
       <style jsx>{`
         .balloons-overlay {
@@ -203,71 +285,54 @@ export default function Balloons() {
           pointer-events: none;
           z-index: 60;
         }
-        .balloon-rise {
-          position: absolute;
-          bottom: -180px;
-          will-change: transform;
-          animation-name: balloonRise;
-          animation-timing-function: linear;
-          animation-iteration-count: 1;
-          animation-fill-mode: forwards;
-        }
         .balloon-hit {
+          position: absolute;
+          top: 0;
+          left: 0;
           pointer-events: auto;
           cursor: pointer;
           background: none;
           border: none;
           padding: 0;
-          position: relative;
           display: block;
+          will-change: transform;
           touch-action: manipulation;
           -webkit-tap-highlight-color: transparent;
-          transform-origin: center;
         }
         .balloon-svg {
           display: block;
           filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.18));
-          transition: transform 0.15s ease;
+          transition: transform 0.12s ease;
+          transform-origin: center;
         }
         .balloon-hit:hover .balloon-svg {
-          transform: scale(1.05);
+          transform: scale(1.06);
         }
         .balloon-hit.is-popped .balloon-svg {
-          animation: balloonPop 0.25s ease-out forwards;
+          animation: balloonPop 0.26s ease-out forwards;
         }
         .burst {
           position: absolute;
           inset: 0;
           display: block;
+          opacity: 0;
+        }
+        .balloon-hit.is-popped .burst {
+          opacity: 1;
         }
         .burst-piece {
           position: absolute;
-          top: 38%;
+          top: 36%;
           left: 50%;
           width: 7px;
           height: 7px;
+          margin: -3.5px 0 0 -3.5px;
           border-radius: 50%;
           transform: rotate(var(--angle)) translateY(0);
-          animation: burstFly 0.45s ease-out forwards;
+          opacity: 0;
         }
-        @keyframes balloonRise {
-          0% {
-            transform: translateY(0) translateX(0) rotate(-2deg);
-          }
-          25% {
-            transform: translateY(-25vh) translateX(var(--sway)) rotate(2deg);
-          }
-          50% {
-            transform: translateY(-50vh) translateX(calc(var(--sway) * -1))
-              rotate(-2deg);
-          }
-          75% {
-            transform: translateY(-75vh) translateX(var(--sway)) rotate(2deg);
-          }
-          100% {
-            transform: translateY(calc(-100vh - 220px)) translateX(0)
-              rotate(0deg);
-          }
+        .balloon-hit.is-popped .burst-piece {
+          animation: burstFly 0.45s ease-out forwards;
         }
         @keyframes balloonPop {
           0% {
@@ -289,13 +354,8 @@ export default function Balloons() {
             opacity: 1;
           }
           100% {
-            transform: rotate(var(--angle)) translateY(-34px);
+            transform: rotate(var(--angle)) translateY(-36px);
             opacity: 0;
-          }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .balloon-rise {
-            animation-duration: 22s !important;
           }
         }
       `}</style>

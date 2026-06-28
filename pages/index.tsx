@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { useEffect, useState } from 'react';
 import FooterDonate from '../components/FooterDonate';
+import Balloons from '../components/Balloons';
 import { useUser } from '../contexts/UserContext';
 import { Search, Map, FileText, Plus } from "lucide-react";
 import { isAdminUser } from '../lib/adminUsers';
@@ -93,7 +94,8 @@ export default function Home() {
   return (
     <>
       <Header />
-      
+      <Balloons />
+
       {/* Hero Section */}
       <div className="bg-white dark:bg-[#111827] pb-[120px] md:pb-[50px] lg:pb-[70px]">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[30px] lg:py-[50px]">

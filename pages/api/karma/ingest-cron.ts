@@ -78,6 +78,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (err) {
     // Мережеві помилки/таймаути не повинні «вбивати» задачу — логуємо й виходимо.
     console.error('[karma ingest] failed:', err);
-    return res.status(500).json({ ok: false, error: 'ingest_failed' });
+    return res.status(500).json({
+      ok: false,
+      error: 'ingest_failed',
+      detail: err instanceof Error ? err.message : String(err),
+    });
   }
 }

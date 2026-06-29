@@ -1,0 +1,24 @@
+name: Karma nightly ingest
+
+# Нічна відправка накопичених балів у «Карму» Генеалогічного навігатора.
+# Смикає публічний ендпоінт /api/karma/ingest-cron на проді,
+# захищений заголовком Authorization: Bearer <CRON_SECRET>.
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # щодня о 02:00 UTC
+  workflow_dispatch: {}     # ручний запуск з вкладки Actions
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Karma ingest
+        run: |
+          code=$(curl -sS -o /tmp/body -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.KARMA_INGEST_URL }}")
+          echo "HTTP $code"
+          cat /tmp/body
+          echo
+          test "$code" = "200"

@@ -24,7 +24,7 @@
 | Змінна | Призначення |
 | --- | --- |
 | `KARMA_TOKEN` | Bearer-токен для API «Карми». Видає адмін Навігатора. **Серверний секрет — без префікса `NEXT_PUBLIC_`, не зберігати в коді.** |
-| `CRON_SECRET` | Секрет для захисту нічного cron-ендпоінта. Vercel Cron надсилає його як `Authorization: Bearer <CRON_SECRET>`. |
+| `CRON_SECRET` | Секрет для захисту нічного cron-ендпоінта. Планувальник (GitHub Actions) надсилає його як `Authorization: Bearer <CRON_SECRET>`. Те саме значення кладеться в GitHub Secrets. |
 
 Додайте їх у Project Settings → Environment Variables на Vercel і локально у `.env.local`
 (приклад — у `.env.local.example`).
@@ -41,8 +41,13 @@
 
 ### Нічна синхронізація балів
 
-- Заплановано через **Vercel Cron** (`vercel.json`): щодня о 02:00 UTC викликається
-  `GET /api/karma/ingest-cron`.
+- Заплановано через **GitHub Actions** (`.github/workflows/karma-ingest.yml`):
+  щодня о 02:00 UTC (cron GitHub Actions — best-effort, можлива затримка на кілька хвилин)
+  workflow робить `GET` на `/api/karma/ingest-cron` з заголовком
+  `Authorization: Bearer <CRON_SECRET>`. Є й ручний запуск (`workflow_dispatch`).
+- Потрібні **GitHub Secrets** (Settings → Secrets and variables → Actions):
+  - `KARMA_INGEST_URL` = `https://<домен>/api/karma/ingest-cron`
+  - `CRON_SECRET` = те саме значення, що у середовищі сайту.
 - Ендпоінт збирає всіх користувачів з email та їхній поточний сумарний бал,
   формує `accounts = [{ login, total }]` і відправляє пачками по ~500 у
   `POST https://www.uagenealogy.com/api/karma/ingest`.

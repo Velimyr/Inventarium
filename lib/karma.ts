@@ -140,27 +140,36 @@ export interface KarmaIngestResult {
 
 /**
  * POST /api/karma/ingest — масова відправка накопичених балів.
- * Розбиває акаунти на пачки по ~500 і підсумовує відповіді.
+ * Розбиває акаунти на пачки і підсумовує відповіді. Менший батч = швидший
+ * запит, що надійно вкладається в таймаут.
  */
 export async function karmaIngest(
   accounts: KarmaAccount[],
-  batchSize = 500
+  batchSize = 100
 ): Promise<KarmaIngestResult> {
   const result: KarmaIngestResult = { synced: 0, awarded: 0, unknown: [] };
 
   for (let i = 0; i < accounts.length; i += batchSize) {
     const batch = accounts.slice(i, i + batchSize);
-    const res = await fetchWithTimeout(`${KARMA_BASE_URL}/api/karma/ingest`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${getKarmaToken()}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ accounts: batch }),
-    });
+    const batchInfo = `batch ${i / batchSize + 1} (${batch.length} accounts, total ${accounts.length})`;
+
+    let res: Response;
+    try {
+      res = await fetchWithTimeout(`${KARMA_BASE_URL}/api/karma/ingest`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${getKarmaToken()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ accounts: batch }),
+      });
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      throw new Error(`Karma ingest ${batchInfo} failed: ${reason}`);
+    }
 
     if (!res.ok) {
-      throw new Error(`Karma ingest failed: HTTP ${res.status}`);
+      throw new Error(`Karma ingest ${batchInfo} failed: HTTP ${res.status}`);
     }
 
     const json = await res.json().catch(() => ({}));

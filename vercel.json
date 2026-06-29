@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/karma/ingest-cron",
-      "schedule": "0 2 * * *"
-    }
-  ]
-}

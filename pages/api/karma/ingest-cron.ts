@@ -8,8 +8,14 @@ import {
 } from '../../../lib/karma';
 
 // Нічна відправка накопичених балів у «Карму».
-// Запускається планувальником Vercel Cron (див. vercel.json) раз на добу.
+// Запускається планувальником (GitHub Actions) раз на добу.
 // Захищено секретом CRON_SECRET, щоб ендпоінт не міг смикнути будь-хто.
+
+// Дозволяємо функції працювати довше за дефолт, щоб встигли і читання БД,
+// і запит(и) до «Карми» (таймаут на сам запит — 45 с у lib/karma.ts).
+export const config = {
+  maxDuration: 60,
+};
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -9,7 +9,7 @@ export const KARMA_BASE_URL = 'https://www.uagenealogy.com';
 // Та сама логіка, що й у Першому марафоні: підтверджені + неперевірені записи.
 const CONTRIBUTION_TABLES = ['records', 'records_unverified'] as const;
 
-const REQUEST_TIMEOUT_MS = 15000;
+const REQUEST_TIMEOUT_MS = 45000;
 
 /** Повертає токен «Карми» з оточення або кидає помилку, якщо він не заданий. */
 export function getKarmaToken(): string {

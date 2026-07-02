@@ -25,6 +25,7 @@
 | --- | --- |
 | `KARMA_TOKEN` | Bearer-токен для API «Карми». Видає адмін Навігатора. **Серверний секрет — без префікса `NEXT_PUBLIC_`, не зберігати в коді.** |
 | `CRON_SECRET` | Секрет для захисту нічного cron-ендпоінта. Планувальник (GitHub Actions) надсилає його як `Authorization: Bearer <CRON_SECRET>`. Те саме значення кладеться в GitHub Secrets. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key Supabase. Використовує **лише** нічний cron-маршрут для виклику SQL-функції `karma_user_totals()`. **Серверний секрет — без префікса `NEXT_PUBLIC_`.** |
 
 Додайте їх у Project Settings → Environment Variables на Vercel і локально у `.env.local`
 (приклад — у `.env.local.example`).
@@ -48,6 +49,8 @@
 - Потрібні **GitHub Secrets** (Settings → Secrets and variables → Actions):
   - `KARMA_INGEST_URL` = `https://<домен>/api/karma/ingest-cron`
   - `CRON_SECRET` = те саме значення, що у середовищі сайту.
+- **Потрібен один раз виконати SQL** `sql/karma_user_totals.sql` у Supabase → SQL Editor
+  (створює функцію `karma_user_totals()`, яка рахує підсумки в БД).
 - Ендпоінт збирає всіх користувачів з email та їхній поточний сумарний бал,
   формує `accounts = [{ login, total }]` і відправляє пачками по ~500 у
   `POST https://www.uagenealogy.com/api/karma/ingest`.

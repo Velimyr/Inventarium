@@ -55,37 +55,24 @@ export async function getUserTotal(
 }
 
 /**
- * Сумарні бали ВСІХ користувачів (для нічної синхронізації).
- * Повертає мапу user_id -> total. Підрахунок у JS, як і на марафонних сторінках.
+ * Акаунти ВСІХ користувачів із балами (для нічної синхронізації).
+ * Підрахунок робить сама БД через SQL-функцію karma_user_totals()
+ * (див. sql/karma_user_totals.sql) — це на порядки швидше, ніж тягнути
+ * всі рядки в застосунок. Повертає одразу [{ login, total }] для тих,
+ * у кого total > 0 (нульові нічого не змінюють на боці «Карми»).
  */
-export async function getAllUserTotals(
+export async function getKarmaAccounts(
   supabase: SupabaseClient
-): Promise<Record<string, number>> {
-  const totals: Record<string, number> = {};
-  const pageSize = 1000;
+): Promise<KarmaAccount[]> {
+  const { data, error } = await supabase.rpc('karma_user_totals');
+  if (error) throw error;
 
-  for (const table of CONTRIBUTION_TABLES) {
-    let from = 0;
-    // Посторінкове читання, щоб обійти дефолтний ліміт Supabase у 1000 рядків.
-    for (;;) {
-      const { data, error } = await supabase
-        .from(table)
-        .select('created_by')
-        .range(from, from + pageSize - 1);
-      if (error) throw error;
-      if (!data || data.length === 0) break;
-
-      for (const row of data) {
-        const uid = (row as { created_by: string | null }).created_by;
-        if (uid) totals[uid] = (totals[uid] ?? 0) + 1;
-      }
-
-      if (data.length < pageSize) break;
-      from += pageSize;
-    }
-  }
-
-  return totals;
+  return (data ?? [])
+    .filter((row: { login: string | null; total: number | null }) => row.login)
+    .map((row: { login: string; total: number | null }) => ({
+      login: toKarmaLogin(row.login),
+      total: Number(row.total ?? 0),
+    }));
 }
 
 export interface KarmaLinkResult {

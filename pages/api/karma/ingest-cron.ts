@@ -11,11 +11,11 @@ export const config = {
   maxDuration: 60,
 };
 
-// Service role key: підрахунок балів робить SQL-функція karma_user_totals()
-// (SECURITY DEFINER), доступна лише service_role — тому anon-ключ тут не годиться.
+// Підрахунок балів робить SQL-функція karma_user_totals() у самій БД,
+// тож звичайного anon-ключа (як усюди в проєкті) достатньо.
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

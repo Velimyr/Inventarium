@@ -34,8 +34,7 @@ as $$
     and t.total > 0;      -- нульові бали нічого не змінюють на боці «Карми»
 $$;
 
--- Функцію викликає лише серверний cron-маршрут через service role key.
--- Забираємо доступ у публічних ролей, щоб через anon-ключ не можна було
--- витягнути email-и всіх користувачів.
-revoke all on function public.karma_user_totals() from public, anon, authenticated;
-grant execute on function public.karma_user_totals() to service_role;
+-- Функцію викликає серверний cron-маршрут через звичайний anon-ключ
+-- (той самий, що й решта застосунку), тож дозволяємо виконання anon-ролі.
+-- SECURITY DEFINER гарантує коректний підрахунок незалежно від RLS.
+grant execute on function public.karma_user_totals() to anon, authenticated, service_role;

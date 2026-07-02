@@ -25,7 +25,6 @@
 | --- | --- |
 | `KARMA_TOKEN` | Bearer-токен для API «Карми». Видає адмін Навігатора. **Серверний секрет — без префікса `NEXT_PUBLIC_`, не зберігати в коді.** |
 | `CRON_SECRET` | Секрет для захисту нічного cron-ендпоінта. Планувальник (GitHub Actions) надсилає його як `Authorization: Bearer <CRON_SECRET>`. Те саме значення кладеться в GitHub Secrets. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key Supabase. Використовує **лише** нічний cron-маршрут для виклику SQL-функції `karma_user_totals()`. **Серверний секрет — без префікса `NEXT_PUBLIC_`.** |
 
 Додайте їх у Project Settings → Environment Variables на Vercel і локально у `.env.local`
 (приклад — у `.env.local.example`).

@@ -1,29 +1,17 @@
 // components/MapPageComponent.tsx
-import { useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
-import { useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
-import ClientOnly from '../components/clientonly';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
 import GeocoderControl from './GeocoderControl';
 import HistoricalInfoCard from './historical-map/HistoricalInfoCard';
 import type { AreaFeatureProperties } from './historical-map/types';
-
-// Динамічний імпорт react-leaflet компонентів
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
-const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
-
-// Динамічний імпорт для кластеризації - тільки коли потрібно
-const MarkerClusterGroup = dynamic(
-    () => import('react-leaflet-cluster'),
-    { ssr: false }
-);
 
 // Історична карта (опційний шар)
 const HistoricalOverlay = dynamic(
@@ -52,15 +40,18 @@ const CACHE_KEY = 'map_records_cache';
 const CACHE_TIMESTAMP_KEY = 'map_records_cache_timestamp';
 const CACHE_DURATION = 1000 * 60 * 30; // 30 хвилин
 
+// Для позначок потрібен мінімум полів — адміністративні дані довантажуються при кліку
+const RECORD_FIELDS = 'id, latitude, longitude, mark_type, current_settlement_name';
+
 interface Record {
     id: string;
     latitude: number | null;
     longitude: number | null;
     mark_type: number | null;
     current_settlement_name: string | null;
-    current_region: string | null;
-    current_district: string | null;
-    current_community: string | null;
+    current_region?: string | null;
+    current_district?: string | null;
+    current_community?: string | null;
 }
 
 // Функція для фільтрації записів за zoom-рівнем
@@ -90,6 +81,32 @@ function ZoomTracker({ onZoomChange }: { onZoomChange: (zoom: number) => void })
 
     return null;
 }
+
+// Позначки без вкладених попапів: один спільний попап рендериться окремо,
+// тому React не створює тисячі піддерев наперед
+const RecordMarkers = memo(function RecordMarkers({
+    records,
+    onSelect,
+}: {
+    records: Record[];
+    onSelect: (record: Record) => void;
+}) {
+    return (
+        <>
+            {records.map((record) => {
+                if (!record.latitude || !record.longitude) return null;
+                return (
+                    <Marker
+                        key={record.id}
+                        position={[record.latitude, record.longitude]}
+                        icon={record.mark_type === 0 ? redIcon : blueIcon}
+                        eventHandlers={{ click: () => onSelect(record) }}
+                    />
+                );
+            })}
+        </>
+    );
+});
 
 // Компонент для динамічного керування heat map
 function HeatMapLayer({ records, colorScheme }: { records: Record[]; colorScheme: 'blue' | 'rgb' }) {
@@ -193,8 +210,8 @@ function HeatMapLayer({ records, colorScheme }: { records: Record[]; colorScheme
 export default function MapPageComponent() {
     const [allRecords, setAllRecords] = useState<Record[]>([]);
     const [visibleRecords, setVisibleRecords] = useState<Record[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [loadingStage, setLoadingStage] = useState<'initial' | 'regions' | 'all'>('initial');
+    const [selectedRecord, setSelectedRecord] = useState<Record | null>(null);
     const [currentZoom, setCurrentZoom] = useState(7);
     const [isPanelOpen, setIsPanelOpen] = useState(() => {
         if (typeof window === 'undefined') return false;
@@ -308,56 +325,127 @@ export default function MapPageComponent() {
         }
     }, [colorScheme]);
 
-    // 🚀 ОПТИМІЗОВАНЕ ЗАВАНТАЖЕННЯ ДАНИХ З КЕШУВАННЯМ
+    // 🚀 Завантаження даних: кеш → миттєвий рендер, свіжі дані підтягуються у фоні
     useEffect(() => {
+        let cancelled = false;
+        let gotAll = false;
+
+        const applyAll = (data: Record[]) => {
+            gotAll = true;
+            setAllRecords(data);
+            setVisibleRecords(data);
+            setLoadingStage('all');
+        };
+
         const fetchData = async () => {
-            setIsLoading(true);
-            setLoadingStage('initial');
+            // 1) Кеш (stale-while-revalidate): показуємо одразу, оновлюємо у фоні
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                const cachedAt = Number(localStorage.getItem(CACHE_TIMESTAMP_KEY));
+                if (cached && cachedAt && Date.now() - cachedAt < CACHE_DURATION) {
+                    const parsed: Record[] = JSON.parse(cached);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        console.log('⚡ Позначки з кешу:', parsed.length);
+                        applyAll(parsed);
+                    }
+                }
+            } catch (e) {
+                console.warn('Кеш карти пошкоджено, ігноруємо:', e);
+            }
 
             try {
-                localStorage.removeItem(CACHE_KEY);
-                localStorage.removeItem(CACHE_TIMESTAMP_KEY);
-
-                console.log('📍 Завантаження регіонів...');
-                setLoadingStage('regions');
-                
-                const { data: regionsData, error: regionsError } = await supabase
-                    .from('records')
-                    .select('id, latitude, longitude, mark_type, current_settlement_name, current_region, current_district, current_community')
-                    .eq('mark_type', 0)
-                    .not('latitude', 'is', null)
-                    .not('longitude', 'is', null);
-
-                if (regionsError) {
-                    console.error('Помилка завантаження регіонів:', regionsError);
-                } else {
-                    console.log('✅ Регіони завантажено:', regionsData?.length || 0);
-                    setVisibleRecords(regionsData || []);
-                    setIsLoading(false);
+                // 2) Без кешу: паралельно швидкий запит регіонів (перший кадр)
+                //    і повний датасет
+                if (!gotAll) {
+                    setLoadingStage('regions');
+                    supabase
+                        .from('records')
+                        .select(RECORD_FIELDS)
+                        .eq('mark_type', 0)
+                        .not('latitude', 'is', null)
+                        .not('longitude', 'is', null)
+                        .then(({ data: regionsData, error: regionsError }) => {
+                            if (cancelled || gotAll) return;
+                            if (regionsError) {
+                                console.error('Помилка завантаження регіонів:', regionsError);
+                                return;
+                            }
+                            console.log('✅ Регіони завантажено:', regionsData?.length || 0);
+                            setVisibleRecords(regionsData || []);
+                        });
                 }
 
-                console.log('📦 Завантаження всіх даних...');
-                const { data: allData, error: allError } = await supabase.rpc('get_unique_settlement_records');
+                const { data: allRpcData, error: allError } = await supabase
+                    .rpc('get_unique_settlement_records')
+                    .select(RECORD_FIELDS);
+                const allData = (Array.isArray(allRpcData) ? allRpcData : []) as Record[];
+
+                if (cancelled) return;
 
                 if (allError) {
                     console.error('Помилка завантаження всіх даних:', allError);
+                    setLoadingStage('all'); // ховаємо бейдж, щоб не крутився вічно
                 } else {
-                    console.log('✅ Всі дані завантажено:', allData?.length || 0);
-                    
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(allData));
-                    localStorage.setItem(CACHE_TIMESTAMP_KEY, String(Date.now()));
+                    console.log('✅ Всі дані завантажено:', allData.length);
 
-                    setAllRecords(allData || []);
-                    setVisibleRecords(filterRecordsByZoom(allData || [], currentZoom));
-                    setLoadingStage('all');
+                    try {
+                        localStorage.setItem(CACHE_KEY, JSON.stringify(allData));
+                        localStorage.setItem(CACHE_TIMESTAMP_KEY, String(Date.now()));
+                    } catch (e) {
+                        console.warn('Не вдалося записати кеш карти:', e);
+                    }
+
+                    applyAll(allData);
                 }
             } catch (error) {
                 console.error('Критична помилка завантаження:', error);
-                setIsLoading(false);
+                if (!cancelled) setLoadingStage('all');
             }
         };
 
         fetchData();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const handleSelectRecord = useCallback((record: Record) => {
+        setSelectedRecord(record);
+    }, []);
+
+    // Адміністративні поля не входять у початковий датасет —
+    // довантажуємо їх лише коли користувач переходить на сторінку поселення
+    const openSettlementPage = useCallback(async (record: Record) => {
+        // Вкладку відкриваємо синхронно, щоб її не заблокував popup-blocker
+        const win = window.open('about:blank', '_blank');
+        if (win) win.opener = null;
+
+        let details: Record = record;
+        if (!record.current_region && !record.current_district && !record.current_community) {
+            const { data, error } = await supabase
+                .from('records')
+                .select('current_region, current_district, current_community, current_settlement_name')
+                .eq('id', record.id)
+                .maybeSingle();
+            if (error) {
+                console.error('Помилка довантаження деталей запису:', error);
+            }
+            if (data) details = { ...record, ...data };
+        }
+
+        const params = new URLSearchParams();
+        if (details.current_region) params.set('current_region', details.current_region);
+        if (details.current_district) params.set('current_district', details.current_district);
+        if (details.current_community) params.set('current_community', details.current_community);
+        if (details.current_settlement_name) params.set('current_settlement_name', details.current_settlement_name);
+        const url = `/settlement?${params.toString()}`;
+
+        if (win) {
+            win.location.href = url;
+        } else {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
     }, []);
 
     // Фільтруємо записи при зміні zoom
@@ -372,24 +460,14 @@ export default function MapPageComponent() {
         <>
             <Header />
             <div style={{ height: 'calc(100vh - 80px)', width: '100%', position: 'relative' }}>
-                {isLoading ? (
-                    <div className="absolute z-[1001] top-0 left-0 w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                        <div className="flex flex-col items-center gap-4">
-                            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                                {loadingStage === 'initial' && 'Ініціалізація карти...'}
-                                {loadingStage === 'regions' && 'Завантаження регіонів...'}
-                            </span>
+                {/* Карта рендериться одразу; стан завантаження — ненав'язливий бейдж */}
+                <>
+                    {loadingStage !== 'all' && (
+                        <div className="fixed top-20 right-4 z-[1001] bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-sm">Завантаження позначок...</span>
                         </div>
-                    </div>
-                ) : (
-                    <>
-                        {loadingStage === 'regions' && (
-                            <div className="fixed top-20 right-4 z-[1001] bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                <span className="text-sm">Завантаження деталей...</span>
-                            </div>
-                        )}
+                    )}
 
                         {/* Панель керування */}
                         <div className="fixed bottom-4 right-4 md:right-4 left-4 md:left-auto md:w-[320px] z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 md:p-4">
@@ -612,10 +690,8 @@ export default function MapPageComponent() {
                             )}
                         </div>
 
-                        <ClientOnly>
-                        {typeof window !== 'undefined' && (
                             <div style={{ height: '100%', width: '100%' }}>
-                                <MapContainer 
+                                <MapContainer
                                     center={center} 
                                     zoom={7} 
                                     style={{ height: '100%', width: '100%' }} 
@@ -672,90 +748,44 @@ export default function MapPageComponent() {
                                                 });
                                             }}
                                         >
-                                            {visibleRecords.map((record) => {
-                                                if (!record.latitude || !record.longitude) return null;
-                                                const position: [number, number] = [record.latitude, record.longitude];
-                                                const isRegion = record.mark_type === 0;
-
-                                                return (
-                                                    <Marker 
-                                                        key={record.id} 
-                                                        position={position} 
-                                                        icon={isRegion ? redIcon : blueIcon}
-                                                    >
-                                                        <Popup className="custom-popup">
-                                                            <div className="dark:text-gray-900">
-                                                                <strong>{record.current_settlement_name || 'Невідома назва'}</strong>
-                                                                <br />
-                                                                <button
-                                                                    className="text-blue-600 underline mt-2 hover:text-blue-800"
-                                                                    onClick={(e) => {
-                                                                        e.preventDefault();
-
-                                                                        const params = new URLSearchParams();
-                                                                        if (record.current_region) params.set('current_region', record.current_region);
-                                                                        if (record.current_district) params.set('current_district', record.current_district);
-                                                                        if (record.current_community) params.set('current_community', record.current_community);
-                                                                        if (record.current_settlement_name) params.set('current_settlement_name', record.current_settlement_name);
-
-                                                                        const url = `/settlement?${params.toString()}`;
-                                                                        window.open(url, '_blank', 'noopener,noreferrer');
-                                                                    }}
-                                                                >
-                                                                    Переглянути всі записи населеного пункту
-                                                                </button>
-                                                            </div>
-                                                        </Popup>
-                                                    </Marker>
-                                                );
-                                            })}
+                                            <RecordMarkers records={visibleRecords} onSelect={handleSelectRecord} />
                                         </MarkerClusterGroup>
                                     ) : showIndividualMarkers ? (
-                                        visibleRecords.map((record) => {
-                                            if (!record.latitude || !record.longitude) return null;
-                                            const position: [number, number] = [record.latitude, record.longitude];
-                                            const isRegion = record.mark_type === 0;
-
-                                            return (
-                                                <Marker 
-                                                    key={record.id} 
-                                                    position={position} 
-                                                    icon={isRegion ? redIcon : blueIcon}
-                                                >
-                                                    <Popup className="custom-popup">
-                                                        <div className="dark:text-gray-900">
-                                                            <strong>{record.current_settlement_name || 'Невідома назва'}</strong>
-                                                            <br />
-                                                            <button
-                                                                className="text-blue-600 underline mt-2 hover:text-blue-800"
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-
-                                                                    const params = new URLSearchParams();
-                                                                    if (record.current_region) params.set('current_region', record.current_region);
-                                                                    if (record.current_district) params.set('current_district', record.current_district);
-                                                                    if (record.current_community) params.set('current_community', record.current_community);
-                                                                    if (record.current_settlement_name) params.set('current_settlement_name', record.current_settlement_name);
-
-                                                                    const url = `/settlement?${params.toString()}`;
-                                                                    window.open(url, '_blank', 'noopener,noreferrer');
-                                                                }}
-                                                            >
-                                                                Переглянути всі записи населеного пункту
-                                                            </button>
-                                                        </div>
-                                                    </Popup>
-                                                </Marker>
-                                            );
-                                        })
+                                        <RecordMarkers records={visibleRecords} onSelect={handleSelectRecord} />
                                     ) : null}
+
+                                    {/* Один спільний попап замість попапа в кожному маркері */}
+                                    {selectedRecord && selectedRecord.latitude && selectedRecord.longitude && (
+                                        <Popup
+                                            key={selectedRecord.id}
+                                            position={[selectedRecord.latitude, selectedRecord.longitude]}
+                                            className="custom-popup"
+                                            eventHandlers={{
+                                                remove: () => {
+                                                    const closedId = selectedRecord.id;
+                                                    setSelectedRecord(prev => (prev && prev.id === closedId ? null : prev));
+                                                },
+                                            }}
+                                        >
+                                            <div className="dark:text-gray-900">
+                                                <strong>{selectedRecord.current_settlement_name || 'Невідома назва'}</strong>
+                                                <br />
+                                                <button
+                                                    className="text-blue-600 underline mt-2 hover:text-blue-800"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        openSettlementPage(selectedRecord);
+                                                    }}
+                                                >
+                                                    Переглянути всі записи населеного пункту
+                                                </button>
+                                            </div>
+                                        </Popup>
+                                    )}
                                 </MapContainer>
                                 {showHistorical && <HistoricalInfoCard region={hoveredHistoricalRegion} />}
                             </div>
-                        )}
-                    </ClientOnly>
-                    </>
-                )}
+                </>
             </div>
         </>
     );

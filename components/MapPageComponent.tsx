@@ -19,6 +19,12 @@ const HistoricalOverlay = dynamic(
     { ssr: false }
 );
 
+// Полігони-«ключі» (опційний шар) — код і дані вантажаться лише при увімкненому тоглі
+const KeysOverlay = dynamic(
+    () => import('./keys/KeysOverlay'),
+    { ssr: false }
+);
+
 const blueIcon = L.icon({
     iconUrl: '/icons/marker-blue.svg',
     iconSize: [25, 41],
@@ -278,6 +284,12 @@ export default function MapPageComponent() {
         }
         return true;
     });
+    const [showKeys, setShowKeys] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('map_show_keys') === 'true';
+        }
+        return false;
+    });
     const [hoveredHistoricalRegion, setHoveredHistoricalRegion] = useState<AreaFeatureProperties | null>(null);
     const [activeMapTab, setActiveMapTab] = useState<'regular' | 'historical'>('regular');
     const router = useRouter();
@@ -301,6 +313,10 @@ export default function MapPageComponent() {
     useEffect(() => {
         localStorage.setItem('map_show_starostvo_centers', String(showStarostvoCenters));
     }, [showStarostvoCenters]);
+
+    useEffect(() => {
+        localStorage.setItem('map_show_keys', String(showKeys));
+    }, [showKeys]);
 
     // Зберігаємо вибір користувача в localStorage
     useEffect(() => {
@@ -684,6 +700,32 @@ export default function MapPageComponent() {
                                                 />
                                                 <span className="text-gray-700 dark:text-gray-300">Показати центри староств</span>
                                             </label>
+
+                                            <div className="flex items-center gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                                <span className="text-xl leading-none" title="Ключі (комплекси маєтків)">🗝️</span>
+                                                <button
+                                                    onClick={() => setShowKeys(!showKeys)}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                        showKeys ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                                                    }`}
+                                                    aria-label="Увімкнути/вимкнути показ ключів"
+                                                >
+                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                            showKeys ? 'translate-x-6' : 'translate-x-1'
+                                                        }`}
+                                                    />
+                                                </button>
+                                                <span className="text-xs text-gray-700 dark:text-gray-300">
+                                                    Показувати ключі
+                                                </span>
+                                            </div>
+
+                                            <button
+                                                onClick={() => window.open('/add_key', '_blank', 'noopener,noreferrer')}
+                                                className="flex items-center justify-center gap-2 w-full h-[34px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-medium transition-colors"
+                                            >
+                                                🗝️ Додати ключ
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -715,6 +757,8 @@ export default function MapPageComponent() {
                                             showStarostvoCenters={showStarostvoCenters}
                                         />
                                     )}
+
+                                    {showKeys && <KeysOverlay />}
 
                                     {showHeatMap && <HeatMapLayer records={visibleRecords} colorScheme={colorScheme} />}
                                     

@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { useUser } from '../contexts/UserContext';
 import { isAdminUser } from '../lib/adminUsers';
-import { BarChart3, FileText, Bell, Edit, Search, Send, ArrowRight, CheckCheck } from 'lucide-react';
+import { BarChart3, FileText, Bell, Edit, Search, Send, ArrowRight, CheckCheck, KeyRound } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { user, loading: userLoading } = useUser();
@@ -12,6 +12,7 @@ export default function AdminDashboard() {
   const [editCount, setEditCount] = useState<number | null>(null);
   const [identifiedCount, setIdentifiedCount] = useState<number | null>(null);
   const [pendingSubscriptions, setPendingSubscriptions] = useState<number | null>(null);
+  const [pendingKeys, setPendingKeys] = useState<number | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,11 +58,17 @@ export default function AdminDashboard() {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'review');
 
+      const { count: keysCount } = await supabase
+        .from('map_keys')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'new');
+
       setApprovedCount(approved ?? 0);
       setUnverifiedCount(unverified ?? 0);
       setPendingSubscriptions(subscriptionCount ?? 0);
       setEditCount(editCount ?? 0);
       setIdentifiedCount(identifiedCount ?? 0);
+      setPendingKeys(keysCount ?? 0);
       setLoading(false);
     };
 
@@ -247,6 +254,31 @@ export default function AdminDashboard() {
                 type="button"
               >
                 <span className="text-[14px] lg:text-[16px] font-medium">Почати обробку інвентарів</span>
+                <ArrowRight className="w-5 h-5" strokeWidth={2} />
+              </button>
+            </section>
+
+            {/* Ключі на перевірку */}
+            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
+              <div>
+                <div className="flex items-center gap-[10px] mb-[15px]">
+                  <KeyRound className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                  <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                    Ключі на перевірку
+                  </h2>
+                </div>
+                <p className="text-gray-900 dark:text-white text-[32px] lg:text-[40px] font-bold">
+                  {pendingKeys ?? '—'}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  window.location.href = '/admin_keys';
+                }}
+                className="flex items-center justify-center gap-[8px] w-full h-[40px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded transition-colors mt-[15px]"
+                type="button"
+              >
+                <span className="text-[14px] lg:text-[16px] font-medium">Почати обробку ключів</span>
                 <ArrowRight className="w-5 h-5" strokeWidth={2} />
               </button>
             </section>

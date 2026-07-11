@@ -11,6 +11,9 @@ export const MESSAGE_TYPES = {
     NEW: 'new',
     NEW_EDIT: 'new_edit',
     NEW_IDENTIFIED: 'new_identified',
+    KEY_NEW: 'key_new',
+    KEY_APPROVED: 'key_approved',
+    KEY_REJECTED: 'key_rejected',
     OTHER: 'other',
 } as const;
 
@@ -38,6 +41,12 @@ export function getMessageTypeLabel(type: MessageType | string): string {
             return 'Новий редагування інвентарю додано'
         case MESSAGE_TYPES.NEW_IDENTIFIED:
             return 'Новий інвентар ідентифіковано'
+        case MESSAGE_TYPES.KEY_NEW:
+            return 'Новий ключ додано'
+        case MESSAGE_TYPES.KEY_APPROVED:
+            return 'Ваш ключ підтверджено'
+        case MESSAGE_TYPES.KEY_REJECTED:
+            return 'Ваш ключ відхилено'
         case MESSAGE_TYPES.OTHER:
             return 'Загальне повідомлення'
         default:

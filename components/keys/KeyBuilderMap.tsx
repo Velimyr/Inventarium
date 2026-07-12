@@ -122,7 +122,7 @@ export default function KeyBuilderMap({ value, onChange, variant = DEFAULT_POLYG
 
     // Живе прев'ю контуру обраного варіанта; Вороний потребує довідника (flat)
     const contour: PolygonRings | null = useMemo(() => {
-        if (!center || points.length < 3) return null;
+        if (!center || points.length < 2) return null;
         const sites = [toPair(center), ...points.map(toPair)];
         if (variant === 'hull') return [convexHull(sites)];
         if (variant === 'buffer') return [bufferedHull(sites)];
@@ -200,7 +200,7 @@ export default function KeyBuilderMap({ value, onChange, variant = DEFAULT_POLYG
                         ? 'Завантаження довідника населених пунктів...'
                         : !center
                             ? 'Перший клік на карті — центр ключа (червона позначка).'
-                            : `Кліки додають населені пункти ключа (додано: ${points.length}, потрібно щонайменше 3). Клік по позначці видаляє її, центр можна перетягнути.`}
+                            : `Кліки додають населені пункти ключа (додано: ${points.length}, потрібно щонайменше 2). Клік по позначці видаляє її, центр можна перетягнути.`}
                 </p>
                 {(center || points.length > 0) && (
                     <button

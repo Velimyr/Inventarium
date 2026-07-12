@@ -165,8 +165,8 @@ export default function AdminKeysPage() {
             setToast({ message: 'Вкажіть назву ключа', type: 'error' });
             return;
         }
-        if (!editGeometry.center || editGeometry.points.length < 3) {
-            setToast({ message: 'Ключ має мати центр і щонайменше 3 населені пункти', type: 'error' });
+        if (!editGeometry.center || editGeometry.points.length < 2) {
+            setToast({ message: 'Ключ має мати центр і щонайменше 2 населені пункти', type: 'error' });
             return;
         }
         const allPoints = [editGeometry.center, ...editGeometry.points];

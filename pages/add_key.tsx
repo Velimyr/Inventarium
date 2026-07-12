@@ -44,7 +44,7 @@ export default function AddKeyPage() {
         if (!formData.name.trim()) return 'Вкажіть назву ключа';
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) return 'Вкажіть коректний email';
         if (!geometry.center) return 'Поставте центральну точку ключа на карті';
-        if (geometry.points.length < 3) return 'Додайте щонайменше 3 населені пункти ключа';
+        if (geometry.points.length < 2) return 'Додайте щонайменше 2 населені пункти ключа';
 
         const allPoints = [geometry.center, ...geometry.points];
         if (allPoints.some(p => !p.code)) {

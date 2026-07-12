@@ -13,9 +13,10 @@ create table public.map_keys (
   -- Центр ключа: {lat, lng, region, district, community, code, name, type}
   -- (координати + прив'язка до населеного пункту з довідника region_structure.json)
   center        jsonb not null check (jsonb_typeof(center) = 'object'),
-  -- Населені пункти ключа: масив таких самих об'єктів, мінімум 3
+  -- Населені пункти ключа: масив таких самих об'єктів, мінімум 2
+  -- (контур будується з центру + пунктів, тож 2 пункти вже дають трикутник)
   points        jsonb not null
-                check (jsonb_typeof(points) = 'array' and jsonb_array_length(points) >= 3),
+                check (jsonb_typeof(points) = 'array' and jsonb_array_length(points) >= 2),
   status        text not null default 'new' check (status in ('new', 'approved', 'rejected')),
   reject_reason text,
   -- Варіант побудови контуру (обирає користувач при поданні, адмін може змінити):
@@ -92,4 +93,9 @@ create policy "map_keys_delete_admin" on public.map_keys
 --
 -- Якщо колонки вже додані зі старим default 'hull':
 -- alter table public.map_keys alter column polygon_variant set default 'buffer';
+--
+-- Зниження мінімуму населених пунктів з 3 до 2 (для вже створеної таблиці):
+-- alter table public.map_keys drop constraint map_keys_points_check;
+-- alter table public.map_keys add constraint map_keys_points_check
+--   check (jsonb_typeof(points) = 'array' and jsonb_array_length(points) >= 2);
 -- ─────────────────────────────────────────────────────────────────────────────

@@ -145,7 +145,7 @@ export default function KeysOverlay() {
     useEffect(() => {
         if (!map || !keys) return;
 
-        const validKeys = keys.filter(k => k.center && Array.isArray(k.points) && k.points.length >= 3);
+        const validKeys = keys.filter(k => k.center && Array.isArray(k.points) && k.points.length >= 2);
 
         // Контур, обраний при підтвердженні; для старих записів — опукла оболонка
         const storedRings = (key: MapKeyRow): PolygonRings =>

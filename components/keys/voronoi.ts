@@ -1,61 +1,34 @@
-import { Delaunay } from 'd3-delaunay';
+import { Delaunay, Voronoi } from 'd3-delaunay';
 import type { LatLngPair, PolygonRings } from './geometry';
 
 const KM_PER_DEG_LAT = 110.57;
 const KM_PER_DEG_LNG = 111.32;
 
-/**
- * Територія ключа за діаграмою Вороного: землі, ближчі до сіл ключа,
- * ніж до сусідніх сіл з довідника.
- *
- * Будуємо діаграму для сайтів ключа + сусідів у рамці навколо ключа,
- * беремо клітинки сайтів ключа і об'єднуємо: спільні внутрішні ребра
- * взаємно знищуються, з решти зшиваються кільця контуру
- * (може вийти кілька кілець, якщо чуже село розриває територію).
- */
-export function voronoiTerritory(
-    keySites: LatLngPair[],
-    neighbors: { lat: number; lon: number }[],
-): PolygonRings {
-    const lat0 = keySites.reduce((sum, p) => sum + p[0], 0) / keySites.length;
+function makeProjection(referencePoints: LatLngPair[]) {
+    const lat0 = referencePoints.reduce((sum, p) => sum + p[0], 0) / referencePoints.length;
     const cosLat = Math.cos((lat0 * Math.PI) / 180);
-    const toXY = (lat: number, lng: number): [number, number] =>
-        [lng * cosLat * KM_PER_DEG_LNG, lat * KM_PER_DEG_LAT];
-    const toLatLng = (x: number, y: number): LatLngPair =>
-        [y / KM_PER_DEG_LAT, x / (cosLat * KM_PER_DEG_LNG)];
+    return {
+        toXY: (lat: number, lng: number): [number, number] =>
+            [lng * cosLat * KM_PER_DEG_LNG, lat * KM_PER_DEG_LAT],
+        toLatLng: (x: number, y: number): LatLngPair =>
+            [y / KM_PER_DEG_LAT, x / (cosLat * KM_PER_DEG_LNG)],
+    };
+}
 
-    const keyXY = keySites.map(p => toXY(p[0], p[1]));
-
-    // Рамка: розмах ключа + запас, щоб крайні клітинки обрізались сусідами, а не рамкою
-    const xs = keyXY.map(p => p[0]);
-    const ys = keyXY.map(p => p[1]);
-    const spread = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
-    const margin = Math.max(15, spread);
-    const minX = Math.min(...xs) - margin;
-    const maxX = Math.max(...xs) + margin;
-    const minY = Math.min(...ys) - margin;
-    const maxY = Math.max(...ys) + margin;
-
-    const coordKey = (x: number, y: number) => x.toFixed(4) + '|' + y.toFixed(4);
-    const usedCoords = new Set(keyXY.map(p => coordKey(p[0], p[1])));
-    const sites: [number, number][] = [...keyXY];
-
-    for (const n of neighbors) {
-        const [x, y] = toXY(n.lat, n.lon);
-        if (x < minX || x > maxX || y < minY || y > maxY) continue;
-        const k = coordKey(x, y);
-        if (usedCoords.has(k)) continue;
-        usedCoords.add(k);
-        sites.push([x, y]);
-    }
-
-    const voronoi = Delaunay.from(sites).voronoi([minX, minY, maxX, maxY]);
-
-    // Ребра клітинок ключа; спільні між двома клітинками ключа — внутрішні, викидаємо
+/**
+ * Об'єднання клітинок Вороного для сайтів із переліку indices:
+ * спільні внутрішні ребра взаємно знищуються, з решти зшиваються
+ * кільця контуру (може вийти кілька кілець).
+ */
+function stitchCellsUnion(
+    voronoi: Voronoi<Delaunay.Point>,
+    indices: number[],
+    toLatLng: (x: number, y: number) => LatLngPair,
+): PolygonRings {
     const edgeKey = (p: number[]) => p[0].toFixed(5) + ',' + p[1].toFixed(5);
     const edges = new Map<string, { from: number[]; to: number[] }>();
 
-    for (let i = 0; i < keySites.length; i++) {
+    for (const i of indices) {
         const cell = voronoi.cellPolygon(i);
         if (!cell) continue;
         for (let j = 0; j < cell.length - 1; j++) {
@@ -73,7 +46,6 @@ export function voronoiTerritory(
         }
     }
 
-    // Зшиваємо ребра, що лишились, у кільця
     const byStart = new Map<string, { from: number[]; to: number[] }[]>();
     for (const edge of edges.values()) {
         const k = edgeKey(edge.from);
@@ -106,4 +78,73 @@ export function voronoiTerritory(
     }
 
     return rings;
+}
+
+/**
+ * Територія ключа за діаграмою Вороного: землі, ближчі до сіл ключа,
+ * ніж до сусідніх сіл з довідника.
+ */
+export function voronoiTerritory(
+    keySites: LatLngPair[],
+    neighbors: { lat: number; lon: number }[],
+): PolygonRings {
+    const { toXY, toLatLng } = makeProjection(keySites);
+    const keyXY = keySites.map(p => toXY(p[0], p[1]));
+
+    // Рамка: розмах ключа + запас, щоб крайні клітинки обрізались сусідами, а не рамкою
+    const xs = keyXY.map(p => p[0]);
+    const ys = keyXY.map(p => p[1]);
+    const spread = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+    const margin = Math.max(15, spread);
+    const bounds: [number, number, number, number] =
+        [Math.min(...xs) - margin, Math.min(...ys) - margin, Math.max(...xs) + margin, Math.max(...ys) + margin];
+
+    const coordKey = (x: number, y: number) => x.toFixed(4) + '|' + y.toFixed(4);
+    const usedCoords = new Set(keyXY.map(p => coordKey(p[0], p[1])));
+    const sites: [number, number][] = [...keyXY];
+
+    for (const n of neighbors) {
+        const [x, y] = toXY(n.lat, n.lon);
+        if (x < bounds[0] || x > bounds[2] || y < bounds[1] || y > bounds[3]) continue;
+        const k = coordKey(x, y);
+        if (usedCoords.has(k)) continue;
+        usedCoords.add(k);
+        sites.push([x, y]);
+    }
+
+    const voronoi = Delaunay.from(sites).voronoi(bounds);
+    return stitchCellsUnion(voronoi, keySites.map((_, i) => i), toLatLng);
+}
+
+/**
+ * Розмежування СУСІДНІХ КЛЮЧІВ між собою: одна спільна діаграма Вороного
+ * з сіл усіх ключів. Для кожного ключа повертається об'єднання клітинок
+ * його сіл — «зона переваги», якою потім обрізається збережений контур.
+ * Там, де ключі не конфліктують, зона переваги повністю накриває контур
+ * і обрізання нічого не змінює.
+ */
+export function voronoiKeyClips(keySiteGroups: LatLngPair[][]): PolygonRings[] {
+    const allSites = keySiteGroups.flat();
+    if (allSites.length === 0) return keySiteGroups.map(() => []);
+
+    const { toXY, toLatLng } = makeProjection(allSites);
+    const allXY = allSites.map(p => toXY(p[0], p[1]));
+
+    const xs = allXY.map(p => p[0]);
+    const ys = allXY.map(p => p[1]);
+    // Великий запас: зона переваги ізольованого ключа має накривати його контур із буфером
+    const margin = 100;
+    const bounds: [number, number, number, number] =
+        [Math.min(...xs) - margin, Math.min(...ys) - margin, Math.max(...xs) + margin, Math.max(...ys) + margin];
+
+    const voronoi = Delaunay.from(allXY).voronoi(bounds);
+
+    const clips: PolygonRings[] = [];
+    let offset = 0;
+    for (const group of keySiteGroups) {
+        const indices = group.map((_, i) => offset + i);
+        offset += group.length;
+        clips.push(stitchCellsUnion(voronoi, indices, toLatLng));
+    }
+    return clips;
 }

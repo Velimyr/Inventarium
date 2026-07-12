@@ -1,14 +1,36 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
+import polygonClipping from 'polygon-clipping';
+import type { MultiPolygon, Polygon } from 'polygon-clipping';
 import { supabase } from '../../lib/supabaseClient';
 import { useIsDark } from '../historical-map/useIsDark';
 import { convexHull, toPair } from './geometry';
-import type { MapKeyRow, PolygonRings } from './geometry';
+import type { LatLngPair, MapKeyRow, PolygonRings } from './geometry';
+import { voronoiKeyClips } from './voronoi';
 
-const KEY_STYLE = { color: '#7C3AED', weight: 2, fillColor: '#7C3AED', fillOpacity: 0.15 };
-const KEY_STYLE_DARK = { color: '#A78BFA', weight: 2, fillColor: '#A78BFA', fillOpacity: 0.2 };
+// Палітра ключів: колір закріплюється за ключем детерміновано (за id),
+// щоб сусідні території було видно як різні
+const KEY_PALETTE = [
+    { light: '#7C3AED', dark: '#A78BFA' },
+    { light: '#0D9488', dark: '#5EEAD4' },
+    { light: '#D97706', dark: '#FBBF24' },
+    { light: '#DB2777', dark: '#F9A8D4' },
+    { light: '#2563EB', dark: '#93C5FD' },
+    { light: '#65A30D', dark: '#BEF264' },
+    { light: '#DC2626', dark: '#FCA5A5' },
+    { light: '#0891B2', dark: '#67E8F9' },
+];
+
+const FILL_OPACITY = 0.15;
+const FILL_OPACITY_DARK = 0.2;
 const HOVER_FILL_OPACITY = 0.35;
+
+function paletteIndex(id: string): number {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+    return hash % KEY_PALETTE.length;
+}
 
 // Вміст popup/tooltip — користувацькі дані, тому будуємо DOM-елементи
 // через textContent (ніякої інтерполяції HTML)
@@ -42,6 +64,24 @@ function buildTooltipEl(name: string): HTMLElement {
     return el;
 }
 
+// PolygonRings ([lat,lng]) → MultiPolygon ([x=lng, y=lat]) для polygon-clipping
+function ringsToMulti(rings: PolygonRings): MultiPolygon {
+    return rings.map(ring => [ring.map(([lat, lng]) => [lng, lat] as [number, number])]);
+}
+
+// MultiPolygon → вкладені координати для L.polygon (з дірками)
+function multiToLatLngs(multi: MultiPolygon): LatLngPair[][][] {
+    return multi.map((polygon: Polygon) =>
+        polygon.map(ring => ring.map(([x, y]) => [y, x] as LatLngPair))
+    );
+}
+
+interface KeyLayerEntry {
+    layer: L.Path;
+    colorIdx: number;
+    isRadial: boolean;
+}
+
 // Шар підтверджених «ключів» на головній карті
 export default function KeysOverlay() {
     const map = useMap();
@@ -51,11 +91,9 @@ export default function KeysOverlay() {
 
     const [keys, setKeys] = useState<MapKeyRow[] | null>(null);
     const layerGroup = useMemo(() => L.layerGroup(), []);
-    const polygonsRef = useRef<L.Polygon[]>([]);
-    const radialsRef = useRef<L.Polyline[]>([]);
+    const entriesRef = useRef<KeyLayerEntry[]>([]);
 
-    // Pane між полігонами адмінподілу (450, інтерактивні) та кордонами (550, без подій):
-    // кліки по ключах працюють навіть при увімкненій історичній карті
+    // Pane між полігонами адмінподілу (450, інтерактивні) та кордонами (550, без подій)
     useEffect(() => {
         if (!map) return;
 
@@ -95,59 +133,92 @@ export default function KeysOverlay() {
     useEffect(() => {
         if (!map || !keys) return;
 
-        const style = isDarkRef.current ? KEY_STYLE_DARK : KEY_STYLE;
-        const polygons: L.Polygon[] = [];
-        const radials: L.Polyline[] = [];
+        const validKeys = keys.filter(k => k.center && Array.isArray(k.points) && k.points.length >= 3);
 
-        for (const key of keys) {
-            if (!key.center || !Array.isArray(key.points) || key.points.length < 3) continue;
+        // Контур, обраний при підтвердженні; для старих записів — опукла оболонка
+        const storedRings = (key: MapKeyRow): PolygonRings =>
+            key.polygon && key.polygon.length > 0
+                ? key.polygon
+                : [convexHull([toPair(key.center), ...key.points.map(toPair)])];
+
+        // Розмежування сусідніх ключів: спільна діаграма Вороного з сіл усіх ключів;
+        // контур кожного обрізається «зоною переваги» його сіл. Для ключів без
+        // конфліктів обрізання тотожне. При збої — показуємо необрізані контури.
+        let displayMultis: MultiPolygon[];
+        try {
+            const clips = voronoiKeyClips(validKeys.map(k => [toPair(k.center), ...k.points.map(toPair)]));
+            displayMultis = validKeys.map((key, i) => {
+                const stored = ringsToMulti(storedRings(key));
+                if (!clips[i] || clips[i].length === 0) return stored;
+                const clipped = polygonClipping.intersection(stored, ringsToMulti(clips[i]));
+                return clipped.length > 0 ? clipped : stored;
+            });
+        } catch (err) {
+            console.error('Не вдалося розмежувати ключі, показуємо без обрізання:', err);
+            displayMultis = validKeys.map(key => ringsToMulti(storedRings(key)));
+        }
+
+        const entries: KeyLayerEntry[] = [];
+
+        validKeys.forEach((key, i) => {
+            const colorIdx = paletteIndex(key.id);
+            const color = KEY_PALETTE[colorIdx][isDarkRef.current ? 'dark' : 'light'];
             const center = toPair(key.center);
 
+            // Радіальні лінії — тонкі й напівпрозорі, щоб не створювати «павутиння»
             for (const point of key.points) {
-                radials.push(
-                    L.polyline([center, toPair(point)], {
-                        pane: 'keysPane',
-                        color: style.color,
-                        weight: 1,
-                        dashArray: '4 4',
-                        interactive: false,
-                    })
-                );
+                const radial = L.polyline([center, toPair(point)], {
+                    pane: 'keysPane',
+                    color,
+                    weight: 0.8,
+                    opacity: 0.5,
+                    dashArray: '4 4',
+                    interactive: false,
+                });
+                entries.push({ layer: radial, colorIdx, isRadial: true });
             }
 
-            // Контур, обраний адміном при підтвердженні; для старих записів — опукла оболонка
-            const rings: PolygonRings = key.polygon && key.polygon.length > 0
-                ? key.polygon
-                : [convexHull([center, ...key.points.map(toPair)])];
-            const polygon = L.polygon(rings.map(ring => [ring]), { pane: 'keysPane', ...style });
+            const polygon = L.polygon(multiToLatLngs(displayMultis[i]), {
+                pane: 'keysPane',
+                color,
+                weight: 2,
+                fillColor: color,
+                fillOpacity: isDarkRef.current ? FILL_OPACITY_DARK : FILL_OPACITY,
+            });
             polygon.bindTooltip(buildTooltipEl(key.name), { sticky: true });
             polygon.bindPopup(buildPopupEl(key));
             polygon.on('mouseover', () => polygon.setStyle({ fillOpacity: HOVER_FILL_OPACITY }));
             polygon.on('mouseout', () =>
-                polygon.setStyle({
-                    fillOpacity: (isDarkRef.current ? KEY_STYLE_DARK : KEY_STYLE).fillOpacity,
-                })
+                polygon.setStyle({ fillOpacity: isDarkRef.current ? FILL_OPACITY_DARK : FILL_OPACITY })
             );
-            polygons.push(polygon);
-        }
+            entries.push({ layer: polygon, colorIdx, isRadial: false });
+        });
 
-        radials.forEach((r) => layerGroup.addLayer(r));
-        polygons.forEach((p) => layerGroup.addLayer(p));
-        polygonsRef.current = polygons;
-        radialsRef.current = radials;
+        // Радіалі під полігонами, полігони зверху (порядок додавання)
+        entries.filter(e => e.isRadial).forEach(e => layerGroup.addLayer(e.layer));
+        entries.filter(e => !e.isRadial).forEach(e => layerGroup.addLayer(e.layer));
+        entriesRef.current = entries;
 
         return () => {
             layerGroup.clearLayers();
-            polygonsRef.current = [];
-            radialsRef.current = [];
+            entriesRef.current = [];
         };
     }, [map, keys, layerGroup]);
 
     // Рестайл при зміні теми
     useEffect(() => {
-        const style = isDark ? KEY_STYLE_DARK : KEY_STYLE;
-        polygonsRef.current.forEach((p) => p.setStyle(style));
-        radialsRef.current.forEach((r) => r.setStyle({ color: style.color }));
+        for (const entry of entriesRef.current) {
+            const color = KEY_PALETTE[entry.colorIdx][isDark ? 'dark' : 'light'];
+            if (entry.isRadial) {
+                entry.layer.setStyle({ color });
+            } else {
+                entry.layer.setStyle({
+                    color,
+                    fillColor: color,
+                    fillOpacity: isDark ? FILL_OPACITY_DARK : FILL_OPACITY,
+                });
+            }
+        }
     }, [isDark]);
 
     return null;

@@ -11,6 +11,9 @@ interface Props {
     points: LatLngPair[];
     // Готовий контур (обраний варіант); якщо не передано — опукла оболонка
     rings?: PolygonRings;
+    // Висота контейнера (tailwind-клас) і чи можна рухати/зумити карту
+    heightClass?: string;
+    interactive?: boolean;
 }
 
 function FitBounds({ center, points, rings }: Props) {
@@ -24,25 +27,25 @@ function FitBounds({ center, points, rings }: Props) {
     return null;
 }
 
-// Read-only мінікарта з фігурою ключа (для адмін-модерації)
-export default function KeyShapePreview({ center, points, rings }: Props) {
+// Карта з фігурою ключа (адмін-модерація, сторінка деталей)
+export default function KeyShapePreview({ center, points, rings, heightClass = 'h-[220px]', interactive = false }: Props) {
     const contour: PolygonRings = rings && rings.length > 0
         ? rings
         : [convexHull([center, ...points])];
 
     return (
-        <div className="h-[220px] w-full rounded-lg overflow-hidden border border-gray-300 dark:border-[#374151]">
+        <div className={`${heightClass} w-full rounded-lg overflow-hidden border border-gray-300 dark:border-[#374151]`}>
             <MapContainer
                 center={center}
                 zoom={9}
                 style={{ height: '100%', width: '100%' }}
-                dragging={false}
-                scrollWheelZoom={false}
-                doubleClickZoom={false}
-                touchZoom={false}
-                boxZoom={false}
-                keyboard={false}
-                zoomControl={false}
+                dragging={interactive}
+                scrollWheelZoom={interactive}
+                doubleClickZoom={interactive}
+                touchZoom={interactive}
+                boxZoom={interactive}
+                keyboard={interactive}
+                zoomControl={interactive}
             >
                 <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

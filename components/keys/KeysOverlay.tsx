@@ -22,9 +22,10 @@ const KEY_PALETTE = [
     { light: '#0891B2', dark: '#67E8F9' },
 ];
 
-const FILL_OPACITY = 0.15;
-const FILL_OPACITY_DARK = 0.2;
-const HOVER_FILL_OPACITY = 0.35;
+const FILL_OPACITY = 0.35;
+const FILL_OPACITY_DARK = 0.4;
+const HOVER_FILL_OPACITY = 0.55;
+const OUTLINE_WEIGHT = 3;
 
 function paletteIndex(id: string): number {
     let hash = 0;
@@ -54,6 +55,17 @@ function buildPopupEl(key: MapKeyRow): HTMLElement {
 
     if (key.source) addRow('Джерело: ', key.source);
     if (key.description) addRow('Опис: ', key.description);
+
+    const linkWrap = document.createElement('p');
+    linkWrap.style.margin = '8px 0 0';
+    const link = document.createElement('a');
+    link.href = `/key/${encodeURIComponent(key.id)}`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.className = 'text-blue-600 underline hover:text-blue-800';
+    link.textContent = 'Детальніше';
+    linkWrap.appendChild(link);
+    root.appendChild(linkWrap);
 
     return root;
 }
@@ -181,7 +193,7 @@ export default function KeysOverlay() {
             const polygon = L.polygon(multiToLatLngs(displayMultis[i]), {
                 pane: 'keysPane',
                 color,
-                weight: 2,
+                weight: OUTLINE_WEIGHT,
                 fillColor: color,
                 fillOpacity: isDarkRef.current ? FILL_OPACITY_DARK : FILL_OPACITY,
             });

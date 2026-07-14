@@ -33,6 +33,58 @@ const parseIntegerOrNull = (value: any) => {
   return Number.isNaN(num) ? null : num;
 };
 
+// Ключові текстові поля, за якими БД визначає унікальність справи
+// (обмеження unique_inventory_verified_record на таблиці records).
+export const KEY_TEXT_FIELDS = [
+  'current_region',
+  'current_district',
+  'current_community',
+  'current_settlement_type',
+  'current_settlement_name',
+  'old_settlement_type',
+  'old_settlement_name',
+  'case_signature',
+] as const;
+
+// Порожній рядок / undefined приводимо до null, щоб значення збігалося з тим,
+// як дані реально лежать у БД (там порожні значення зберігаються як NULL).
+export const emptyToNull = (value: any) => (value === '' || value === undefined ? null : value);
+
+// Нормалізує ключові текстові поля запису ('' → null) перед вставкою в records,
+// щоб JS-перевірка й БД-обмеження працювали з однаковими значеннями.
+export function normalizeKeyFields<T extends Record<string, any>>(record: T): T {
+  const out: Record<string, any> = { ...record };
+  for (const field of KEY_TEXT_FIELDS) {
+    out[field] = emptyToNull(record[field]);
+  }
+  return out as T;
+}
+
+/**
+ * Шукає в `records` уже наявний verified-запис із таким самим набором ключових полів.
+ *
+ * На відміну від .match(), для NULL-полів тут використовується .is(col, null):
+ * PostgREST-фільтр `col=eq.null` НЕ знаходить рядки, де колонка справді NULL,
+ * тому .match() пропускав дублікати з порожніми полями, і вставка падала на
+ * обмеженні unique_inventory_verified_record (код 23505).
+ */
+export async function findDuplicateVerifiedRecord(record: any): Promise<{ id: string } | null> {
+  let query = supabase.from('records').select('id');
+
+  for (const field of KEY_TEXT_FIELDS) {
+    const value = emptyToNull(record[field]);
+    query = value === null ? query.is(field, null) : query.eq(field, value);
+  }
+
+  const year = parseIntegerOrNull(record.inventory_year);
+  query = year === null ? query.is('inventory_year', null) : query.eq('inventory_year', year);
+
+  const { data, error } = await query.limit(1);
+  if (error) throw error;
+
+  return data && data.length > 0 ? { id: data[0].id } : null;
+}
+
 const parseFloatOrNull = (value: any) => {
   if (value === '' || value === null || value === undefined) return null;
   const num = parseFloat(value);
@@ -104,32 +156,7 @@ export async function approveUnverifiedRecord({
   recordId: string;
 }> {
   try {
-    const matchQuery: Record<string, any> = {
-      current_region: record.current_region,
-      current_district: record.current_district,
-      current_community: record.current_community,
-      current_settlement_type: record.current_settlement_type,
-      current_settlement_name: record.current_settlement_name,
-      old_settlement_type: record.old_settlement_type,
-      old_settlement_name: record.old_settlement_name,
-      case_signature: record.case_signature,
-    };
-
-    let existing;
-    if (record.inventory_year) {
-      ({ data: existing } = await supabase
-        .from('records')
-        .select('id')
-        .match({ ...matchQuery, inventory_year: record.inventory_year })
-        .maybeSingle());
-    } else {
-      ({ data: existing } = await supabase
-        .from('records')
-        .select('id')
-        .match(matchQuery)
-        .is('inventory_year', null)
-        .maybeSingle());
-    }
+    const existing = await findDuplicateVerifiedRecord(record);
 
     if (existing) {
       return {
@@ -142,7 +169,7 @@ export async function approveUnverifiedRecord({
     const { is_ukrainian_archive, ...recordToInsert } = record;
 
     const preparedRecord = {
-      ...recordToInsert,
+      ...normalizeKeyFields(recordToInsert),
       approved: true,
       latitude: parseFloatOrNull(record.latitude),
       longitude: parseFloatOrNull(record.longitude),
@@ -158,6 +185,15 @@ export async function approveUnverifiedRecord({
 
     if (insertError) {
       console.error(insertError);
+      // 23505 — унікальне обмеження БД (unique_inventory_verified_record):
+      // запис уже є в реєстрі, навіть якщо попередня перевірка його не побачила.
+      if (insertError.code === '23505') {
+        return {
+          status: 'duplicate',
+          message: 'Такий інвентар уже існує в реєстрі.',
+          recordId: record.id,
+        };
+      }
       return {
         status: 'error',
         message: `Помилка при додаванні до бази: ${insertError.message}`,

@@ -9,6 +9,7 @@ import regionStructure from '../public/data/region_structure.json';
 import { sendNotification } from '../components/notifications';
 import { Save, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
+import { findDuplicateVerifiedRecord, normalizeKeyFields } from '../lib/adminApproveUtils';
 
 const getSettlementCodeByPath = (
   structure: any,
@@ -117,32 +118,7 @@ export default function AdminPage() {
 
   const saveRecord = async () => {
     try {
-      const matchQuery: Record<string, any> = {
-        current_region: formData.current_region,
-        current_district: formData.current_district,
-        current_community: formData.current_community,
-        current_settlement_type: formData.current_settlement_type,
-        current_settlement_name: formData.current_settlement_name,
-        old_settlement_type: formData.old_settlement_type,
-        old_settlement_name: formData.old_settlement_name,
-        case_signature: formData.case_signature,
-      };
-
-      let existing;
-      if (formData.inventory_year) {
-        ({ data: existing } = await supabase
-          .from('records')
-          .select('id')
-          .match({ ...matchQuery, inventory_year: formData.inventory_year })
-          .maybeSingle());
-      } else {
-        ({ data: existing } = await supabase
-          .from('records')
-          .select('id')
-          .match(matchQuery)
-          .is('inventory_year', null)
-          .maybeSingle());
-      }
+      const existing = await findDuplicateVerifiedRecord(formData);
 
       if (existing) {
         setToast({
@@ -152,7 +128,7 @@ export default function AdminPage() {
         return;
       }
 
-      const { is_ukrainian_archive, ...recordToInsert } = formData;
+      const { is_ukrainian_archive, ...recordToInsert } = normalizeKeyFields(formData);
 
       const parseIntegerOrNull = (value: any) => {
         if (value === "" || value === null || value === undefined) return null;
@@ -184,7 +160,16 @@ export default function AdminPage() {
 
       if (insertError) {
         console.error(insertError);
-        setToast({ message: '❌ Помилка при додаванні до бази', type: 'error' });
+        // 23505 — унікальне обмеження БД (unique_inventory_verified_record):
+        // запис уже є в реєстрі, навіть якщо попередня перевірка його не побачила.
+        if ((insertError as any).code === '23505') {
+          setToast({
+            message: 'Такий інвентар уже існує. Спробуйте пошукати його в реєстрі інвентарів',
+            type: 'error',
+          });
+        } else {
+          setToast({ message: '❌ Помилка при додаванні до бази', type: 'error' });
+        }
         return;
       }
 

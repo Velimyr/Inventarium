@@ -7,6 +7,8 @@ interface MapSelectorProps {
   latitude: string;
   longitude: string;
   onPositionChange: (lat: string, lng: string) => void;
+  center?: [number, number];   // куди дивитись, поки координат ще немає
+  height?: string;
 }
 
 // Компонент для централізації карти при зміні координат
@@ -18,9 +20,13 @@ function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
-export default function MapSelector({ latitude, longitude, onPositionChange }: MapSelectorProps) {
-  console.log('🗺️ MapSelector RENDERED!', { latitude, longitude });
-  
+export default function MapSelector({
+  latitude,
+  longitude,
+  onPositionChange,
+  center = [50.4501, 30.5234],
+  height = 'h-64',
+}: MapSelectorProps) {
   const parsedLat = parseFloat(latitude);
   const parsedLng = parseFloat(longitude);
   const hasValidCoords = !isNaN(parsedLat) && !isNaN(parsedLng);
@@ -58,10 +64,10 @@ export default function MapSelector({ latitude, longitude, onPositionChange }: M
   return (
     <div className="space-y-2">
       {/* Карта */}
-      <div className="h-64 border dark:border-gray-600 rounded-lg overflow-hidden">
+      <div className={`${height} border dark:border-gray-600 rounded-lg overflow-hidden`}>
         <MapContainer
-          center={hasValidCoords ? [parsedLat, parsedLng] : [50.4501, 30.5234]}
-          zoom={7}
+          center={hasValidCoords ? [parsedLat, parsedLng] : center}
+          zoom={hasValidCoords ? 12 : 7}
           style={{ height: '100%', width: '100%' }}
         >
           <TileLayer

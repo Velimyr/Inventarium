@@ -29,6 +29,28 @@ interface PendingKey {
     polygon_variant: PolygonVariant | null;
 }
 
+// Пропозиція змін до підтвердженого ключа (map_keys_edit)
+interface ProposedEdit {
+    id: string;
+    key_id: string;
+    name: string;
+    source: string | null;
+    description: string | null;
+    center: KeyPoint;
+    points: KeyPoint[];
+    polygon_variant: PolygonVariant;
+    email: string;
+    created_by: string | null;
+    created_at: string;
+}
+
+// Мінімум, потрібний для обчислення контуру (і ключі, і пропозиції)
+interface ShapeEntity {
+    id: string;
+    center: KeyPoint;
+    points: KeyPoint[];
+}
+
 const VARIANT_ORDER: PolygonVariant[] = ['hull', 'buffer', 'voronoi'];
 
 export default function AdminKeysPage() {
@@ -36,6 +58,8 @@ export default function AdminKeysPage() {
 
     const [isAdmin, setIsAdmin] = useState(false);
     const [keys, setKeys] = useState<PendingKey[]>([]);
+    const [edits, setEdits] = useState<ProposedEdit[]>([]);
+    const [originals, setOriginals] = useState<Record<string, PendingKey>>({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -56,11 +80,11 @@ export default function AdminKeysPage() {
     const getVariant = (key: PendingKey): PolygonVariant =>
         variants[key.id] ?? key.polygon_variant ?? DEFAULT_POLYGON_VARIANT;
 
-    const keySites = (key: PendingKey) => [toPair(key.center), ...key.points.map(toPair)];
+    const keySites = (entity: ShapeEntity) => [toPair(entity.center), ...entity.points.map(toPair)];
 
-    const computeSyncRings = (key: PendingKey, variant: PolygonVariant): PolygonRings | null => {
-        if (variant === 'hull') return [convexHull(keySites(key))];
-        if (variant === 'buffer') return [bufferedHull(keySites(key))];
+    const computeSyncRings = (entity: ShapeEntity, variant: PolygonVariant): PolygonRings | null => {
+        if (variant === 'hull') return [convexHull(keySites(entity))];
+        if (variant === 'buffer') return [bufferedHull(keySites(entity))];
         return null;
     };
 
@@ -69,21 +93,24 @@ export default function AdminKeysPage() {
         return ringsCache[`${key.id}:${variant}`] ?? computeSyncRings(key, variant) ?? undefined;
     };
 
-    const computeVoronoi = async (key: PendingKey) => {
-        const cacheKey = `${key.id}:voronoi`;
+    const ringsForEdit = (edit: ProposedEdit): PolygonRings | undefined =>
+        ringsCache[`${edit.id}:${edit.polygon_variant}`] ?? computeSyncRings(edit, edit.polygon_variant) ?? undefined;
+
+    const computeVoronoi = async (entity: ShapeEntity) => {
+        const cacheKey = `${entity.id}:voronoi`;
         if (ringsCache[cacheKey]) return;
-        setComputingVoronoiId(key.id);
+        setComputingVoronoiId(entity.id);
         try {
             if (!flatSettlementsRef.current) {
                 flatSettlementsRef.current = flattenStructure(await fetchRegionStructure());
             }
-            const keyCodes = new Set([key.center.code, ...key.points.map(p => p.code)]);
+            const keyCodes = new Set([entity.center.code, ...entity.points.map(p => p.code)]);
             const neighbors = flatSettlementsRef.current.filter(s => !keyCodes.has(s.code));
-            const rings = voronoiTerritory(keySites(key), neighbors);
+            const rings = voronoiTerritory(keySites(entity), neighbors);
             setRingsCache(prev => ({ ...prev, [cacheKey]: rings }));
         } catch (err) {
             console.error('Помилка обчислення території за Вороним:', err);
-            setToast({ message: '❌ Не вдалося обчислити варіант «Клітинки Вороного»', type: 'error' });
+            setToast({ message: '❌ Не вдалося обчислити варіант «Діаграми Вороного»', type: 'error' });
         } finally {
             setComputingVoronoiId(null);
         }
@@ -96,17 +123,27 @@ export default function AdminKeysPage() {
 
     // Синхронні варіанти рахуємо одразу в кеш — стабільні об'єкти не смикають прев'ю
     useEffect(() => {
-        if (keys.length === 0) return;
+        if (keys.length === 0 && edits.length === 0) return;
         setRingsCache(prev => {
             const next = { ...prev };
             for (const key of keys) {
                 if (!next[`${key.id}:hull`]) next[`${key.id}:hull`] = [convexHull(keySites(key))];
                 if (!next[`${key.id}:buffer`]) next[`${key.id}:buffer`] = [bufferedHull(keySites(key))];
             }
+            for (const edit of edits) {
+                const sync = computeSyncRings(edit, edit.polygon_variant);
+                if (sync && !next[`${edit.id}:${edit.polygon_variant}`]) {
+                    next[`${edit.id}:${edit.polygon_variant}`] = sync;
+                }
+            }
             return next;
         });
+        // Вороний для пропозицій рахуємо одразу — щоб до апруву контур був готовий
+        for (const edit of edits) {
+            if (edit.polygon_variant === 'voronoi') computeVoronoi(edit);
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [keys]);
+    }, [keys, edits]);
 
     useEffect(() => {
         if (userLoading) return;
@@ -142,6 +179,31 @@ export default function AdminKeysPage() {
             }
 
             setKeys((keysData || []) as PendingKey[]);
+
+            // Запропоновані зміни до підтверджених ключів + їхні поточні версії (для порівняння)
+            const { data: editsData, error: editsError } = await supabase
+                .from('map_keys_edit')
+                .select('id, key_id, name, source, description, center, points, polygon_variant, email, created_by, created_at')
+                .order('created_at', { ascending: true });
+
+            if (editsError) {
+                console.error('Edits error:', editsError);
+            } else {
+                const proposed = (editsData || []) as ProposedEdit[];
+                setEdits(proposed);
+
+                const keyIds = Array.from(new Set(proposed.map(e => e.key_id)));
+                if (keyIds.length > 0) {
+                    const { data: origData } = await supabase
+                        .from('map_keys')
+                        .select('id, name, source, description, center, points, email, created_by, created_at, polygon_variant')
+                        .in('id', keyIds);
+                    const map: Record<string, PendingKey> = {};
+                    (origData || []).forEach((k: PendingKey) => { map[k.id] = k; });
+                    setOriginals(map);
+                }
+            }
+
             setLoading(false);
         };
 
@@ -308,6 +370,110 @@ export default function AdminKeysPage() {
         } finally {
             setProcessingId(null);
         }
+    };
+
+    const approveEdit = async (edit: ProposedEdit) => {
+        if (!user || processingId) return;
+
+        const rings = ringsForEdit(edit);
+        if (!rings) {
+            setToast({ message: 'Контур ще обчислюється — зачекайте кілька секунд', type: 'error' });
+            return;
+        }
+
+        setProcessingId(edit.id);
+        try {
+            const { error: updateError } = await supabase
+                .from('map_keys')
+                .update({
+                    name: edit.name,
+                    source: edit.source,
+                    description: edit.description,
+                    center: edit.center,
+                    points: edit.points,
+                    polygon_variant: edit.polygon_variant,
+                    polygon: rings,
+                    reviewed_by: user.id,
+                    reviewed_at: new Date().toISOString(),
+                })
+                .eq('id', edit.key_id);
+
+            if (updateError) {
+                setToast({ message: `❌ Помилка застосування змін: ${updateError.message}`, type: 'error' });
+                return;
+            }
+
+            const { error: deleteError } = await supabase.from('map_keys_edit').delete().eq('id', edit.id);
+            if (deleteError) console.error('Помилка видалення пропозиції:', deleteError);
+
+            if (edit.created_by) {
+                try {
+                    await sendNotification({
+                        fromUserId: user.id,
+                        toUserId: edit.created_by,
+                        messageType: 'key_edit_approved',
+                        messageText: `Ваші зміни до ключа "${edit.name}" підтверджено і опубліковано на карті.`,
+                    });
+                } catch (err) {
+                    console.error('Помилка відправки повідомлення автору:', err);
+                }
+            }
+
+            setToast({ message: '✅ Зміни застосовано до ключа', type: 'success' });
+            setEdits(prev => prev.filter(e => e.id !== edit.id));
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    const rejectEdit = async (edit: ProposedEdit) => {
+        if (!user || processingId) return;
+
+        const reason = window.prompt('Вкажіть причину відхилення (необов\'язково):') ?? '';
+        setProcessingId(edit.id);
+
+        try {
+            const { error: deleteError } = await supabase.from('map_keys_edit').delete().eq('id', edit.id);
+            if (deleteError) {
+                setToast({ message: `❌ Помилка відхилення: ${deleteError.message}`, type: 'error' });
+                return;
+            }
+
+            if (edit.created_by) {
+                try {
+                    await sendNotification({
+                        fromUserId: user.id,
+                        toUserId: edit.created_by,
+                        messageType: 'key_edit_rejected',
+                        messageText:
+                            `Ваші зміни до ключа "${edit.name}" відхилено.` +
+                            (reason.trim() ? `\n\nПричина: ${reason.trim()}` : ''),
+                    });
+                } catch (err) {
+                    console.error('Помилка відправки повідомлення автору:', err);
+                }
+            }
+
+            setToast({ message: '❌ Пропозицію відхилено', type: 'success' });
+            setEdits(prev => prev.filter(e => e.id !== edit.id));
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    // Порівняння пропозиції з поточною версією ключа
+    const editDiff = (edit: ProposedEdit): string[] => {
+        const orig = originals[edit.key_id];
+        if (!orig) return [];
+        const changes: string[] = [];
+        if (orig.name !== edit.name) changes.push(`назва («${orig.name}» → «${edit.name}»)`);
+        if ((orig.source || '') !== (edit.source || '')) changes.push('джерело');
+        if ((orig.description || '') !== (edit.description || '')) changes.push('опис');
+        if ((orig.polygon_variant ?? DEFAULT_POLYGON_VARIANT) !== edit.polygon_variant) changes.push('відображення території');
+        const origCodes = [orig.center.code, ...orig.points.map(p => p.code)].sort().join(',');
+        const newCodes = [edit.center.code, ...edit.points.map(p => p.code)].sort().join(',');
+        if (origCodes !== newCodes) changes.push(`склад (${orig.points.length + 1} → ${edit.points.length + 1} пунктів)`);
+        return changes;
     };
 
     if (loading) {
@@ -545,6 +711,116 @@ export default function AdminKeysPage() {
                                         </div>
                                     </div>
                                     )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Запропоновані зміни до підтверджених ключів */}
+                    <div className="flex items-center gap-[10px] mt-[40px] mb-[20px]">
+                        <Pencil className="w-6 h-6 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                        <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[20px] md:text-[24px] font-bold">
+                            Запропоновані зміни ({edits.length})
+                        </h2>
+                    </div>
+
+                    {edits.length === 0 ? (
+                        <div className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] text-center">
+                            <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px]">
+                                Немає запропонованих змін
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-[20px]">
+                            {edits.map((edit) => (
+                                <div
+                                    key={edit.id}
+                                    className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]"
+                                >
+                                    <div className="flex flex-col lg:flex-row gap-[20px]">
+                                        <div className="flex-shrink-0 w-full lg:w-[320px]">
+                                            <p className="mb-[8px] text-gray-600 dark:text-gray-400 text-[12px]">
+                                                Нова версія · {POLYGON_VARIANT_LABELS[edit.polygon_variant]}
+                                            </p>
+                                            <KeyShapePreview
+                                                center={toPair(edit.center)}
+                                                points={edit.points.map(toPair)}
+                                                rings={ringsForEdit(edit)}
+                                            />
+                                            {computingVoronoiId === edit.id && (
+                                                <p className="mt-[5px] text-gray-600 dark:text-gray-400 text-[12px]">
+                                                    Обчислення території за Вороним...
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="flex-1 space-y-[10px]">
+                                            <h3 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
+                                                {edit.name}
+                                                <a
+                                                    href={`/key/${edit.key_id}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="ml-3 text-[#2563EB] underline text-[13px] font-normal hover:text-[#1D4ED8]"
+                                                >
+                                                    поточна версія
+                                                </a>
+                                            </h3>
+
+                                            {editDiff(edit).length > 0 && (
+                                                <p className="text-[13px] text-[#92400E] dark:text-[#EAB308]">
+                                                    Змінено: {editDiff(edit).join('; ')}
+                                                </p>
+                                            )}
+
+                                            {edit.source && (
+                                                <div className="flex items-start gap-[10px]">
+                                                    <BookOpen className="w-5 h-5 text-gray-700 dark:text-white flex-shrink-0 mt-[2px]" strokeWidth={2} />
+                                                    <div className="text-gray-900 dark:text-white text-[14px] break-words">{edit.source}</div>
+                                                </div>
+                                            )}
+
+                                            {edit.description && (
+                                                <div className="flex items-start gap-[10px]">
+                                                    <FileText className="w-5 h-5 text-gray-700 dark:text-white flex-shrink-0 mt-[2px]" strokeWidth={2} />
+                                                    <div className="text-gray-900 dark:text-white text-[14px] break-words whitespace-pre-wrap">{edit.description}</div>
+                                                </div>
+                                            )}
+
+                                            <div className="flex items-start gap-[10px]">
+                                                <User className="w-5 h-5 text-gray-700 dark:text-white flex-shrink-0 mt-[2px]" strokeWidth={2} />
+                                                <div className="text-gray-900 dark:text-white text-[14px] font-mono break-all">
+                                                    {edit.email}
+                                                    {!edit.created_by && (
+                                                        <span className="ml-2 font-sans text-gray-500 dark:text-gray-400 text-[12px]">(без акаунта)</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <p className="text-gray-600 dark:text-gray-400 text-[13px]">
+                                                Населених пунктів: {edit.points.length + 1} · Подано: {new Date(edit.created_at).toLocaleDateString('uk-UA')}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex lg:flex-col gap-[10px] lg:justify-center">
+                                            <button
+                                                onClick={() => approveEdit(edit)}
+                                                disabled={processingId !== null}
+                                                className="flex-1 lg:flex-initial flex items-center justify-center gap-[8px] px-[15px] h-[40px] rounded bg-[#14AE5C] hover:bg-[#0F8A4A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <Check className="w-5 h-5 text-white" strokeWidth={2} />
+                                                <span className="text-white text-[14px] lg:text-[16px] font-medium">Застосувати</span>
+                                            </button>
+                                            <button
+                                                onClick={() => rejectEdit(edit)}
+                                                disabled={processingId !== null}
+                                                className="flex-1 lg:flex-initial flex items-center justify-center gap-[8px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <X className="w-5 h-5 text-gray-900 dark:text-white" strokeWidth={2} />
+                                                <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] font-medium">Відхилити</span>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             ))}
                         </div>

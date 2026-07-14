@@ -14,6 +14,9 @@ export const MESSAGE_TYPES = {
     KEY_NEW: 'key_new',
     KEY_APPROVED: 'key_approved',
     KEY_REJECTED: 'key_rejected',
+    KEY_EDIT_NEW: 'key_edit_new',
+    KEY_EDIT_APPROVED: 'key_edit_approved',
+    KEY_EDIT_REJECTED: 'key_edit_rejected',
     OTHER: 'other',
 } as const;
 
@@ -47,6 +50,12 @@ export function getMessageTypeLabel(type: MessageType | string): string {
             return 'Ваш ключ підтверджено'
         case MESSAGE_TYPES.KEY_REJECTED:
             return 'Ваш ключ відхилено'
+        case MESSAGE_TYPES.KEY_EDIT_NEW:
+            return 'Запропоновано зміни до ключа'
+        case MESSAGE_TYPES.KEY_EDIT_APPROVED:
+            return 'Ваші зміни до ключа підтверджено'
+        case MESSAGE_TYPES.KEY_EDIT_REJECTED:
+            return 'Ваші зміни до ключа відхилено'
         case MESSAGE_TYPES.OTHER:
             return 'Загальне повідомлення'
         default:

@@ -63,12 +63,16 @@ export default function AdminDashboard() {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'new');
 
+      const { count: keysEditCount } = await supabase
+        .from('map_keys_edit')
+        .select('*', { count: 'exact', head: true });
+
       setApprovedCount(approved ?? 0);
       setUnverifiedCount(unverified ?? 0);
       setPendingSubscriptions(subscriptionCount ?? 0);
       setEditCount(editCount ?? 0);
       setIdentifiedCount(identifiedCount ?? 0);
-      setPendingKeys(keysCount ?? 0);
+      setPendingKeys((keysCount ?? 0) + (keysEditCount ?? 0));
       setLoading(false);
     };
 

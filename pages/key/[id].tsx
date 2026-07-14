@@ -7,7 +7,7 @@ import Header from '../../components/header';
 import { supabase } from '../../lib/supabaseClient';
 import { toPair } from '../../components/keys/geometry';
 import type { KeyPoint, MapKeyRow } from '../../components/keys/geometry';
-import { BookOpen, FileText, MapPin, KeyRound, Calendar } from 'lucide-react';
+import { BookOpen, FileText, MapPin, KeyRound, Calendar, Pencil } from 'lucide-react';
 
 const KeyShapePreview = dynamic(() => import('../../components/keys/KeyShapePreview'), { ssr: false });
 
@@ -170,11 +170,18 @@ export default function KeyDetailsPage() {
                         </div>
                     ) : (
                         <>
-                            <div className="flex items-center gap-[10px] mb-[10px]">
+                            <div className="flex flex-wrap items-center gap-[10px] mb-[10px]">
                                 <KeyRound className="w-6 h-6 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
                                 <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold">
                                     {keyData.name}
                                 </h1>
+                                <Link
+                                    href={`/key/edit/${keyData.id}`}
+                                    className="flex items-center gap-[6px] px-[12px] h-[34px] rounded border border-gray-300 dark:border-[#374151] text-gray-700 dark:text-gray-300 text-[13px] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors ml-auto"
+                                >
+                                    <Pencil className="w-4 h-4" strokeWidth={1.6} />
+                                    Запропонувати зміни
+                                </Link>
                             </div>
 
                             <p className="flex items-center gap-[6px] text-gray-600 dark:text-gray-400 text-[13px] mb-[20px]">

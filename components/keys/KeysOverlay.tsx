@@ -100,6 +100,22 @@ function multiToLatLngs(multi: MultiPolygon): LatLngPair[][][] {
     );
 }
 
+// Приблизна площа (у град²) для порядку відображення — точність не важлива,
+// потрібне лише відносне порівняння розмірів полігонів
+function multiArea(multi: MultiPolygon): number {
+    let total = 0;
+    for (const polygon of multi) {
+        const outer = polygon[0];
+        if (!outer) continue;
+        let a = 0;
+        for (let i = 0, j = outer.length - 1; i < outer.length; j = i++) {
+            a += (outer[j][0] + outer[i][0]) * (outer[j][1] - outer[i][1]);
+        }
+        total += Math.abs(a / 2);
+    }
+    return total;
+}
+
 interface KeyLayerEntry {
     layer: L.Path;
     colorIdx: number;
@@ -195,7 +211,14 @@ export default function KeysOverlay() {
         // тож перед підсвіткою нового завжди гасимо попередній
         let activeUnhighlight: (() => void) | null = null;
 
-        validKeys.forEach((key, i) => {
+        // Менші полігони — зверху (додаються останніми): якщо один ключ повністю
+        // лежить усередині більшого, він не буде перекритий і лишиться клікабельним;
+        // більший клікається у своїй відкритій частині
+        const ordered = validKeys
+            .map((key, i) => ({ key, displayMulti: displayMultis[i] }))
+            .sort((a, b) => multiArea(b.displayMulti) - multiArea(a.displayMulti));
+
+        ordered.forEach(({ key, displayMulti }) => {
             const colorIdx = paletteIndex(key.id);
             const color = KEY_PALETTE[colorIdx][isDarkRef.current ? 'dark' : 'light'];
             const center = toPair(key.center);
@@ -218,7 +241,7 @@ export default function KeysOverlay() {
 
             // Обрізаний контур (звичайний вигляд) і повний (при виборі —
             // показуємо цілу територію ключа без розмежування із сусідами)
-            const clippedLatLngs = multiToLatLngs(displayMultis[i]);
+            const clippedLatLngs = multiToLatLngs(displayMulti);
             const fullLatLngs = multiToLatLngs(ringsToMulti(storedRings(key)));
 
             const polygon = L.polygon(clippedLatLngs, {

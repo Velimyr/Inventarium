@@ -36,6 +36,11 @@ create table public.map_keys (
 
 create index map_keys_status_idx on public.map_keys (status);
 
+-- Захист від дублікатів: серед активних ключів (нових і підтверджених)
+-- центр має бути унікальним; відхилені не блокують повторне подання
+create unique index map_keys_unique_center_idx
+  on public.map_keys ((center->>'code')) where status in ('new', 'approved');
+
 alter table public.map_keys enable row level security;
 
 -- Публічна карта: всі (включно з анонімами) бачать лише підтверджені ключі
@@ -98,4 +103,11 @@ create policy "map_keys_delete_admin" on public.map_keys
 -- alter table public.map_keys drop constraint map_keys_points_check;
 -- alter table public.map_keys add constraint map_keys_points_check
 --   check (jsonb_typeof(points) = 'array' and jsonb_array_length(points) >= 2);
+--
+-- Захист від дублікатів (для вже створеної таблиці):
+-- create unique index map_keys_unique_center_idx
+--   on public.map_keys ((center->>'code')) where status in ('new', 'approved');
+--
+-- Якщо раніше був створений індекс за назвою — видаліть його:
+-- drop index if exists map_keys_unique_name_idx;
 -- ─────────────────────────────────────────────────────────────────────────────

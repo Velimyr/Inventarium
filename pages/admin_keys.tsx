@@ -243,6 +243,12 @@ export default function AdminKeysPage() {
 
         setProcessingId(key.id);
         try {
+            const conflict = await findConflict(key.id, editGeometry.center.code);
+            if (conflict) {
+                setToast({ message: `❌ Дублікат: ${conflict}.`, type: 'error' });
+                return;
+            }
+
             const updated = {
                 name: editForm.name.trim(),
                 source: editForm.source.trim() || null,
@@ -277,6 +283,24 @@ export default function AdminKeysPage() {
         }
     };
 
+    // Дублікат серед активних ключів: той самий центр.
+    // excludeId — сам ключ, який підтверджуємо/оновлюємо
+    const findConflict = async (excludeId: string, centerCode: string): Promise<string | null> => {
+        const { data } = await supabase
+            .from('map_keys')
+            .select('id, name, status')
+            .in('status', ['new', 'approved'])
+            .neq('id', excludeId)
+            .filter('center->>code', 'eq', centerCode)
+            .limit(1);
+
+        if (data?.length) {
+            const d = data[0];
+            return `центр збігається з ключем "${d.name}" (${d.status === 'new' ? 'очікує на перевірку' : 'підтверджений'})`;
+        }
+        return null;
+    };
+
     const approveKey = async (key: PendingKey) => {
         if (!user || processingId) return;
 
@@ -290,6 +314,12 @@ export default function AdminKeysPage() {
         setProcessingId(key.id);
 
         try {
+            const conflict = await findConflict(key.id, key.center.code);
+            if (conflict) {
+                setToast({ message: `❌ Дублікат: ${conflict}. Відредагуйте або відхиліть ключ.`, type: 'error' });
+                return;
+            }
+
             const { error: updateError } = await supabase
                 .from('map_keys')
                 .update({
@@ -383,6 +413,12 @@ export default function AdminKeysPage() {
 
         setProcessingId(edit.id);
         try {
+            const conflict = await findConflict(edit.key_id, edit.center.code);
+            if (conflict) {
+                setToast({ message: `❌ Дублікат: ${conflict}. Застосувати неможливо.`, type: 'error' });
+                return;
+            }
+
             const { error: updateError } = await supabase
                 .from('map_keys')
                 .update({
@@ -399,7 +435,10 @@ export default function AdminKeysPage() {
                 .eq('id', edit.key_id);
 
             if (updateError) {
-                setToast({ message: `❌ Помилка застосування змін: ${updateError.message}`, type: 'error' });
+                const message = updateError.code === '23505'
+                    ? '❌ Центр збігається з іншим ключем — застосувати неможливо'
+                    : `❌ Помилка застосування змін: ${updateError.message}`;
+                setToast({ message, type: 'error' });
                 return;
             }
 

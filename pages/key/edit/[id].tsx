@@ -105,6 +105,24 @@ export default function EditKeyPage() {
         return null;
     };
 
+    // Дублікат: інший ключ з тим самим центром
+    const findDuplicate = async (): Promise<string | null> => {
+        if (!original) return null;
+
+        const { data } = await supabase
+            .from('map_keys')
+            .select('id, name')
+            .in('status', ['new', 'approved'])
+            .neq('id', original.id)
+            .filter('center->>code', 'eq', geometry.center!.code)
+            .limit(1);
+
+        if (data?.length) {
+            return `Інший ключ з центром у цьому населеному пункті вже існує: "${data[0].name}"`;
+        }
+        return null;
+    };
+
     const handleSubmit = async () => {
         if (!original || submitting) return;
 
@@ -116,6 +134,12 @@ export default function EditKeyPage() {
 
         setSubmitting(true);
         try {
+            const duplicateError = await findDuplicate();
+            if (duplicateError) {
+                setToast({ message: duplicateError, type: 'error' });
+                return;
+            }
+
             const { error: insertError } = await supabase.from('map_keys_edit').insert({
                 key_id: original.id,
                 name: formData.name.trim(),

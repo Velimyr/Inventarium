@@ -56,6 +56,21 @@ export default function AddKeyPage() {
         return null;
     };
 
+    // Дублікат: ключ з тим самим центром уже існує чи очікує на перевірку
+    const findDuplicate = async (): Promise<string | null> => {
+        const { data } = await supabase
+            .from('map_keys')
+            .select('id, name')
+            .in('status', ['new', 'approved'])
+            .filter('center->>code', 'eq', geometry.center!.code)
+            .limit(1);
+
+        if (data?.length) {
+            return `Ключ з центром у цьому населеному пункті вже існує: "${data[0].name}"`;
+        }
+        return null;
+    };
+
     const handleSubmit = async () => {
         if (submitting) return;
 
@@ -67,6 +82,12 @@ export default function AddKeyPage() {
 
         setSubmitting(true);
         try {
+            const duplicateError = await findDuplicate();
+            if (duplicateError) {
+                setToast({ message: duplicateError, type: 'error' });
+                return;
+            }
+
             const { error: insertError } = await supabase.from('map_keys').insert({
                 name: formData.name.trim(),
                 source: formData.source.trim() || null,
@@ -80,7 +101,11 @@ export default function AddKeyPage() {
 
             if (insertError) {
                 console.error('Помилка збереження ключа:', insertError);
-                setToast({ message: 'Помилка збереження ключа: ' + insertError.message, type: 'error' });
+                // 23505 — унікальний індекс у БД (дублікат, невидимий клієнту через RLS)
+                const message = insertError.code === '23505'
+                    ? 'Ключ з таким центром вже існує чи очікує на перевірку'
+                    : 'Помилка збереження ключа: ' + insertError.message;
+                setToast({ message, type: 'error' });
                 return;
             }
 

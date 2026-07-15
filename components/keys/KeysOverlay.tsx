@@ -125,6 +125,13 @@ export default function KeysOverlay() {
             map.createPane('keysPane');
             map.getPane('keysPane')!.style.zIndex = '460';
         }
+        // Крапки — над полігонами і без перехоплення кліків, щоб не блокувати попап
+        if (!map.getPane('keyDotsPane')) {
+            map.createPane('keyDotsPane');
+            const pane = map.getPane('keyDotsPane')!;
+            pane.style.zIndex = '470';
+            pane.style.pointerEvents = 'none';
+        }
 
         layerGroup.addTo(map);
         return () => {
@@ -224,11 +231,11 @@ export default function KeysOverlay() {
             polygon.bindTooltip(buildTooltipEl(key.name), { sticky: true });
             polygon.bindPopup(buildPopupEl(key));
 
-            // Крапки пунктів — окрема (неінтерактивна) група, додається лише на час вибору
+            // Крапки пунктів — у власному pane (pointer-events:none), додаються лише на час вибору
             const dotsGroup = L.layerGroup();
-            L.circleMarker(center, { pane: 'keysPane', interactive: false, ...CENTER_DOT }).addTo(dotsGroup);
+            L.circleMarker(center, { pane: 'keyDotsPane', interactive: false, ...CENTER_DOT }).addTo(dotsGroup);
             for (const point of key.points) {
-                L.circleMarker(toPair(point), { pane: 'keysPane', interactive: false, ...POINT_DOT }).addTo(dotsGroup);
+                L.circleMarker(toPair(point), { pane: 'keyDotsPane', interactive: false, ...POINT_DOT }).addTo(dotsGroup);
             }
             dotsGroups.push(dotsGroup);
 
@@ -245,17 +252,16 @@ export default function KeysOverlay() {
             const highlight = () => {
                 if (activeUnhighlight && activeUnhighlight !== unhighlight) activeUnhighlight();
                 activeUnhighlight = unhighlight;
+                // Повний контур ключа (без обрізання із сусідами) при виборі
                 polygon.setLatLngs(fullLatLngs);
                 polygon.setStyle({
                     fillOpacity: isDarkRef.current ? HOVER_FILL_OPACITY_DARK : HOVER_FILL_OPACITY,
                     weight: HOVER_OUTLINE_WEIGHT,
                 });
-                keyRadials.forEach(r => {
-                    r.setStyle({ weight: HOVER_RADIAL_WEIGHT, opacity: HOVER_RADIAL_OPACITY });
-                    r.bringToFront();
-                });
-                polygon.bringToFront();
+                keyRadials.forEach(r => r.setStyle({ weight: HOVER_RADIAL_WEIGHT, opacity: HOVER_RADIAL_OPACITY }));
                 dotsGroup.addTo(map);
+                // NB: полігон НЕ піднімаємо через bringToFront() — переміщення DOM-вузла
+                // під час наведення ламає синтез click, і попап не відкривається.
             };
             polygon.on('mouseover', highlight);
             polygon.on('mouseout', unhighlight);
@@ -267,15 +273,16 @@ export default function KeysOverlay() {
         entries.filter(e => !e.isRadial).forEach(e => layerGroup.addLayer(e.layer));
         entriesRef.current = entries;
 
-        // Пан/зум із наведеним ключем зсуває полігон під нерухомим курсором,
-        // і mouseout може не спрацювати — скидаємо підсвітку на початку навігації
+        // Ручний пан/зум із наведеним ключем зсуває полігон під нерухомим курсором,
+        // і mouseout може не спрацювати — скидаємо підсвітку. Використовуємо dragstart
+        // (не movestart), щоб autoPan попапа при кліку не гасив підсвітку й сам попап.
         const clearActive = () => { if (activeUnhighlight) activeUnhighlight(); };
         map.on('zoomstart', clearActive);
-        map.on('movestart', clearActive);
+        map.on('dragstart', clearActive);
 
         return () => {
             map.off('zoomstart', clearActive);
-            map.off('movestart', clearActive);
+            map.off('dragstart', clearActive);
             layerGroup.clearLayers();
             dotsGroups.forEach(g => g.remove());
             entriesRef.current = [];

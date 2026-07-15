@@ -22,10 +22,22 @@ const KEY_PALETTE = [
     { light: '#0891B2', dark: '#67E8F9' },
 ];
 
-const FILL_OPACITY = 0.35;
-const FILL_OPACITY_DARK = 0.4;
-const HOVER_FILL_OPACITY = 0.55;
+const FILL_OPACITY = 0.22;
+const FILL_OPACITY_DARK = 0.28;
+const HOVER_FILL_OPACITY = 0.4;
+const HOVER_FILL_OPACITY_DARK = 0.45;
 const OUTLINE_WEIGHT = 3;
+const HOVER_OUTLINE_WEIGHT = 5;
+
+// Радіальні лінії: звичайний стан і підсвічений разом із ключем
+const RADIAL_WEIGHT = 0.8;
+const RADIAL_OPACITY = 0.5;
+const HOVER_RADIAL_WEIGHT = 1.6;
+const HOVER_RADIAL_OPACITY = 0.9;
+
+// Крапки населених пунктів (показуються лише при виборі ключа)
+const CENTER_DOT = { radius: 6, fillColor: '#DC2626', color: '#fff', weight: 2, fillOpacity: 1 };
+const POINT_DOT = { radius: 5, fillColor: '#2563EB', color: '#fff', weight: 1.5, fillOpacity: 1 };
 
 function paletteIndex(id: string): number {
     let hash = 0;
@@ -171,26 +183,38 @@ export default function KeysOverlay() {
         }
 
         const entries: KeyLayerEntry[] = [];
+        const dotsGroups: L.LayerGroup[] = [];
+        // Гарантія «підсвічений лише один ключ»: зум/швидкий рух можуть з'їсти mouseout,
+        // тож перед підсвіткою нового завжди гасимо попередній
+        let activeUnhighlight: (() => void) | null = null;
 
         validKeys.forEach((key, i) => {
             const colorIdx = paletteIndex(key.id);
             const color = KEY_PALETTE[colorIdx][isDarkRef.current ? 'dark' : 'light'];
             const center = toPair(key.center);
 
-            // Радіальні лінії — тонкі й напівпрозорі, щоб не створювати «павутиння»
+            // Радіальні лінії — тонкі й напівпрозорі, щоб не створювати «павутиння»;
+            // при виборі ключа підсвічуються разом із його полігоном
+            const keyRadials: L.Polyline[] = [];
             for (const point of key.points) {
                 const radial = L.polyline([center, toPair(point)], {
                     pane: 'keysPane',
                     color,
-                    weight: 0.8,
-                    opacity: 0.5,
+                    weight: RADIAL_WEIGHT,
+                    opacity: RADIAL_OPACITY,
                     dashArray: '4 4',
                     interactive: false,
                 });
+                keyRadials.push(radial);
                 entries.push({ layer: radial, colorIdx, isRadial: true });
             }
 
-            const polygon = L.polygon(multiToLatLngs(displayMultis[i]), {
+            // Обрізаний контур (звичайний вигляд) і повний (при виборі —
+            // показуємо цілу територію ключа без розмежування із сусідами)
+            const clippedLatLngs = multiToLatLngs(displayMultis[i]);
+            const fullLatLngs = multiToLatLngs(ringsToMulti(storedRings(key)));
+
+            const polygon = L.polygon(clippedLatLngs, {
                 pane: 'keysPane',
                 color,
                 weight: OUTLINE_WEIGHT,
@@ -199,10 +223,42 @@ export default function KeysOverlay() {
             });
             polygon.bindTooltip(buildTooltipEl(key.name), { sticky: true });
             polygon.bindPopup(buildPopupEl(key));
-            polygon.on('mouseover', () => polygon.setStyle({ fillOpacity: HOVER_FILL_OPACITY }));
-            polygon.on('mouseout', () =>
-                polygon.setStyle({ fillOpacity: isDarkRef.current ? FILL_OPACITY_DARK : FILL_OPACITY })
-            );
+
+            // Крапки пунктів — окрема (неінтерактивна) група, додається лише на час вибору
+            const dotsGroup = L.layerGroup();
+            L.circleMarker(center, { pane: 'keysPane', interactive: false, ...CENTER_DOT }).addTo(dotsGroup);
+            for (const point of key.points) {
+                L.circleMarker(toPair(point), { pane: 'keysPane', interactive: false, ...POINT_DOT }).addTo(dotsGroup);
+            }
+            dotsGroups.push(dotsGroup);
+
+            const unhighlight = () => {
+                polygon.setLatLngs(clippedLatLngs);
+                polygon.setStyle({
+                    fillOpacity: isDarkRef.current ? FILL_OPACITY_DARK : FILL_OPACITY,
+                    weight: OUTLINE_WEIGHT,
+                });
+                keyRadials.forEach(r => r.setStyle({ weight: RADIAL_WEIGHT, opacity: RADIAL_OPACITY }));
+                dotsGroup.remove();
+                if (activeUnhighlight === unhighlight) activeUnhighlight = null;
+            };
+            const highlight = () => {
+                if (activeUnhighlight && activeUnhighlight !== unhighlight) activeUnhighlight();
+                activeUnhighlight = unhighlight;
+                polygon.setLatLngs(fullLatLngs);
+                polygon.setStyle({
+                    fillOpacity: isDarkRef.current ? HOVER_FILL_OPACITY_DARK : HOVER_FILL_OPACITY,
+                    weight: HOVER_OUTLINE_WEIGHT,
+                });
+                keyRadials.forEach(r => {
+                    r.setStyle({ weight: HOVER_RADIAL_WEIGHT, opacity: HOVER_RADIAL_OPACITY });
+                    r.bringToFront();
+                });
+                polygon.bringToFront();
+                dotsGroup.addTo(map);
+            };
+            polygon.on('mouseover', highlight);
+            polygon.on('mouseout', unhighlight);
             entries.push({ layer: polygon, colorIdx, isRadial: false });
         });
 
@@ -211,8 +267,17 @@ export default function KeysOverlay() {
         entries.filter(e => !e.isRadial).forEach(e => layerGroup.addLayer(e.layer));
         entriesRef.current = entries;
 
+        // Пан/зум із наведеним ключем зсуває полігон під нерухомим курсором,
+        // і mouseout може не спрацювати — скидаємо підсвітку на початку навігації
+        const clearActive = () => { if (activeUnhighlight) activeUnhighlight(); };
+        map.on('zoomstart', clearActive);
+        map.on('movestart', clearActive);
+
         return () => {
+            map.off('zoomstart', clearActive);
+            map.off('movestart', clearActive);
             layerGroup.clearLayers();
+            dotsGroups.forEach(g => g.remove());
             entriesRef.current = [];
         };
     }, [map, keys, layerGroup]);

@@ -37,6 +37,15 @@ interface Props {
     variant?: PolygonVariant;
 }
 
+// Частина пунктів довідника не має координат (Чорнобильська зона, Крим тощо)
+function hasCoords(s: { lat: unknown; lon: unknown }): boolean {
+    return typeof s.lat === 'number' && typeof s.lon === 'number';
+}
+
+function validPoint(p: KeyPoint | null): p is KeyPoint {
+    return !!p && typeof p.lat === 'number' && typeof p.lng === 'number';
+}
+
 function emptyPoint(lat: number, lng: number): KeyPoint {
     return { lat, lng, region: '', district: '', community: '', code: '', name: '', type: '' };
 }
@@ -70,10 +79,8 @@ function FitOnMount({ geometry }: { geometry: KeyGeometry }) {
     const map = useMap();
 
     useEffect(() => {
-        if (geometry.center) {
-            const pts = [toPair(geometry.center), ...geometry.points.map(toPair)];
-            map.fitBounds(L.latLngBounds(pts).pad(0.3));
-        }
+        const pts = [geometry.center, ...geometry.points].filter(validPoint).map(toPair);
+        if (pts.length > 0) map.fitBounds(L.latLngBounds(pts).pad(0.3));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [map]);
 
@@ -120,16 +127,20 @@ export default function KeyBuilderMap({ value, onChange, variant = DEFAULT_POLYG
     const flat = useMemo(() => (structure ? flattenStructure(structure) : []), [structure]);
     const ready = !!structure;
 
+    // На карту пускаємо лише точки з коректними координатами — інакше Leaflet падає
+    const safeCenter = validPoint(center) ? center : null;
+    const safePoints = useMemo(() => points.filter(validPoint), [points]);
+
     // Живе прев'ю контуру обраного варіанта; Вороний потребує довідника (flat)
     const contour: PolygonRings | null = useMemo(() => {
-        if (!center || points.length < 2) return null;
-        const sites = [toPair(center), ...points.map(toPair)];
+        if (!safeCenter || safePoints.length < 2) return null;
+        const sites = [toPair(safeCenter), ...safePoints.map(toPair)];
         if (variant === 'hull') return [convexHull(sites)];
         if (variant === 'buffer') return [bufferedHull(sites)];
         if (!flat.length) return null;
-        const keyCodes = new Set([center.code, ...points.map(p => p.code)].filter(Boolean));
+        const keyCodes = new Set([safeCenter.code, ...safePoints.map(p => p.code)].filter(Boolean));
         return voronoiTerritory(sites, flat.filter(s => !keyCodes.has(s.code)));
-    }, [center, points, variant, flat]);
+    }, [safeCenter, safePoints, variant, flat]);
 
     const updateCenter = (point: KeyPoint) => onChange({ ...value, center: point });
     const updateVertex = (index: number, point: KeyPoint) =>
@@ -154,9 +165,9 @@ export default function KeyBuilderMap({ value, onChange, variant = DEFAULT_POLYG
                     <FitOnMount geometry={value} />
                     <GeocoderControl />
 
-                    {center && (
+                    {safeCenter && (
                         <Marker
-                            position={toPair(center)}
+                            position={toPair(safeCenter)}
                             icon={centerIcon}
                             draggable
                             eventHandlers={{
@@ -169,18 +180,20 @@ export default function KeyBuilderMap({ value, onChange, variant = DEFAULT_POLYG
                     )}
 
                     {points.map((point, index) => (
-                        <Marker
-                            key={`${point.lat}-${point.lng}`}
-                            position={toPair(point)}
-                            icon={vertexIcon}
-                            eventHandlers={{ click: () => removeVertex(index) }}
-                        />
+                        validPoint(point) ? (
+                            <Marker
+                                key={`${point.lat}-${point.lng}`}
+                                position={toPair(point)}
+                                icon={vertexIcon}
+                                eventHandlers={{ click: () => removeVertex(index) }}
+                            />
+                        ) : null
                     ))}
 
-                    {center && points.map((point) => (
+                    {safeCenter && safePoints.map((point) => (
                         <Polyline
                             key={`radial-${point.lat}-${point.lng}`}
-                            positions={[toPair(center), toPair(point)]}
+                            positions={[toPair(safeCenter), toPair(point)]}
                             pathOptions={{ color: SHAPE_COLOR, weight: 1.5, dashArray: '4 4' }}
                         />
                     ))}
@@ -265,6 +278,9 @@ function PointRow({
             ? structure[point.region]?.[point.district]?.[point.community] || []
             : [];
 
+    const selected = settlements.find(s => s.code === point.code);
+    const selectedWithoutCoords = !!point.code && !!selected && !hasCoords(selected);
+
     const handleSettlementSelect = (code: string) => {
         const settlement = settlements.find(s => s.code === code);
         if (!settlement) return;
@@ -273,9 +289,10 @@ function PointRow({
             code: settlement.code,
             name: settlement.name,
             type: settlement.type,
-            // Позначка стає на координати з довідника
-            lat: settlement.lat,
-            lng: settlement.lon,
+            // Позначка стає на координати з довідника. Частина пунктів (напр. Чорнобильська
+            // зона відчуження, Крим) їх не має — тоді лишаємо позначку там, де її поставив
+            // користувач, інакше в Leaflet потрапить null і карта впаде.
+            ...(hasCoords(settlement) ? { lat: settlement.lat, lng: settlement.lon } : {}),
         });
     };
 
@@ -347,6 +364,16 @@ function PointRow({
                         <Link href="/add_settlement" target="_blank" className="underline hover:opacity-80">
                             зробіть запит на додавання населеного пункту
                         </Link>.
+                    </p>
+                </div>
+            )}
+
+            {selectedWithoutCoords && (
+                <div className="flex items-start gap-[8px] mt-[10px]">
+                    <AlertTriangle className="w-4 h-4 text-[#92400E] dark:text-[#EAB308] flex-shrink-0 mt-0.5" strokeWidth={1.6} />
+                    <p className="text-[#92400E] dark:text-[#EAB308] text-[12px] lg:text-[13px]">
+                        У довіднику немає координат цього населеного пункту — позначка лишилась там, де ви її
+                        поставили. За потреби перетягніть її або клікніть точніше на карті.
                     </p>
                 </div>
             )}

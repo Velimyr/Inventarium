@@ -653,14 +653,14 @@ export default function AdminKeysPage() {
                                         </div>
 
                                         {/* Інформація */}
-                                        <div className="flex-1 space-y-[10px]">
+                                        <div className="flex-1 min-w-0 space-y-[10px]">
                                             <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
                                                 {key.name}
                                             </h2>
 
                                             <div className="flex items-start gap-[10px]">
                                                 <MapPin className="w-5 h-5 text-gray-700 dark:text-white flex-shrink-0 mt-[2px]" strokeWidth={2} />
-                                                <div>
+                                                <div className="min-w-0">
                                                     <div className="text-gray-700 dark:text-white text-[13px] font-semibold mb-[3px]">
                                                         Склад ключа:
                                                     </div>
@@ -676,7 +676,7 @@ export default function AdminKeysPage() {
                                             {key.source && (
                                                 <div className="flex items-start gap-[10px]">
                                                     <BookOpen className="w-5 h-5 text-gray-700 dark:text-white flex-shrink-0 mt-[2px]" strokeWidth={2} />
-                                                    <div>
+                                                    <div className="min-w-0">
                                                         <div className="text-gray-700 dark:text-white text-[13px] font-semibold mb-[3px]">
                                                             Джерело інформації:
                                                         </div>
@@ -690,7 +690,7 @@ export default function AdminKeysPage() {
                                             {key.description && (
                                                 <div className="flex items-start gap-[10px]">
                                                     <FileText className="w-5 h-5 text-gray-700 dark:text-white flex-shrink-0 mt-[2px]" strokeWidth={2} />
-                                                    <div>
+                                                    <div className="min-w-0">
                                                         <div className="text-gray-700 dark:text-white text-[13px] font-semibold mb-[3px]">
                                                             Опис:
                                                         </div>
@@ -703,7 +703,7 @@ export default function AdminKeysPage() {
 
                                             <div className="flex items-start gap-[10px]">
                                                 <User className="w-5 h-5 text-gray-700 dark:text-white flex-shrink-0 mt-[2px]" strokeWidth={2} />
-                                                <div>
+                                                <div className="min-w-0">
                                                     <div className="text-gray-700 dark:text-white text-[13px] font-semibold mb-[3px]">
                                                         Автор:
                                                     </div>
@@ -722,7 +722,7 @@ export default function AdminKeysPage() {
                                         </div>
 
                                         {/* Дії */}
-                                        <div className="flex lg:flex-col gap-[10px] lg:justify-center">
+                                        <div className="flex flex-wrap lg:flex-col gap-[10px] lg:justify-center flex-shrink-0">
                                             <button
                                                 onClick={() => approveKey(key)}
                                                 disabled={processingId !== null}
@@ -793,7 +793,7 @@ export default function AdminKeysPage() {
                                             )}
                                         </div>
 
-                                        <div className="flex-1 space-y-[10px]">
+                                        <div className="flex-1 min-w-0 space-y-[10px]">
                                             <h3 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
                                                 {edit.name}
                                                 <a
@@ -815,20 +815,20 @@ export default function AdminKeysPage() {
                                             {edit.source && (
                                                 <div className="flex items-start gap-[10px]">
                                                     <BookOpen className="w-5 h-5 text-gray-700 dark:text-white flex-shrink-0 mt-[2px]" strokeWidth={2} />
-                                                    <div className="text-gray-900 dark:text-white text-[14px] break-words">{edit.source}</div>
+                                                    <div className="min-w-0 text-gray-900 dark:text-white text-[14px] break-words">{edit.source}</div>
                                                 </div>
                                             )}
 
                                             {edit.description && (
                                                 <div className="flex items-start gap-[10px]">
                                                     <FileText className="w-5 h-5 text-gray-700 dark:text-white flex-shrink-0 mt-[2px]" strokeWidth={2} />
-                                                    <div className="text-gray-900 dark:text-white text-[14px] break-words whitespace-pre-wrap">{edit.description}</div>
+                                                    <div className="min-w-0 text-gray-900 dark:text-white text-[14px] break-words whitespace-pre-wrap">{edit.description}</div>
                                                 </div>
                                             )}
 
                                             <div className="flex items-start gap-[10px]">
                                                 <User className="w-5 h-5 text-gray-700 dark:text-white flex-shrink-0 mt-[2px]" strokeWidth={2} />
-                                                <div className="text-gray-900 dark:text-white text-[14px] font-mono break-all">
+                                                <div className="min-w-0 text-gray-900 dark:text-white text-[14px] font-mono break-all">
                                                     {edit.email}
                                                     {!edit.created_by && (
                                                         <span className="ml-2 font-sans text-gray-500 dark:text-gray-400 text-[12px]">(без акаунта)</span>
@@ -841,7 +841,7 @@ export default function AdminKeysPage() {
                                             </p>
                                         </div>
 
-                                        <div className="flex lg:flex-col gap-[10px] lg:justify-center">
+                                        <div className="flex flex-wrap lg:flex-col gap-[10px] lg:justify-center flex-shrink-0">
                                             <button
                                                 onClick={() => approveEdit(edit)}
                                                 disabled={processingId !== null}

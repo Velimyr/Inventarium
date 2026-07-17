@@ -198,7 +198,7 @@ export default function KeyDetailsPage() {
                                             {keyData.description && (
                                                 <div className="flex items-start gap-[10px] mb-[12px]">
                                                     <FileText className="w-5 h-5 text-gray-700 dark:text-white flex-shrink-0 mt-[2px]" strokeWidth={2} />
-                                                    <p className="text-gray-900 dark:text-white text-[14px] lg:text-[15px] whitespace-pre-wrap break-words">
+                                                    <p className="min-w-0 text-gray-900 dark:text-white text-[14px] lg:text-[15px] whitespace-pre-wrap break-words">
                                                         {keyData.description}
                                                     </p>
                                                 </div>
@@ -206,7 +206,7 @@ export default function KeyDetailsPage() {
                                             {keyData.source && (
                                                 <div className="flex items-start gap-[10px]">
                                                     <BookOpen className="w-5 h-5 text-gray-700 dark:text-white flex-shrink-0 mt-[2px]" strokeWidth={2} />
-                                                    <p className="text-gray-700 dark:text-gray-300 text-[13px] lg:text-[14px] break-words">
+                                                    <p className="min-w-0 text-gray-700 dark:text-gray-300 text-[13px] lg:text-[14px] break-words">
                                                         Джерело: {keyData.source}
                                                     </p>
                                                 </div>

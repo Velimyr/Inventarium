@@ -16,6 +16,7 @@ import {
   Crown,
   Merge,
   Save,
+  Download,
 } from 'lucide-react';
 
 type Mode = 'A' | 'B' | 'C' | 'D';
@@ -142,6 +143,40 @@ const formatValue = (key: string, value: any) => {
 // Для порівняння між записами групи: порожні значення вважаємо однаковими
 const comparable = (value: any) =>
   value === null || value === undefined ? '' : String(value).trim();
+
+// У картинку, якою діляться, не тягнемо контакти й ідентифікатори авторів
+const IMAGE_SKIP_FIELDS = ['email', 'created_by'];
+
+const IMAGE = {
+  width: 1000,
+  pad: 32,
+  bg: '#FFFFFF',
+  text: '#111827',
+  muted: '#6B7280',
+  border: '#D1D5DB',
+  highlight: '#FEF3C7',
+  keep: '#14AE5C',
+  dup: '#DC2626',
+};
+
+const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number) => {
+  const words = String(text).split(/\s+/);
+  const lines: string[] = [];
+  let line = '';
+
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (!line || ctx.measureText(candidate).width <= maxWidth) {
+      line = candidate;
+    } else {
+      lines.push(line);
+      line = word;
+    }
+  }
+
+  if (line) lines.push(line);
+  return lines;
+};
 
 export default function AdminDuplicatesPage() {
   const { user, loading: userLoading } = useUser();
@@ -651,6 +686,166 @@ export default function AdminDuplicatesPage() {
 
     setToast({ message: '✅ Список переглянутих очищено', type: 'success' });
     await loadGroups(mode);
+  };
+
+  // Малюємо картку групи на canvas і віддаємо PNG. Власне малювання, а не знімок
+  // екрана: так картинка однакова в темній і світлій темі, без службових кнопок,
+  // і в неї не потрапляють email та id авторів.
+  const saveGroupImage = () => {
+    if (!currentGroup || records.length === 0) return;
+
+    const dpr = 2;
+    const { width: W, pad } = IMAGE;
+    const inner = W - pad * 2;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W * dpr;
+    canvas.height = 6000 * dpr;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      setToast({ message: '❌ Не вдалося створити зображення', type: 'error' });
+      return;
+    }
+
+    ctx.scale(dpr, dpr);
+    ctx.fillStyle = IMAGE.bg;
+    ctx.fillRect(0, 0, W, 6000);
+    ctx.textBaseline = 'top';
+
+    const font = (size: number, weight = '400') =>
+      `${weight} ${size}px -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
+
+    let y = pad;
+
+    ctx.fillStyle = IMAGE.text;
+    ctx.font = font(24, '700');
+    ctx.fillText('Inventarium — можливі дублі', pad, y);
+    y += 34;
+
+    ctx.fillStyle = IMAGE.muted;
+    ctx.font = font(15);
+    const modeTitle = MODES.find((m) => m.key === mode)?.title ?? mode;
+    ctx.fillText(`Критерій ${mode}. ${modeTitle}`, pad, y);
+    y += 26;
+
+    ctx.fillStyle = IMAGE.text;
+    ctx.font = font(17, '600');
+    for (const line of wrapText(ctx, currentGroup.label, inner)) {
+      ctx.fillText(line, pad, y);
+      y += 24;
+    }
+
+    ctx.fillStyle = IMAGE.muted;
+    ctx.font = font(14);
+    ctx.fillText(`Записів у групі: ${records.length}`, pad, y);
+    y += 30;
+
+    for (const record of records) {
+      const isKeep = record.id === keepId;
+      const isDup = selected.has(record.id);
+      const blockTop = y;
+      const blockPad = 14;
+
+      y += blockPad;
+
+      ctx.fillStyle = IMAGE.text;
+      ctx.font = font(16, '700');
+      ctx.fillText(
+        `${record.current_settlement_type ?? ''} ${record.current_settlement_name ?? ''}`.trim(),
+        pad + blockPad,
+        y
+      );
+
+      if (isKeep || isDup) {
+        ctx.fillStyle = isDup ? IMAGE.dup : IMAGE.keep;
+        ctx.font = font(13, '700');
+        const badge = isDup ? 'ДУБЛЬ' : 'ОСНОВНИЙ';
+        ctx.fillText(badge, W - pad - blockPad - ctx.measureText(badge).width, y + 2);
+      }
+      y += 24;
+
+      ctx.fillStyle = IMAGE.muted;
+      ctx.font = font(13);
+      ctx.fillText(`/record/${record.id}`, pad + blockPad, y);
+      y += 22;
+
+      const labelWidth = 210;
+      for (const field of FIELDS) {
+        if (IMAGE_SKIP_FIELDS.includes(field.key)) continue;
+
+        const value = formatValue(field.key, record[field.key]);
+        if (value === '—') continue;
+
+        ctx.font = font(13);
+        const valueLines = wrapText(ctx, value, inner - blockPad * 2 - labelWidth);
+        const rowHeight = valueLines.length * 18;
+
+        if (differingFields.has(field.key)) {
+          ctx.fillStyle = IMAGE.highlight;
+          ctx.fillRect(pad + blockPad - 4, y - 2, inner - blockPad * 2 + 8, rowHeight + 4);
+        }
+
+        ctx.fillStyle = IMAGE.muted;
+        ctx.font = font(13);
+        ctx.fillText(field.label, pad + blockPad, y);
+
+        ctx.fillStyle = IMAGE.text;
+        valueLines.forEach((line, i) => {
+          ctx.fillText(line, pad + blockPad + labelWidth, y + i * 18);
+        });
+
+        y += rowHeight + 4;
+      }
+
+      y += blockPad;
+
+      ctx.strokeStyle = isDup ? IMAGE.dup : isKeep ? IMAGE.keep : IMAGE.border;
+      ctx.lineWidth = isKeep || isDup ? 2 : 1;
+      ctx.strokeRect(pad, blockTop, inner, y - blockTop);
+      y += 14;
+    }
+
+    ctx.fillStyle = IMAGE.muted;
+    ctx.font = font(12);
+    ctx.fillText(
+      `Підсвічені поля — ті, що в межах групи відрізняються · ${new Date().toLocaleDateString('uk-UA')}`,
+      pad,
+      y
+    );
+    y += 20 + pad;
+
+    // Обрізаємо полотно по фактичній висоті
+    const out = document.createElement('canvas');
+    out.width = W * dpr;
+    out.height = Math.round(y * dpr);
+    const outCtx = out.getContext('2d');
+    if (!outCtx) {
+      setToast({ message: '❌ Не вдалося створити зображення', type: 'error' });
+      return;
+    }
+    outCtx.drawImage(canvas, 0, 0);
+
+    out.toBlob((blob) => {
+      if (!blob) {
+        setToast({ message: '❌ Не вдалося створити зображення', type: 'error' });
+        return;
+      }
+
+      const name = `${records[0]?.current_settlement_name ?? 'group'}-${
+        records[0]?.inventory_year ?? ''
+      }`.replace(/[^\wА-Яа-яЇїІіЄєҐґ-]+/g, '_');
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `inventarium-dubli-${mode}-${name}.png`;
+      link.click();
+      // Звільняти URL одразу після click() не можна: у частині браузерів
+      // завантаження стартує асинхронно і встигає отримати вже мертве посилання
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+      setToast({ message: '✅ Зображення збережено', type: 'success' });
+    }, 'image/png');
   };
 
   const openMerge = () => {
@@ -1167,6 +1362,15 @@ export default function AdminDuplicatesPage() {
                 >
                   <SkipForward className="w-5 h-5" strokeWidth={2} />
                   <span className="text-[15px] font-medium">Пропустити</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={saveGroupImage}
+                  disabled={recordsLoading || records.length === 0}
+                  className="flex items-center justify-center gap-[8px] h-[44px] px-[18px] border border-gray-300 dark:border-[#374151] text-gray-900 dark:text-[#F3F4F6] rounded disabled:opacity-40"
+                >
+                  <Download className="w-5 h-5" strokeWidth={2} />
+                  <span className="text-[15px] font-medium">Зберегти зображенням</span>
                 </button>
               </div>
             </>

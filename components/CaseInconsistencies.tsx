@@ -14,6 +14,16 @@ export const CASE_FIELDS: { key: string; label: string }[] = [
   { key: 'additional_case_signature', label: 'Дод. сигнатура' },
 ];
 
+// Скільки записів має кожне значення поля, від найпоширенішого до рідкісного
+const countVariants = (records: any[], field: string): [string, number][] => {
+  const counts = new Map<string, number>();
+  for (const record of records) {
+    const value = String(record[field] ?? '').trim();
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+};
+
 interface CaseGroup {
   signature_key: string;
   case_signature: string;
@@ -22,8 +32,31 @@ interface CaseGroup {
   diffs: Record<string, string[]>;
 }
 
-const shorten = (value: string, max = 60) =>
-  value.length > max ? `${value.slice(0, max)}…` : value;
+const isUrl = (value: string) => /^https?:\/\//i.test(value);
+
+// Значення поля: порожнє показуємо явно, посилання — повністю і клікабельно
+function FieldValue({ value }: { value: string }) {
+  if (value === '') {
+    return (
+      <span className="text-red-600 dark:text-red-400 font-medium">не заповнено</span>
+    );
+  }
+
+  if (isUrl(value)) {
+    return (
+      <a
+        href={value}
+        target="_blank"
+        rel="noreferrer"
+        className="text-[#2563EB] hover:underline break-all"
+      >
+        {value}
+      </a>
+    );
+  }
+
+  return <span className="break-words">{value}</span>;
+}
 
 export default function CaseInconsistencies({
   onError,
@@ -214,20 +247,48 @@ export default function CaseInconsistencies({
 
                 {isOpen && (
                   <div className="px-[15px] pb-[15px]">
-                    {/* Варіанти значень по кожному полю */}
-                    <div className="flex flex-col gap-[8px] mb-[15px]">
-                      {diffFields.map((f) => (
-                        <div key={f.key} className="text-[13px]">
-                          <span className="text-gray-900 dark:text-[#F3F4F6] font-medium">
-                            {f.label}:{' '}
-                          </span>
-                          <span className="text-gray-700 dark:text-gray-300">
-                            {group.diffs[f.key]
-                              .map((v) => (v === '' ? '— (не заповнено)' : shorten(v)))
-                              .join('  ·  ')}
-                          </span>
-                        </div>
-                      ))}
+                    {/* Варіанти значень по кожному полю: найпоширеніше зверху,
+                        решта підсвічена як відхилення */}
+                    <div className="flex flex-col gap-[12px] mb-[18px]">
+                      {diffFields.map((f) => {
+                        const variants = countVariants(records, f.key);
+                        return (
+                          <div
+                            key={f.key}
+                            className="rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] p-[10px]"
+                          >
+                            <p className="text-gray-900 dark:text-[#F3F4F6] text-[14px] font-semibold mb-[6px]">
+                              {f.label} — {variants.length} різних значень
+                            </p>
+                            <div className="flex flex-col gap-[4px]">
+                              {variants.map(([value, count], i) => (
+                                <div
+                                  key={value}
+                                  className={`flex items-start gap-[8px] text-[13px] px-[8px] py-[4px] rounded ${
+                                    i === 0
+                                      ? 'bg-gray-100 dark:bg-[#1F2937]'
+                                      : 'bg-amber-100 dark:bg-[#4A3413]'
+                                  }`}
+                                >
+                                  <span
+                                    className={`whitespace-nowrap font-medium ${
+                                      i === 0
+                                        ? 'text-gray-600 dark:text-gray-400'
+                                        : 'text-amber-900 dark:text-amber-200'
+                                    }`}
+                                  >
+                                    {count} зап.
+                                    {i === 0 ? ' · більшість' : ''}
+                                  </span>
+                                  <span className="text-gray-900 dark:text-[#F3F4F6] min-w-0">
+                                    <FieldValue value={value} />
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {recordsLoading ? (
@@ -264,18 +325,18 @@ export default function CaseInconsistencies({
                                 </td>
                                 {diffFields.map((f) => {
                                   const value = String(record[f.key] ?? '').trim();
+                                  const majority = countVariants(records, f.key)[0]?.[0];
+                                  const deviates = value !== majority;
                                   return (
                                     <td
                                       key={f.key}
-                                      className="p-[8px] text-gray-700 dark:text-gray-300 break-all"
+                                      className={`p-[8px] align-top max-w-[420px] ${
+                                        deviates
+                                          ? 'bg-amber-100 dark:bg-[#4A3413] text-amber-900 dark:text-amber-200 font-medium'
+                                          : 'text-gray-700 dark:text-gray-300'
+                                      }`}
                                     >
-                                      {value === '' ? (
-                                        <span className="text-red-600 dark:text-red-400">
-                                          не заповнено
-                                        </span>
-                                      ) : (
-                                        shorten(value, 48)
-                                      )}
+                                      <FieldValue value={value} />
                                     </td>
                                   );
                                 })}

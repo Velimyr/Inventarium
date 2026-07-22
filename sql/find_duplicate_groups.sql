@@ -86,13 +86,24 @@ grant insert, delete on public.records_duplicate_reviewed to authenticated;
 --         Ігнорує old_settlement_*, тому ловить «Місто» проти «Містечка».
 --   'C' — підозри: населений пункт + рік, але шифри справ РІЗНІ.
 --         Той самий інвентар, внесений з різних архівів чи копій. Багато шуму.
+-- Повертає ще й «обсяги» групи — набори архівних координат, які в ній трапляються.
+-- Вони потрібні для масової відмітки «не дублі» на сторінці: якщо в групі рівно
+-- одне значення на певному рівні, тим самим значенням можна накрити всі інші
+-- групи того ж фонду/опису/справи одним підтвердженням.
+-- Тип результату змінюється, тому спершу прибираємо стару версію функції.
+drop function if exists public.find_duplicate_groups(text);
+
 create or replace function public.find_duplicate_groups(p_mode text default 'B')
 returns table (
   group_key     text,
   records_count integer,
   first_created timestamp,
   record_ids    uuid[],
-  label         text
+  label         text,
+  scope_l4      text[],   -- архів|фонд|опис|справа
+  scope_l3      text[],   -- архів|фонд|опис
+  scope_l2      text[],   -- архів|фонд
+  scope_sig     text[]    -- шифр справи (коли архівні поля не заповнені)
 )
 language sql
 stable
@@ -114,6 +125,11 @@ as $$
       inv_norm(r.current_settlement_name) as n_cname,
       inv_norm(r.old_settlement_type)     as n_otype,
       inv_norm(r.old_settlement_name)     as n_oname,
+      inv_norm(r.archive)                 as n_archive,
+      inv_norm(r.fonds)                   as n_fonds,
+      inv_norm(r.series)                  as n_series,
+      inv_norm(r.record)                  as n_record,
+      inv_norm(r.case_signature)          as n_case_sig,
       -- шифр беремо з case_signature, а якщо він порожній — складаємо з
       -- архів+фонд+опис+справа; після inv_norm_sig обидві форми збігаються
       coalesce(
@@ -150,7 +166,11 @@ as $$
                   btrim(concat_ws(' ', min(current_settlement_type), min(current_settlement_name)))),
         coalesce(min(inventory_year)::text, 'рік не вказано'),
         nullif(min(case_signature), '')
-      ) as label
+      ) as label,
+      array_agg(distinct concat_ws('|', n_archive, n_fonds, n_series, n_record)) as scope_l4,
+      array_agg(distinct concat_ws('|', n_archive, n_fonds, n_series))           as scope_l3,
+      array_agg(distinct concat_ws('|', n_archive, n_fonds))                     as scope_l2,
+      array_agg(distinct n_case_sig)                                             as scope_sig
     from keyed
     where k is not null
       and k <> ''
@@ -161,7 +181,8 @@ as $$
        -- 'C' показує лише те, що не спіймав 'B': шифри в групі різні
        and (p_mode <> 'C' or count(distinct n_sig) > 1)
   )
-  select g.group_key, g.records_count, g.first_created, g.record_ids, g.label
+  select g.group_key, g.records_count, g.first_created, g.record_ids, g.label,
+         g.scope_l4, g.scope_l3, g.scope_l2, g.scope_sig
   from grouped g
   -- групи, які адмін уже переглянув і позначив «це не дублі», не показуємо
   where not exists (

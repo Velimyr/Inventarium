@@ -44,7 +44,35 @@ interface DuplicateGroup {
   first_created: string;
   record_ids: string[];
   label: string;
+  scope_l4: string[] | null;
+  scope_l3: string[] | null;
+  scope_l2: string[] | null;
+  scope_sig: string[] | null;
 }
+
+// Рівні «обсягу» для масової відмітки «не дублі».
+// Група підпадає під обсяг, лише якщо ВСІ її записи в ньому — тобто на цьому
+// рівні в групі рівно одне значення, і воно збігається з обраним.
+type ScopeLevel = 'l4' | 'l3' | 'l2' | 'sig';
+
+const SCOPE_LEVELS: { key: ScopeLevel; field: keyof DuplicateGroup; title: string }[] = [
+  { key: 'l4', field: 'scope_l4', title: 'архів, фонд, опис, справа' },
+  { key: 'l3', field: 'scope_l3', title: 'архів, фонд, опис' },
+  { key: 'l2', field: 'scope_l2', title: 'архів, фонд' },
+  { key: 'sig', field: 'scope_sig', title: 'шифр справи' },
+];
+
+// Значення обсягу придатне, лише якщо всі його складові заповнені:
+// 'цдіал|146|19' — так, '||' або 'цдіал||' — ні
+const scopeValueOf = (group: DuplicateGroup, field: keyof DuplicateGroup): string | null => {
+  const values = group[field] as string[] | null;
+  if (!values || values.length !== 1) return null;
+  const value = values[0];
+  if (!value || value.split('|').some((part) => part.trim() === '')) return null;
+  return value;
+};
+
+const scopeLabel = (value: string) => value.split('|').join(' · ');
 
 // Усі поля запису з підписами. Порядок = порядок показу в картці.
 const FIELDS: { key: string; label: string }[] = [
@@ -126,6 +154,7 @@ export default function AdminDuplicatesPage() {
   const [saving, setSaving] = useState(false);
   const [reviewedCount, setReviewedCount] = useState<number | null>(null);
 
+  const [bulkScope, setBulkScope] = useState<ScopeLevel | null>(null);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeChoices, setMergeChoices] = useState<Record<string, string>>({});
   const [mergeComment, setMergeComment] = useState('');
@@ -163,6 +192,25 @@ export default function AdminDuplicatesPage() {
       return values.size > 1;
     });
   }, [mergeCandidates]);
+
+  // Обсяги, доступні для поточної групи, і скільки груп кожен накриває
+  const availableScopes = useMemo(() => {
+    if (!currentGroup) return [];
+    return SCOPE_LEVELS.map((level) => {
+      const value = scopeValueOf(currentGroup, level.field);
+      if (!value) return null;
+      const affected = groups.filter((g) => scopeValueOf(g, level.field) === value);
+      return { ...level, value, affected };
+    }).filter(Boolean) as {
+      key: ScopeLevel;
+      field: keyof DuplicateGroup;
+      title: string;
+      value: string;
+      affected: DuplicateGroup[];
+    }[];
+  }, [currentGroup, groups]);
+
+  const activeScope = availableScopes.find((s) => s.key === bulkScope) ?? null;
 
   const loadReviewedCount = useCallback(async (nextMode: Mode) => {
     const { count, error: countError } = await supabase
@@ -269,6 +317,7 @@ export default function AdminDuplicatesPage() {
       setRecordsLoading(true);
       setSelected(new Set());
       setMergeOpen(false);
+      setBulkScope(null);
 
       const { data, error: fetchError } = await supabase
         .from('records')
@@ -495,6 +544,57 @@ export default function AdminDuplicatesPage() {
     setReviewedCount((prev) => (prev === null ? null : prev + 1));
     setToast({ message: '✅ Групу позначено як «не дублі»', type: 'success' });
     dropCurrentGroup();
+  };
+
+  // Масова відмітка «не дублі» для всіх груп обраного обсягу
+  const markScopeReviewed = async () => {
+    if (!activeScope || activeScope.affected.length === 0) return;
+
+    const confirmed = window.confirm(
+      `Позначити «не дублі» ${activeScope.affected.length} груп(и) за обсягом ` +
+        `${activeScope.title}: ${scopeLabel(activeScope.value)}?\n\n` +
+        'Ці групи зникнуть зі списку. Записи в реєстрі не змінюються — ' +
+        'повернути групи можна кнопкою «Очистити список переглянутих».'
+    );
+    if (!confirmed) return;
+
+    setSaving(true);
+
+    const rows = activeScope.affected.map((g) => ({
+      mode,
+      group_key: g.group_key,
+      reviewed_by: user?.id ?? null,
+    }));
+
+    // Вставляємо порціями: груп може бути кілька сотень
+    const CHUNK = 500;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const { error: insertError } = await supabase
+        .from('records_duplicate_reviewed')
+        .upsert(rows.slice(i, i + CHUNK), {
+          onConflict: 'mode,group_key',
+          ignoreDuplicates: true,
+        });
+
+      if (insertError) {
+        setSaving(false);
+        console.error('Помилка масової відмітки:', insertError);
+        setToast({ message: '❌ Помилка збереження: ' + insertError.message, type: 'error' });
+        return;
+      }
+    }
+
+    setSaving(false);
+
+    const markedKeys = new Set(activeScope.affected.map((g) => g.group_key));
+    const nextGroups = groups.filter((g) => !markedKeys.has(g.group_key));
+
+    setGroups(nextGroups);
+    setIndex(Math.min(index, Math.max(nextGroups.length - 1, 0)));
+    setCounts((prev) => ({ ...prev, [mode]: nextGroups.length }));
+    setReviewedCount((prev) => (prev === null ? null : prev + markedKeys.size));
+    setBulkScope(null);
+    setToast({ message: `✅ Позначено «не дублі»: ${markedKeys.size} груп(и)`, type: 'success' });
   };
 
   const clearReviewed = async () => {
@@ -777,6 +877,75 @@ export default function AdminDuplicatesPage() {
                       </section>
                     );
                   })}
+                </div>
+              )}
+
+              {/* Швидке опрацювання: «не дублі» одразу для всього фонду/опису/справи */}
+              {!recordsLoading && availableScopes.length > 0 && (
+                <div className="mt-[20px] p-[15px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
+                  <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[16px] font-semibold mb-[5px]">
+                    Не дублі — одразу для всього обсягу
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 text-[13px] mb-[12px]">
+                    Група потрапляє в обсяг, лише якщо в ньому всі її записи. Групи, де є запис
+                    з іншого фонду чи архіву, лишаються на ручний розгляд.
+                  </p>
+                  <div className="flex flex-wrap gap-[10px]">
+                    {availableScopes.map((scope) => (
+                      <button
+                        key={scope.key}
+                        type="button"
+                        onClick={() => setBulkScope(bulkScope === scope.key ? null : scope.key)}
+                        disabled={saving}
+                        className={`text-left px-[14px] py-[10px] rounded border text-[14px] transition-colors disabled:opacity-40 ${
+                          bulkScope === scope.key
+                            ? 'border-[#2563EB] bg-blue-50 dark:bg-[#1E3A5F] text-gray-900 dark:text-[#F3F4F6]'
+                            : 'border-gray-300 dark:border-[#374151] text-gray-900 dark:text-[#F3F4F6] hover:border-[#2563EB]'
+                        }`}
+                      >
+                        <span className="block font-medium">{scope.title}</span>
+                        <span className="block text-gray-600 dark:text-gray-400 text-[13px]">
+                          {scopeLabel(scope.value)} — груп: {scope.affected.length}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {activeScope && (
+                    <div className="mt-[15px] pt-[15px] border-t border-gray-300 dark:border-[#374151]">
+                      <p className="text-gray-900 dark:text-[#F3F4F6] text-[14px] mb-[8px]">
+                        Буде позначено «не дублі»: {activeScope.affected.length} груп(и) за обсягом{' '}
+                        <span className="font-semibold">{scopeLabel(activeScope.value)}</span>
+                      </p>
+                      <div className="max-h-[260px] overflow-y-auto rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] divide-y divide-gray-200 dark:divide-[#374151]">
+                        {activeScope.affected.map((g) => (
+                          <p
+                            key={g.group_key}
+                            className={`px-[10px] py-[6px] text-[13px] ${
+                              g.group_key === currentGroup?.group_key
+                                ? 'text-[#2563EB] font-medium'
+                                : 'text-gray-700 dark:text-gray-300'
+                            }`}
+                          >
+                            {g.label} · записів: {g.records_count}
+                          </p>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={markScopeReviewed}
+                        disabled={saving}
+                        className="flex items-center justify-center gap-[8px] h-[44px] px-[18px] mt-[12px] bg-[#14AE5C] hover:bg-[#0F8A4A] disabled:opacity-40 text-white rounded transition-colors"
+                      >
+                        <CheckCheck className="w-5 h-5" strokeWidth={2} />
+                        <span className="text-[15px] font-medium">
+                          {saving
+                            ? 'Збереження...'
+                            : `Не дублі — підтвердити для ${activeScope.affected.length} груп(и)`}
+                        </span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 

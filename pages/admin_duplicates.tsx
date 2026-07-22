@@ -18,7 +18,9 @@ import {
   Save,
 } from 'lucide-react';
 
-type Mode = 'A' | 'B' | 'C';
+// Режим 'C' лишився у функції БД як був — щоб повернути єдиний блок підозр,
+// достатньо замінити три записи C1/C2/C3 нижче на один із key: 'C'.
+type Mode = 'A' | 'B' | 'C1' | 'C2' | 'C3';
 
 const MODES: { key: Mode; title: string; hint: string }[] = [
   {
@@ -32,9 +34,19 @@ const MODES: { key: Mode; title: string; hint: string }[] = [
     hint: 'Той самий населений пункт, шифр справи і рік. Старі назви та їх тип не враховуються',
   },
   {
-    key: 'C',
-    title: 'Підозри',
-    hint: 'Той самий населений пункт і рік, але РІЗНІ шифри справ. Перевіряти вручну',
+    key: 'C1',
+    title: 'Різні архіви',
+    hint: 'Той самий НП і рік, але записи з різних архівів — копії та мікрофільми. Найімовірніші дублі',
+  },
+  {
+    key: 'C2',
+    title: 'Різні фонди/описи',
+    hint: 'Архів один, але справи походять з різних фондів чи описів',
+  },
+  {
+    key: 'C3',
+    title: 'Серія справ одного опису',
+    hint: 'Один опис, різні справи — зазвичай окремі інвентарні книги, а не дублі',
   },
 ];
 
@@ -47,18 +59,21 @@ interface DuplicateGroup {
   scope_l4: string[] | null;
   scope_l3: string[] | null;
   scope_l2: string[] | null;
+  scope_l1: string[] | null;
   scope_sig: string[] | null;
+  archives: string[] | null;
 }
 
 // Рівні «обсягу» для масової відмітки «не дублі».
 // Група підпадає під обсяг, лише якщо ВСІ її записи в ньому — тобто на цьому
 // рівні в групі рівно одне значення, і воно збігається з обраним.
-type ScopeLevel = 'l4' | 'l3' | 'l2' | 'sig';
+type ScopeLevel = 'l4' | 'l3' | 'l2' | 'l1' | 'sig';
 
 const SCOPE_LEVELS: { key: ScopeLevel; field: keyof DuplicateGroup; title: string }[] = [
   { key: 'l4', field: 'scope_l4', title: 'архів, фонд, опис, справа' },
   { key: 'l3', field: 'scope_l3', title: 'архів, фонд, опис' },
   { key: 'l2', field: 'scope_l2', title: 'архів, фонд' },
+  { key: 'l1', field: 'scope_l1', title: 'архів' },
   { key: 'sig', field: 'scope_sig', title: 'шифр справи' },
 ];
 
@@ -143,7 +158,13 @@ export default function AdminDuplicatesPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  const [counts, setCounts] = useState<Record<Mode, number | null>>({ A: null, B: null, C: null });
+  const [counts, setCounts] = useState<Record<Mode, number | null>>({
+    A: null,
+    B: null,
+    C1: null,
+    C2: null,
+    C3: null,
+  });
   const [mode, setMode] = useState<Mode>('B');
   const [groups, setGroups] = useState<DuplicateGroup[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
@@ -693,7 +714,7 @@ export default function AdminDuplicatesPage() {
           </p>
 
           {/* Критерії */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-[15px] mb-[20px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[15px] mb-[20px]">
             {MODES.map((m) => {
               const active = m.key === mode;
               return (
@@ -759,9 +780,25 @@ export default function AdminDuplicatesPage() {
                     Група {index + 1} з {groups.length}
                   </p>
                   {currentGroup && (
-                    <p className="text-gray-600 dark:text-gray-400 text-[14px]">
-                      {currentGroup.label} · записів: {currentGroup.records_count}
-                    </p>
+                    <>
+                      <p className="text-gray-600 dark:text-gray-400 text-[14px]">
+                        {currentGroup.label} · записів: {currentGroup.records_count}
+                      </p>
+                      {currentGroup.archives && currentGroup.archives.length > 0 && (
+                        <p
+                          className={`inline-block mt-[4px] px-[8px] py-[2px] rounded text-[13px] ${
+                            currentGroup.archives.length > 1
+                              ? 'bg-amber-100 dark:bg-[#4A3413] text-amber-900 dark:text-amber-200'
+                              : 'bg-gray-200 dark:bg-[#374151] text-gray-800 dark:text-gray-200'
+                          }`}
+                        >
+                          {currentGroup.archives.length > 1
+                            ? `${currentGroup.archives.length} архіви: `
+                            : 'Архів: '}
+                          {currentGroup.archives.join(', ')}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
                 <div className="flex items-center gap-[10px]">

@@ -108,12 +108,11 @@ grant insert, delete on public.records_duplicate_reviewed to authenticated;
 --   'B' — основний критерій: населений пункт + рік + справа.
 --         Ігнорує old_settlement_*, тому ловить «Місто» проти «Містечка».
 --   'C' — підозри: населений пункт + рік, але шифри справ РІЗНІ.
---         Лишений для сумісності; на сторінці розбитий на C1/C2/C3.
---   'C1' — те саме, але записи з РІЗНИХ архівів: копії та мікрофільми
---          (ЦДІАК КМФ-15 ↔ ANK AS, ЛННБ 141 ↔ ЦДІАЛ 146). Найімовірніші дублі.
---   'C2' — один архів, але справи з різних фондів чи описів.
---   'C3' — один опис, різні справи: серія окремих інвентарних книг, зазвичай не дублі.
---          Сюди ж потрапляють групи, де фонд/опис не заповнені.
+--         Той самий інвентар, внесений з різних архівів чи копій. Багато шуму.
+--   'D' — зв'язок через додаткову сигнатуру: населений пункт + рік збігаються,
+--         а шифр однієї справи дорівнює ДОДАТКОВОМУ шифру іншої. Тобто автор сам
+--         зазначив, що це та сама справа в іншому архіві. Найнадійніший сигнал.
+--         Записи, у яких збігаються основні шифри, сюди не потрапляють — це вже 'B'.
 -- Повертає ще й «обсяги» групи — набори архівних координат, які в ній трапляються.
 -- Вони потрібні для масової відмітки «не дублі» на сторінці: якщо в групі рівно
 -- одне значення на певному рівні, тим самим значенням можна накрити всі інші
@@ -164,6 +163,7 @@ as $$
       inv_norm(r.series)                  as n_series,
       inv_norm(r.record)                  as n_record,
       inv_norm(r.case_signature)          as n_case_sig,
+      inv_norm_sig(r.additional_case_signature) as n_sig_add,
       -- шифр беремо з case_signature, а якщо він порожній — складаємо з
       -- архів+фонд+опис+справа; після inv_norm_sig обидві форми збігаються
       coalesce(
@@ -184,18 +184,34 @@ as $$
         when p_mode = 'B' then
           concat_ws('|', n_region, n_district, n_community, n_cname,
                     coalesce(inventory_year::text, ''), n_sig)
-        when p_mode in ('C', 'C1', 'C2', 'C3') then
+        when p_mode = 'C' then
           concat_ws('|', n_region, n_district, n_community, n_cname, inventory_year::text)
+        when p_mode = 'D' then
+          concat_ws('|', n_region, n_district, n_community, n_cname,
+                    inventory_year::text, sv.sig_variant)
       end as k
     from base
+    -- У режимі 'D' запис бере участь під обома своїми шифрами — основним і
+    -- додатковим, — тож група виникає там, де шифр однієї справи збігається
+    -- з додатковим шифром іншої. В інших режимах варіант рівно один,
+    -- і кількість рядків не змінюється.
+    cross join lateral (
+      select unnest(
+        case when p_mode = 'D'
+          then array_remove(array[n_sig, n_sig_add], '')
+          else array[n_sig]
+        end
+      ) as sig_variant
+    ) sv
   ),
   grouped as (
     select
       k as group_key,
-      count(*)::integer as records_count,
+      -- distinct, бо в режимі 'D' той самий запис може дати два рядки
+      count(distinct id)::integer as records_count,
       -- явне приведення: функція оголошена з timestamp, а колонка може бути timestamptz
       min(created_at)::timestamp as first_created,
-      array_agg(id order by created_at, id) as record_ids,
+      array_agg(distinct id) as record_ids,
       concat_ws(
         ' · ',
         concat_ws(', ', min(current_region),
@@ -212,22 +228,15 @@ as $$
     from keyed
     where k is not null
       and k <> ''
-      -- у режимах 'C*' записи без року дали б одну величезну «групу» зі сміття
-      and (p_mode not in ('C', 'C1', 'C2', 'C3') or inventory_year is not null)
+      -- у режимах 'C' і 'D' записи без року дали б одну величезну «групу» зі сміття
+      and (p_mode not in ('C', 'D') or inventory_year is not null)
     group by k
-    having count(*) > 1
-       -- 'C*' показує лише те, що не спіймав 'B': шифри в групі різні
-       and (p_mode not in ('C', 'C1', 'C2', 'C3') or count(distinct n_sig) > 1)
-       -- C1: записи походять із різних архівів
-       and (p_mode <> 'C1' or count(distinct n_arch) > 1)
-       -- C2: архів один, але фонд/опис заповнені й різні
-       and (p_mode <> 'C2' or (count(distinct n_arch) = 1
-                               and bool_and(n_fonds <> '' and n_series <> '')
-                               and count(distinct (n_arch, n_fonds, n_series)) > 1))
-       -- C3: архів один, а опис або спільний, або не заповнений
-       and (p_mode <> 'C3' or (count(distinct n_arch) = 1
-                               and (bool_or(n_fonds = '' or n_series = '')
-                                    or count(distinct (n_arch, n_fonds, n_series)) = 1)))
+    having count(distinct id) > 1
+       -- 'C' показує лише те, що не спіймав 'B': шифри в групі різні
+       and (p_mode <> 'C' or count(distinct n_sig) > 1)
+       -- 'D': основні шифри різні, тобто записи пов'язані саме додатковою
+       -- сигнатурою, а не однаковим шифром (той випадок уже ловить 'B')
+       and (p_mode <> 'D' or count(distinct n_sig) > 1)
   )
   select g.group_key, g.records_count, g.first_created, g.record_ids, g.label,
          g.scope_l4, g.scope_l3, g.scope_l2, g.scope_l1, g.scope_sig, g.archives
@@ -248,13 +257,3 @@ grant execute on function public.inv_norm(text) to anon, authenticated, service_
 grant execute on function public.inv_norm_sig(text) to anon, authenticated, service_role;
 grant execute on function public.inv_archive_prefix(text) to anon, authenticated, service_role;
 grant execute on function public.find_duplicate_groups(text) to anon, authenticated, service_role;
-
--- Переносимо відмітки «не дублі», зроблені в старому єдиному блоці C, у нові
--- C1/C2/C3. Ключ групи в них однаковий (НП + рік), тому відмітка спрацює саме
--- в тому блоці, до якого група тепер належить. Ідемпотентно, безпечно повторювати.
-insert into public.records_duplicate_reviewed (mode, group_key, reviewed_by, reviewed_at)
-select m.mode, r.group_key, r.reviewed_by, r.reviewed_at
-from public.records_duplicate_reviewed r
-cross join (values ('C1'), ('C2'), ('C3')) as m(mode)
-where r.mode = 'C'
-on conflict do nothing;

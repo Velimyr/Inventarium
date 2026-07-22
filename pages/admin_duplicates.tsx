@@ -18,9 +18,7 @@ import {
   Save,
 } from 'lucide-react';
 
-// Режим 'C' лишився у функції БД як був — щоб повернути єдиний блок підозр,
-// достатньо замінити три записи C1/C2/C3 нижче на один із key: 'C'.
-type Mode = 'A' | 'B' | 'C1' | 'C2' | 'C3';
+type Mode = 'A' | 'B' | 'C' | 'D';
 
 const MODES: { key: Mode; title: string; hint: string }[] = [
   {
@@ -34,19 +32,14 @@ const MODES: { key: Mode; title: string; hint: string }[] = [
     hint: 'Той самий населений пункт, шифр справи і рік. Старі назви та їх тип не враховуються',
   },
   {
-    key: 'C1',
-    title: 'Різні архіви',
-    hint: 'Той самий НП і рік, але записи з різних архівів — копії та мікрофільми. Найімовірніші дублі',
+    key: 'C',
+    title: 'Підозри',
+    hint: 'Той самий населений пункт і рік, але РІЗНІ шифри справ. Перевіряти вручну',
   },
   {
-    key: 'C2',
-    title: 'Різні фонди/описи',
-    hint: 'Архів один, але справи походять з різних фондів чи описів',
-  },
-  {
-    key: 'C3',
-    title: 'Серія справ одного опису',
-    hint: 'Один опис, різні справи — зазвичай окремі інвентарні книги, а не дублі',
+    key: 'D',
+    title: 'Додаткова сигнатура',
+    hint: 'Шифр однієї справи дорівнює додатковому шифру іншої — автор сам зазначив, що це та сама справа',
   },
 ];
 
@@ -161,9 +154,8 @@ export default function AdminDuplicatesPage() {
   const [counts, setCounts] = useState<Record<Mode, number | null>>({
     A: null,
     B: null,
-    C1: null,
-    C2: null,
-    C3: null,
+    C: null,
+    D: null,
   });
   const [mode, setMode] = useState<Mode>('B');
   const [groups, setGroups] = useState<DuplicateGroup[]>([]);
@@ -714,7 +706,7 @@ export default function AdminDuplicatesPage() {
           </p>
 
           {/* Критерії */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[15px] mb-[20px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[15px] mb-[20px]">
             {MODES.map((m) => {
               const active = m.key === mode;
               return (

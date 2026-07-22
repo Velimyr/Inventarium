@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { ExternalLink, RefreshCw } from 'lucide-react';
+import { ExternalLink, RefreshCw, ClipboardCopy } from 'lucide-react';
 
 // Поля справи, які мають бути однакові в усіх записів з тим самим шифром
 export const CASE_FIELDS: { key: string; label: string }[] = [
@@ -8,6 +8,7 @@ export const CASE_FIELDS: { key: string; label: string }[] = [
   { key: 'fonds', label: 'Фонд' },
   { key: 'series', label: 'Опис' },
   { key: 'record', label: 'Справа' },
+  { key: 'case_title', label: 'Назва справи' },
   { key: 'case_date', label: 'Дати справи' },
   { key: 'pages_count', label: 'К-ть сторінок' },
   { key: 'scans_url', label: 'Посилання на скани' },
@@ -23,6 +24,9 @@ const countVariants = (records: any[], field: string): [string, number][] => {
   }
   return [...counts.entries()].sort((a, b) => b[1] - a[1]);
 };
+
+// Екранування рядка для SQL-літерала: одинарна лапка подвоюється
+const sqlLiteral = (value: string) => (value === '' ? 'null' : `'${value.replace(/'/g, "''")}'`);
 
 interface CaseGroup {
   signature_key: string;
@@ -71,6 +75,9 @@ export default function CaseInconsistencies({
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [records, setRecords] = useState<any[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
+  // Яке значення лишаємо по кожному полю, що розходиться
+  const [keepValues, setKeepValues] = useState<Record<string, string>>({});
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -103,11 +110,14 @@ export default function CaseInconsistencies({
     if (openKey === group.signature_key) {
       setOpenKey(null);
       setRecords([]);
+      setKeepValues({});
       return;
     }
 
     setOpenKey(group.signature_key);
     setRecordsLoading(true);
+    setKeepValues({});
+    setCopied(false);
 
     const { data, error } = await supabase
       .from('records')
@@ -120,10 +130,51 @@ export default function CaseInconsistencies({
       onError('❌ Помилка завантаження записів');
       setRecords([]);
     } else {
-      setRecords(data || []);
+      const rows = data || [];
+      setRecords(rows);
+
+      // за замовчуванням лишаємо найпоширеніше значення по кожному полю
+      const defaults: Record<string, string> = {};
+      for (const field of Object.keys(group.diffs || {})) {
+        const top = countVariants(rows, field)[0];
+        if (top) defaults[field] = top[0];
+      }
+      setKeepValues(defaults);
     }
 
     setRecordsLoading(false);
+  };
+
+  // Скрипт оновлення для відкритої справи. Не виконується — лише показується.
+  const updateScript = useMemo(() => {
+    const group = groups.find((g) => g.signature_key === openKey);
+    if (!group) return '';
+
+    const assignments = CASE_FIELDS.filter(
+      (f) => group.diffs?.[f.key] && activeFields.has(f.key) && keepValues[f.key] !== undefined
+    ).map((f) => `  ${f.key} = ${sqlLiteral(keepValues[f.key])}`);
+
+    if (assignments.length === 0) return '';
+
+    return [
+      `-- ${group.case_signature} — ${group.records_count} записів`,
+      `-- Перевірте вибрані значення перед виконанням.`,
+      `update public.records set`,
+      assignments.join(',\n'),
+      `where case_signature = ${sqlLiteral(group.case_signature)}`,
+      `  and approved = true;`,
+    ].join('\n');
+  }, [groups, openKey, activeFields, keepValues]);
+
+  const copyScript = async () => {
+    try {
+      await navigator.clipboard.writeText(updateScript);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Не вдалося скопіювати:', err);
+      onError('❌ Не вдалося скопіювати — виділіть текст вручну');
+    }
   };
 
   const toggleField = (key: string) => {
@@ -258,18 +309,32 @@ export default function CaseInconsistencies({
                             className="rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] p-[10px]"
                           >
                             <p className="text-gray-900 dark:text-[#F3F4F6] text-[14px] font-semibold mb-[6px]">
-                              {f.label} — {variants.length} різних значень
+                              {f.label} — {variants.length} різних значень.{' '}
+                              <span className="font-normal text-gray-600 dark:text-gray-400">
+                                Оберіть, що лишити
+                              </span>
                             </p>
                             <div className="flex flex-col gap-[4px]">
                               {variants.map(([value, count], i) => (
-                                <div
+                                <label
                                   key={value}
-                                  className={`flex items-start gap-[8px] text-[13px] px-[8px] py-[4px] rounded ${
-                                    i === 0
-                                      ? 'bg-gray-100 dark:bg-[#1F2937]'
-                                      : 'bg-amber-100 dark:bg-[#4A3413]'
+                                  className={`flex items-start gap-[8px] text-[13px] px-[8px] py-[4px] rounded cursor-pointer ${
+                                    keepValues[f.key] === value
+                                      ? 'bg-green-100 dark:bg-[#14301F] ring-1 ring-[#14AE5C]'
+                                      : i === 0
+                                        ? 'bg-gray-100 dark:bg-[#1F2937]'
+                                        : 'bg-amber-100 dark:bg-[#4A3413]'
                                   }`}
                                 >
+                                  <input
+                                    type="radio"
+                                    name={`keep-${group.signature_key}-${f.key}`}
+                                    checked={keepValues[f.key] === value}
+                                    onChange={() =>
+                                      setKeepValues((prev) => ({ ...prev, [f.key]: value }))
+                                    }
+                                    className="mt-[3px] w-[14px] h-[14px] accent-[#14AE5C]"
+                                  />
                                   <span
                                     className={`whitespace-nowrap font-medium ${
                                       i === 0
@@ -283,8 +348,26 @@ export default function CaseInconsistencies({
                                   <span className="text-gray-900 dark:text-[#F3F4F6] min-w-0">
                                     <FieldValue value={value} />
                                   </span>
-                                </div>
+                                </label>
                               ))}
+                              <label className="flex items-center gap-[8px] text-[13px] px-[8px] py-[4px] cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name={`keep-${group.signature_key}-${f.key}`}
+                                  checked={keepValues[f.key] === undefined}
+                                  onChange={() =>
+                                    setKeepValues((prev) => {
+                                      const next = { ...prev };
+                                      delete next[f.key];
+                                      return next;
+                                    })
+                                  }
+                                  className="w-[14px] h-[14px] accent-gray-500"
+                                />
+                                <span className="text-gray-600 dark:text-gray-400">
+                                  не чіпати це поле
+                                </span>
+                              </label>
                             </div>
                           </div>
                         );
@@ -357,6 +440,39 @@ export default function CaseInconsistencies({
                         </table>
                       </div>
                     )}
+
+                    {/* Скрипт оновлення — показуємо, не виконуємо */}
+                    <div className="mt-[18px]">
+                      <div className="flex flex-wrap items-center justify-between gap-[10px] mb-[8px]">
+                        <p className="text-gray-900 dark:text-[#F3F4F6] text-[14px] font-semibold">
+                          Скрипт оновлення
+                        </p>
+                        <button
+                          type="button"
+                          onClick={copyScript}
+                          disabled={!updateScript}
+                          className="flex items-center gap-[6px] h-[34px] px-[12px] rounded border border-gray-300 dark:border-[#374151] text-gray-900 dark:text-[#F3F4F6] text-[13px] disabled:opacity-40"
+                        >
+                          <ClipboardCopy className="w-4 h-4" strokeWidth={2} />
+                          {copied ? 'Скопійовано' : 'Копіювати'}
+                        </button>
+                      </div>
+                      {updateScript ? (
+                        <>
+                          <pre className="p-[12px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] text-gray-900 dark:text-[#F3F4F6] text-[13px] overflow-x-auto whitespace-pre">
+                            {updateScript}
+                          </pre>
+                          <p className="text-gray-600 dark:text-gray-400 text-[12px] mt-[6px]">
+                            Скрипт не виконується сторінкою — скопіюйте його в Supabase → SQL
+                            Editor. Оновлює всі записи з цим шифром.
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-gray-600 dark:text-gray-400 text-[13px]">
+                          Жодне поле не обране для оновлення.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
               </section>

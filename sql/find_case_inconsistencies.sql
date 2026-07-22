@@ -2,8 +2,9 @@
 -- на сторінці /admin_duplicates).
 --
 -- Ідея: усі записи з одним шифром справи описують ОДНУ архівну справу, тому
--- її власні характеристики — архів, фонд, опис, номер справи, дати, кількість
--- сторінок, посилання на скани, додаткова сигнатура — мають бути однакові.
+-- її власні характеристики — архів, фонд, опис, номер справи, назва справи,
+-- дати, кількість сторінок, посилання на скани, додаткова сигнатура —
+-- мають бути однакові.
 -- Якщо вони розходяться, це або помилка введення, або незаповнене поле.
 -- Сторінка початку інвентаря сюди не входить: вона законно різна для кожного
 -- населеного пункту всередині справи.
@@ -40,6 +41,7 @@ as $$
       btrim(coalesce(r.fonds::text, ''))                      as f_fonds,
       btrim(coalesce(r.series::text, ''))                     as f_series,
       btrim(coalesce(r.record::text, ''))                     as f_record,
+      btrim(coalesce(r.case_title::text, ''))                 as f_case_title,
       btrim(coalesce(r.case_date::text, ''))                  as f_case_date,
       btrim(coalesce(r.pages_count::text, ''))                as f_pages_count,
       btrim(coalesce(r.scans_url::text, ''))                  as f_scans_url,
@@ -57,6 +59,7 @@ as $$
       count(distinct f_fonds)         as c_fonds,
       count(distinct f_series)        as c_series,
       count(distinct f_record)        as c_record,
+      count(distinct f_case_title)    as c_case_title,
       count(distinct f_case_date)     as c_case_date,
       count(distinct f_pages_count)   as c_pages_count,
       count(distinct f_scans_url)     as c_scans_url,
@@ -65,6 +68,7 @@ as $$
       array_agg(distinct f_fonds)         as v_fonds,
       array_agg(distinct f_series)        as v_series,
       array_agg(distinct f_record)        as v_record,
+      array_agg(distinct f_case_title)    as v_case_title,
       array_agg(distinct f_case_date)     as v_case_date,
       array_agg(distinct f_pages_count)   as v_pages_count,
       array_agg(distinct f_scans_url)     as v_scans_url,
@@ -84,6 +88,7 @@ as $$
       'fonds',                     case when g.c_fonds > 1         then to_jsonb(g.v_fonds) end,
       'series',                    case when g.c_series > 1        then to_jsonb(g.v_series) end,
       'record',                    case when g.c_record > 1        then to_jsonb(g.v_record) end,
+      'case_title',                case when g.c_case_title > 1    then to_jsonb(g.v_case_title) end,
       'case_date',                 case when g.c_case_date > 1     then to_jsonb(g.v_case_date) end,
       'pages_count',               case when g.c_pages_count > 1   then to_jsonb(g.v_pages_count) end,
       'scans_url',                 case when g.c_scans_url > 1     then to_jsonb(g.v_scans_url) end,
@@ -94,6 +99,7 @@ as $$
      or g.c_fonds > 1
      or g.c_series > 1
      or g.c_record > 1
+     or g.c_case_title > 1
      or g.c_case_date > 1
      or g.c_pages_count > 1
      or g.c_scans_url > 1

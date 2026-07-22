@@ -51,7 +51,11 @@ export default function CasePage() {
                 .from('records')
                 .select('*')
                 .eq('approved', true)
-                .eq('case_signature', case_signature);
+                .eq('case_signature', case_signature)
+                // одна справа може містити кілька інвентарів того самого НП за різні
+                // роки — групуємо їх поруч і показуємо в хронологічному порядку
+                .order('current_settlement_name', { ascending: true })
+                .order('inventory_year', { ascending: true });
 
             if (error) {
                 console.error('Помилка завантаження:', error);
@@ -114,10 +118,11 @@ export default function CasePage() {
                             <div className="hidden lg:block overflow-x-auto mb-[15px]">
                                 <div className="min-w-full border border-gray-300 dark:border-[#374151] rounded-lg overflow-hidden">
                                     {/* Table Header */}
-                                    <div className="grid grid-cols-[2fr_2fr_3fr] border-b border-gray-300 dark:border-[#374151]">
+                                    <div className="grid grid-cols-[2fr_2fr_3fr_1fr] border-b border-gray-300 dark:border-[#374151]">
                                         <TableHeader label="Сучасна назва" />
                                         <TableHeader label="Історична назва" />
-                                        <TableHeader label="Адміністративний поділ" isLast />
+                                        <TableHeader label="Адміністративний поділ" />
+                                        <TableHeader label="Рік інвентаря" isLast />
                                     </div>
 
                                     {/* Table Body */}
@@ -125,7 +130,7 @@ export default function CasePage() {
                                         {records.map((record, index) => (
                                             <div
                                                 key={record.id}
-                                                className={`grid grid-cols-[2fr_2fr_3fr] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors ${
+                                                className={`grid grid-cols-[2fr_2fr_3fr_1fr] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors ${
                                                     index % 2 === 0 ? '' : 'bg-gray-50 dark:bg-[#1F2937]'
                                                 }`}
                                                 onClick={() => router.push(`/record/${record.id}`)}
@@ -158,6 +163,7 @@ export default function CasePage() {
                                                         )}
                                                     </div>
                                                 </TableCell>
+                                                <TableCell>{record.inventory_year || '—'}</TableCell>
                                             </div>
                                         ))}
                                     </div>
@@ -179,6 +185,15 @@ export default function CasePage() {
                                                 </div>
                                                 <div className="text-[15px] text-gray-900 dark:text-white font-semibold">
                                                     {record.current_settlement_type} {record.current_settlement_name || '—'}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">
+                                                    Рік інвентаря
+                                                </div>
+                                                <div className="text-[13px] text-gray-900 dark:text-white">
+                                                    {record.inventory_year || '—'}
                                                 </div>
                                             </div>
 

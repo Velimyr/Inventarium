@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import Toast from '../components/Toast';
@@ -14,9 +14,8 @@ import {
   CheckCheck,
   RotateCcw,
   Crown,
-  FileText,
-  Image as ImageIcon,
-  BookOpen,
+  Merge,
+  Save,
 } from 'lucide-react';
 
 type Mode = 'A' | 'B' | 'C';
@@ -47,27 +46,64 @@ interface DuplicateGroup {
   label: string;
 }
 
-const GROUP_FIELDS = `
-  id, created_at, created_by, email,
-  current_region, current_district, current_community,
-  current_settlement_type, current_settlement_name,
-  old_province, old_district, old_community,
-  old_settlement_type, old_settlement_name,
-  archive, fonds, series, record, case_signature, additional_case_signature,
-  case_title, case_date, inventory_year, pages_count, inventory_start_page,
-  scans_url, notes, cobook_link, cobook_transcript
-`;
+// Усі поля запису з підписами. Порядок = порядок показу в картці.
+const FIELDS: { key: string; label: string }[] = [
+  { key: 'current_region', label: 'Область' },
+  { key: 'current_district', label: 'Район' },
+  { key: 'current_community', label: 'Громада' },
+  { key: 'current_settlement_type', label: 'Тип НП' },
+  { key: 'current_settlement_name', label: 'Назва НП' },
+  { key: 'latitude', label: 'Широта' },
+  { key: 'longitude', label: 'Довгота' },
+  { key: 'mark_type', label: 'Тип позначки' },
+  { key: 'old_province', label: 'Воєводство (губернія)' },
+  { key: 'old_district', label: 'Повіт' },
+  { key: 'old_community', label: 'Ключ (староство)' },
+  { key: 'old_settlement_type', label: 'Тип НП (старий)' },
+  { key: 'old_settlement_name', label: 'Назва НП (стара)' },
+  { key: 'archive', label: 'Архів' },
+  { key: 'fonds', label: 'Фонд' },
+  { key: 'series', label: 'Опис' },
+  { key: 'record', label: 'Справа' },
+  { key: 'case_signature', label: 'Шифр справи' },
+  { key: 'additional_case_signature', label: 'Дод. шифр справи' },
+  { key: 'case_title', label: 'Назва справи' },
+  { key: 'case_date', label: 'Дати справи' },
+  { key: 'inventory_year', label: 'Рік складання інвентаря' },
+  { key: 'pages_count', label: 'К-ть сторінок' },
+  { key: 'inventory_start_page', label: 'Сторінка початку інвентаря' },
+  { key: 'scans_url', label: 'Посилання на скани' },
+  { key: 'notes', label: 'Примітки' },
+  { key: 'cobook_link', label: 'Кобук' },
+  { key: 'cobook_transcript', label: 'Транскрипт' },
+  { key: 'email', label: 'Email автора' },
+  { key: 'created_by', label: 'Автор (user_id)' },
+  { key: 'created_at', label: 'Додано' },
+];
 
-const formatDate = (value: string | null) => {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('uk-UA', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+// Поля, які можна перенести в запит на редагування.
+// id / created_at / created_by / approved лишаються від запису, який зберігаємо,
+// email підставляється від адміна, що створює запит (як у звичайній формі редагування).
+const MERGEABLE = FIELDS.map((f) => f.key).filter(
+  (k) => !['email', 'created_by', 'created_at'].includes(k)
+);
+
+const formatValue = (key: string, value: any) => {
+  if (value === null || value === undefined || value === '') return '—';
+  if (key === 'created_at') {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('uk-UA');
+  }
+  if (key === 'cobook_transcript') {
+    const text = typeof value === 'string' ? value : JSON.stringify(value);
+    return text.length > 120 ? `${text.slice(0, 120)}…` : text;
+  }
+  return String(value);
 };
+
+// Для порівняння між записами групи: порожні значення вважаємо однаковими
+const comparable = (value: any) =>
+  value === null || value === undefined ? '' : String(value).trim();
 
 export default function AdminDuplicatesPage() {
   const { user, loading: userLoading } = useUser();
@@ -85,18 +121,49 @@ export default function AdminDuplicatesPage() {
 
   const [records, setRecords] = useState<any[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
+  const [keepId, setKeepId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [reviewedCount, setReviewedCount] = useState<number | null>(null);
 
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [mergeChoices, setMergeChoices] = useState<Record<string, string>>({});
+  const [mergeComment, setMergeComment] = useState('');
+
   const currentGroup = groups[index] ?? null;
 
-  // Найраніший запис групи — «еталон», його підсвічуємо і не пропонуємо до видалення
+  // Найраніший запис групи — за замовчуванням саме його лишаємо в реєстрі
   const earliestId = records.length
     ? records.reduce((acc, r) => (new Date(r.created_at) < new Date(acc.created_at) ? r : acc)).id
     : null;
 
-  // Скільки груп цього критерію вже позначено як «не дублі»
+  // Поля, значення яких у групі не збігаються — підсвічуємо, щоб було видно різницю
+  const differingFields = useMemo(() => {
+    const diff = new Set<string>();
+    if (records.length < 2) return diff;
+    for (const field of FIELDS) {
+      const values = new Set(records.map((r) => comparable(r[field.key])));
+      if (values.size > 1) diff.add(field.key);
+    }
+    return diff;
+  }, [records]);
+
+  // Записи, дані яких можна взяти в запит на редагування: той, що лишається, + обрані дублі
+  const mergeCandidates = useMemo(
+    () => records.filter((r) => r.id === keepId || selected.has(r.id)),
+    [records, keepId, selected]
+  );
+
+  // Поля, які в цих записах відрізняються — тільки для них є що обирати
+  const mergeFields = useMemo(() => {
+    if (mergeCandidates.length < 2) return [] as { key: string; label: string }[];
+    return FIELDS.filter((f) => {
+      if (!MERGEABLE.includes(f.key)) return false;
+      const values = new Set(mergeCandidates.map((r) => comparable(r[f.key])));
+      return values.size > 1;
+    });
+  }, [mergeCandidates]);
+
   const loadReviewedCount = useCallback(async (nextMode: Mode) => {
     const { count, error: countError } = await supabase
       .from('records_duplicate_reviewed')
@@ -185,13 +252,14 @@ export default function AdminDuplicatesPage() {
     };
 
     init();
-  }, [user, userLoading]);
+  }, [user, userLoading, loadReviewedCount]);
 
   // Записи поточної групи
   useEffect(() => {
     if (!currentGroup) {
       setRecords([]);
       setSelected(new Set());
+      setKeepId(null);
       return;
     }
 
@@ -200,10 +268,11 @@ export default function AdminDuplicatesPage() {
     const fetchRecords = async () => {
       setRecordsLoading(true);
       setSelected(new Set());
+      setMergeOpen(false);
 
       const { data, error: fetchError } = await supabase
         .from('records')
-        .select(GROUP_FIELDS)
+        .select('*')
         .in('id', currentGroup.record_ids)
         .order('created_at', { ascending: true });
 
@@ -213,8 +282,11 @@ export default function AdminDuplicatesPage() {
         console.error('Помилка завантаження записів групи:', fetchError);
         setToast({ message: '❌ Помилка завантаження записів групи', type: 'error' });
         setRecords([]);
+        setKeepId(null);
       } else {
-        setRecords(data || []);
+        const rows = data || [];
+        setRecords(rows);
+        setKeepId(rows.length ? rows[0].id : null);
       }
 
       setRecordsLoading(false);
@@ -226,6 +298,27 @@ export default function AdminDuplicatesPage() {
       cancelled = true;
     };
   }, [currentGroup]);
+
+  // Значення за замовчуванням для об'єднання: беремо з запису, що лишається,
+  // а якщо в нього поле порожнє — перше непорожнє з обраних дублів
+  useEffect(() => {
+    if (mergeCandidates.length < 2 || !keepId) {
+      setMergeChoices({});
+      return;
+    }
+
+    const defaults: Record<string, string> = {};
+    for (const field of mergeFields) {
+      const keepRecord = mergeCandidates.find((r) => r.id === keepId);
+      if (keepRecord && comparable(keepRecord[field.key]) !== '') {
+        defaults[field.key] = keepId;
+        continue;
+      }
+      const donor = mergeCandidates.find((r) => comparable(r[field.key]) !== '');
+      defaults[field.key] = donor ? donor.id : keepId;
+    }
+    setMergeChoices(defaults);
+  }, [mergeFields, mergeCandidates, keepId]);
 
   const changeMode = async (nextMode: Mode) => {
     if (nextMode === mode) return;
@@ -245,13 +338,21 @@ export default function AdminDuplicatesPage() {
     });
   };
 
+  const changeKeep = (id: string) => {
+    setKeepId(id);
+    // запис, який лишаємо, не може бути водночас дублем
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
   const goTo = (nextIndex: number) => {
     if (nextIndex < 0 || nextIndex >= groups.length) return;
     setIndex(nextIndex);
   };
 
-  // Видаляє групу зі списку після обробки й лишається на тій самій позиції,
-  // щоб адмін одразу бачив наступну групу
   const dropCurrentGroup = () => {
     const nextGroups = groups.filter((_, i) => i !== index);
     setGroups(nextGroups);
@@ -300,19 +401,88 @@ export default function AdminDuplicatesPage() {
     dropCurrentGroup();
   };
 
-  // «Це не дублі»: запам'ятовуємо групу, щоб вона більше не з'являлася в списку
+  // Запит на редагування для запису, який лишається: збирає значення полів
+  // із нього самого та з обраних дублів і кладе в records_edit
+  const createEditRequest = async () => {
+    if (!keepId || mergeCandidates.length < 2) return;
+
+    const keepRecord = records.find((r) => r.id === keepId);
+    if (!keepRecord) return;
+
+    const merged: Record<string, any> = {};
+    for (const key of MERGEABLE) {
+      const sourceId = mergeChoices[key] ?? keepId;
+      const source = records.find((r) => r.id === sourceId) ?? keepRecord;
+      const value = source[key];
+      merged[key] = value === '' ? null : (value ?? null);
+    }
+
+    setSaving(true);
+
+    // Запит на редагування — один рядок на запис, тож попереджаємо,
+    // якщо на цей інвентар уже є неопрацьоване редагування
+    const { data: existingEdit, error: existingError } = await supabase
+      .from('records_edit')
+      .select('id')
+      .eq('id', keepId)
+      .maybeSingle();
+
+    if (existingError) {
+      setSaving(false);
+      console.error('Помилка перевірки наявних редагувань:', existingError);
+      setToast({ message: '❌ Помилка перевірки: ' + existingError.message, type: 'error' });
+      return;
+    }
+
+    if (existingEdit) {
+      const overwrite = window.confirm(
+        'На цей інвентар уже є запит на редагування, який чекає на перевірку.\n\n' +
+          'Створити новий — означає замінити той запит цим. Продовжити?'
+      );
+      if (!overwrite) {
+        setSaving(false);
+        return;
+      }
+    }
+
+    const payload = {
+      id: keepId,
+      ...merged,
+      is_ukrainian_archive: merged.archive ? 'Так' : 'Ні',
+      email: user?.email ?? keepRecord.email ?? null,
+      comment: mergeComment.trim(),
+      json_full_data: { ...merged, id: keepId },
+    };
+
+    const { error: upsertError } = await supabase
+      .from('records_edit')
+      .upsert(payload, { onConflict: 'id' });
+
+    setSaving(false);
+
+    if (upsertError) {
+      console.error('Помилка створення запиту на редагування:', upsertError);
+      setToast({ message: '❌ Помилка збереження: ' + upsertError.message, type: 'error' });
+      return;
+    }
+
+    setMergeOpen(false);
+    setToast({
+      message: '✅ Запит на редагування створено — підтвердити його можна в «Редаговані інвентарі»',
+      type: 'success',
+    });
+  };
+
   const markAsReviewed = async () => {
     if (!currentGroup) return;
 
     setSaving(true);
 
-    const { error: insertError } = await supabase
-      .from('records_duplicate_reviewed')
-      .upsert(
-        { mode, group_key: currentGroup.group_key, reviewed_by: user?.id ?? null },
-        // ON CONFLICT DO NOTHING: повторна відмітка тієї ж групи не помилка
-        { onConflict: 'mode,group_key', ignoreDuplicates: true }
-      );
+    const { error: insertError } = await supabase.from('records_duplicate_reviewed').upsert(
+      { mode, group_key: currentGroup.group_key, reviewed_by: user?.id ?? null },
+      // ON CONFLICT DO NOTHING: повторна відмітка тієї ж групи не помилка
+      { onConflict: 'mode,group_key', ignoreDuplicates: true }
+    );
 
     setSaving(false);
 
@@ -354,6 +524,17 @@ export default function AdminDuplicatesPage() {
     await loadGroups(mode);
   };
 
+  const openMerge = () => {
+    const keepRecord = records.find((r) => r.id === keepId);
+    const donors = records.filter((r) => selected.has(r.id));
+    setMergeComment(
+      `Об'єднання дублів: до запису перенесено дані з ${donors.length} запис(ів) — ` +
+        donors.map((r) => r.case_signature || r.id).join(', ') +
+        (keepRecord ? `. Залишено: ${keepRecord.case_signature || keepRecord.id}` : '')
+    );
+    setMergeOpen(true);
+  };
+
   if (userLoading || loading) {
     return (
       <>
@@ -392,10 +573,11 @@ export default function AdminDuplicatesPage() {
           <p className="text-gray-700 dark:text-gray-300 text-[14px] mb-[20px] lg:mb-[30px]">
             Записи не видаляються фізично: обраним проставляється{' '}
             <code className="px-1 rounded bg-gray-100 dark:bg-[#374151]">approved = false</code>.
+            Поля, які в межах групи відрізняються, підсвічені.
           </p>
 
           {/* Критерії */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-[15px] mb-[25px]">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-[15px] mb-[20px]">
             {MODES.map((m) => {
               const active = m.key === mode;
               return (
@@ -430,8 +612,8 @@ export default function AdminDuplicatesPage() {
               Позначено «не дублі» за критерієм {mode}:{' '}
               <span className="font-semibold text-gray-900 dark:text-[#F3F4F6]">
                 {reviewedCount ?? '—'}
-              </span>
-              {' '}— ці групи приховані зі списку
+              </span>{' '}
+              — ці групи приховані зі списку
             </p>
             <button
               type="button"
@@ -494,7 +676,7 @@ export default function AdminDuplicatesPage() {
               ) : (
                 <div className="flex flex-col gap-[15px]">
                   {records.map((r) => {
-                    const isEarliest = r.id === earliestId;
+                    const isKeep = r.id === keepId;
                     const isSelected = selected.has(r.id);
                     return (
                       <section
@@ -502,36 +684,54 @@ export default function AdminDuplicatesPage() {
                         className={`p-[15px] rounded-lg border ${
                           isSelected
                             ? 'border-red-500 bg-red-50 dark:bg-[#3B1D1D]'
-                            : isEarliest
+                            : isKeep
                               ? 'border-[#14AE5C] bg-green-50 dark:bg-[#14301F]'
                               : 'border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-[15px] flex-wrap">
-                          <label className="flex items-start gap-[10px] cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleSelected(r.id)}
-                              className="mt-[4px] w-[18px] h-[18px] accent-red-600"
-                            />
-                            <span>
-                              <span className="flex items-center gap-[8px] flex-wrap">
-                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[16px] font-semibold">
-                                  {r.current_settlement_type} {r.current_settlement_name}
+                          <div className="flex flex-col gap-[8px]">
+                            <span className="flex items-center gap-[8px] flex-wrap">
+                              <span className="text-gray-900 dark:text-[#F3F4F6] text-[16px] font-semibold">
+                                {r.current_settlement_type} {r.current_settlement_name}
+                              </span>
+                              {r.id === earliestId && (
+                                <span className="inline-flex items-center gap-[4px] px-[8px] py-[2px] rounded bg-gray-200 dark:bg-[#374151] text-gray-800 dark:text-gray-200 text-[12px]">
+                                  <Crown className="w-3 h-3" strokeWidth={2} />
+                                  найраніший
                                 </span>
-                                {isEarliest && (
-                                  <span className="inline-flex items-center gap-[4px] px-[8px] py-[2px] rounded bg-[#14AE5C] text-white text-[12px]">
-                                    <Crown className="w-3 h-3" strokeWidth={2} />
-                                    найраніший
-                                  </span>
-                                )}
-                              </span>
-                              <span className="block text-gray-600 dark:text-gray-400 text-[13px] mt-[2px]">
-                                Додано {formatDate(r.created_at)} · {r.email || 'без email'}
-                              </span>
+                              )}
                             </span>
-                          </label>
+
+                            <div className="flex items-center gap-[18px] flex-wrap">
+                              <label className="flex items-center gap-[7px] cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name={`keep-${currentGroup?.group_key}`}
+                                  checked={isKeep}
+                                  onChange={() => changeKeep(r.id)}
+                                  className="w-[16px] h-[16px] accent-[#14AE5C]"
+                                />
+                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px]">
+                                  Залишити в реєстрі
+                                </span>
+                              </label>
+                              <label
+                                className={`flex items-center gap-[7px] ${isKeep ? 'opacity-40' : 'cursor-pointer'}`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  disabled={isKeep}
+                                  onChange={() => toggleSelected(r.id)}
+                                  className="w-[16px] h-[16px] accent-red-600"
+                                />
+                                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px]">
+                                  Це дубль
+                                </span>
+                              </label>
+                            </div>
+                          </div>
 
                           <a
                             href={`/record/${r.id}`}
@@ -544,72 +744,35 @@ export default function AdminDuplicatesPage() {
                           </a>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-[20px] gap-y-[4px] mt-[12px] text-[14px]">
-                          <p className="text-gray-700 dark:text-gray-300">
-                            <span className="opacity-70">Розташування: </span>
-                            {r.current_region}, {r.current_district}, {r.current_community}
-                          </p>
-                          <p className="text-gray-700 dark:text-gray-300">
-                            <span className="opacity-70">Стара назва: </span>
-                            {r.old_settlement_type} {r.old_settlement_name}
-                          </p>
-                          <p className="text-gray-700 dark:text-gray-300">
-                            <span className="opacity-70">Рік інвентаря: </span>
-                            {r.inventory_year ?? '—'}
-                          </p>
-                          <p className="text-gray-700 dark:text-gray-300">
-                            <span className="opacity-70">Шифр: </span>
-                            {r.case_signature || '—'}
-                          </p>
-                          <p className="text-gray-700 dark:text-gray-300">
-                            <span className="opacity-70">Архів: </span>
-                            {[r.archive, r.fonds, r.series, r.record].filter(Boolean).join('-') || '—'}
-                          </p>
-                          <p className="text-gray-700 dark:text-gray-300">
-                            <span className="opacity-70">Сторінок: </span>
-                            {r.pages_count || '—'}
-                            {r.inventory_start_page ? ` (з ${r.inventory_start_page})` : ''}
-                          </p>
-                        </div>
-
-                        {r.case_title && (
-                          <p className="text-gray-700 dark:text-gray-300 text-[14px] mt-[8px]">
-                            <span className="opacity-70">Назва справи: </span>
-                            {r.case_title}
-                          </p>
-                        )}
-                        {r.notes && (
-                          <p className="text-gray-700 dark:text-gray-300 text-[14px] mt-[4px]">
-                            <span className="opacity-70">Примітки: </span>
-                            {r.notes}
-                          </p>
-                        )}
-
-                        {/* Що втратимо, якщо позначити цей запис дублем */}
-                        <div className="flex flex-wrap items-center gap-[10px] mt-[10px]">
-                          {r.scans_url && (
-                            <a
-                              href={r.scans_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-[5px] px-[8px] py-[3px] rounded bg-blue-100 dark:bg-[#1E3A5F] text-[#2563EB] dark:text-blue-300 text-[12px]"
-                            >
-                              <ImageIcon className="w-3 h-3" strokeWidth={2} />
-                              є скани
-                            </a>
-                          )}
-                          {r.cobook_link && (
-                            <span className="inline-flex items-center gap-[5px] px-[8px] py-[3px] rounded bg-purple-100 dark:bg-[#3B2A5F] text-purple-700 dark:text-purple-300 text-[12px]">
-                              <BookOpen className="w-3 h-3" strokeWidth={2} />
-                              є кобук
-                            </span>
-                          )}
-                          {r.cobook_transcript && (
-                            <span className="inline-flex items-center gap-[5px] px-[8px] py-[3px] rounded bg-amber-100 dark:bg-[#4A3413] text-amber-800 dark:text-amber-300 text-[12px]">
-                              <FileText className="w-3 h-3" strokeWidth={2} />
-                              є транскрипт
-                            </span>
-                          )}
+                        {/* Повний склад запису */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-[20px] gap-y-[4px] mt-[12px]">
+                          {FIELDS.map((f) => {
+                            const differs = differingFields.has(f.key);
+                            return (
+                              <p
+                                key={f.key}
+                                className={`text-[13px] px-[4px] rounded ${
+                                  differs
+                                    ? 'bg-amber-100 dark:bg-[#4A3413] text-amber-900 dark:text-amber-200'
+                                    : 'text-gray-700 dark:text-gray-300'
+                                }`}
+                              >
+                                <span className="opacity-70">{f.label}: </span>
+                                {f.key === 'scans_url' && r[f.key] ? (
+                                  <a
+                                    href={r[f.key]}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[#2563EB] hover:underline break-all"
+                                  >
+                                    {formatValue(f.key, r[f.key])}
+                                  </a>
+                                ) : (
+                                  <span className="break-words">{formatValue(f.key, r[f.key])}</span>
+                                )}
+                              </p>
+                            );
+                          })}
                         </div>
                       </section>
                     );
@@ -617,8 +780,108 @@ export default function AdminDuplicatesPage() {
                 </div>
               )}
 
+              {/* Об'єднання даних у запит на редагування */}
+              {mergeOpen && mergeCandidates.length > 1 && (
+                <div className="mt-[20px] p-[15px] rounded-lg border border-[#2563EB] bg-blue-50 dark:bg-[#1E3A5F]">
+                  <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] font-semibold mb-[5px]">
+                    Дані для запиту на редагування
+                  </h2>
+                  <p className="text-gray-700 dark:text-gray-300 text-[14px] mb-[15px]">
+                    Оберіть, з якого запису брати значення для кожного поля, що відрізняється.
+                    Решта полів береться із запису, який лишається в реєстрі.
+                  </p>
+
+                  {mergeFields.length === 0 ? (
+                    <p className="text-gray-700 dark:text-gray-300 text-[14px]">
+                      Обрані записи не мають розбіжностей у полях — переносити нічого.
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-[12px]">
+                      {mergeFields.map((f) => (
+                        <div
+                          key={f.key}
+                          className="p-[10px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937]"
+                        >
+                          <p className="text-gray-900 dark:text-[#F3F4F6] text-[14px] font-medium mb-[6px]">
+                            {f.label}
+                          </p>
+                          <div className="flex flex-col gap-[4px]">
+                            {mergeCandidates.map((r) => (
+                              <label
+                                key={r.id}
+                                className="flex items-start gap-[8px] cursor-pointer text-[13px]"
+                              >
+                                <input
+                                  type="radio"
+                                  name={`merge-${f.key}`}
+                                  checked={mergeChoices[f.key] === r.id}
+                                  onChange={() =>
+                                    setMergeChoices((prev) => ({ ...prev, [f.key]: r.id }))
+                                  }
+                                  className="mt-[3px] w-[14px] h-[14px] accent-[#2563EB]"
+                                />
+                                <span className="text-gray-700 dark:text-gray-300 break-words">
+                                  {formatValue(f.key, r[f.key])}
+                                  <span className="opacity-60">
+                                    {' '}
+                                    ({r.id === keepId ? 'залишається' : 'дубль'},{' '}
+                                    {r.case_signature || r.id.slice(0, 8)})
+                                  </span>
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <label className="block mt-[15px]">
+                    <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] font-medium">
+                      Коментар до запиту
+                    </span>
+                    <textarea
+                      value={mergeComment}
+                      onChange={(e) => setMergeComment(e.target.value)}
+                      rows={3}
+                      className="w-full mt-[5px] p-[10px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937] text-gray-900 dark:text-[#F3F4F6] text-[14px]"
+                    />
+                  </label>
+
+                  <div className="flex flex-wrap gap-[12px] mt-[15px]">
+                    <button
+                      type="button"
+                      onClick={createEditRequest}
+                      disabled={saving}
+                      className="flex items-center justify-center gap-[8px] h-[44px] px-[18px] bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-40 text-white rounded transition-colors"
+                    >
+                      <Save className="w-5 h-5" strokeWidth={2} />
+                      <span className="text-[15px] font-medium">
+                        {saving ? 'Збереження...' : 'Створити запит на редагування'}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMergeOpen(false)}
+                      className="flex items-center justify-center h-[44px] px-[18px] border border-gray-300 dark:border-[#374151] text-gray-900 dark:text-[#F3F4F6] rounded"
+                    >
+                      <span className="text-[15px] font-medium">Скасувати</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Дії */}
               <div className="flex flex-wrap items-center gap-[12px] mt-[20px]">
+                <button
+                  type="button"
+                  onClick={openMerge}
+                  disabled={saving || recordsLoading || selected.size === 0 || mergeOpen}
+                  className="flex items-center justify-center gap-[8px] h-[44px] px-[18px] bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-40 text-white rounded transition-colors"
+                >
+                  <Merge className="w-5 h-5" strokeWidth={2} />
+                  <span className="text-[15px] font-medium">Перенести дані в запис</span>
+                </button>
                 <button
                   type="button"
                   onClick={markAsDuplicates}

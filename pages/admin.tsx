@@ -287,17 +287,17 @@ export default function AdminDashboard() {
               </button>
             </section>
 
-            {/* Дублі в реєстрі */}
+            {/* Пошук помилок в реєстрі */}
             <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
               <div>
                 <div className="flex items-center gap-[10px] mb-[15px]">
                   <Copy className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
                   <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
-                    Дублі в реєстрі
+                    Пошук помилок в реєстрі
                   </h2>
                 </div>
                 <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80">
-                  Знайти інвентарі, внесені двічі, і прибрати зайві з реєстру
+                  Дублі інвентарів та розбіжності в даних однієї архівної справи
                 </p>
               </div>
               <button
@@ -307,7 +307,7 @@ export default function AdminDashboard() {
                 className="flex items-center justify-center gap-[8px] w-full h-[40px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded transition-colors mt-[15px]"
                 type="button"
               >
-                <span className="text-[14px] lg:text-[16px] font-medium">Почати пошук дублів</span>
+                <span className="text-[14px] lg:text-[16px] font-medium">Почати пошук помилок</span>
                 <ArrowRight className="w-5 h-5" strokeWidth={2} />
               </button>
             </section>

@@ -4,6 +4,7 @@ import Header from '../components/header';
 import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
 import { isAdminUser } from '../lib/adminUsers';
+import CaseInconsistencies from '../components/CaseInconsistencies';
 import {
   Copy,
   ExternalLink,
@@ -182,6 +183,7 @@ export default function AdminDuplicatesPage() {
   const { user, loading: userLoading } = useUser();
 
   const [isAdmin, setIsAdmin] = useState(false);
+  const [tab, setTab] = useState<'duplicates' | 'cases'>('duplicates');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -888,12 +890,40 @@ export default function AdminDuplicatesPage() {
       <Header />
       <div className="min-h-screen bg-white dark:bg-[#111827]">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
-          <div className="flex items-center gap-[10px] mb-[10px]">
+          <div className="flex items-center gap-[10px] mb-[15px]">
             <Copy className="w-6 h-6 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
             <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold">
-              Пошук дублів у реєстрі
+              Пошук помилок в реєстрі
             </h1>
           </div>
+
+          {/* Вкладки */}
+          <div className="flex gap-[4px] border-b border-gray-300 dark:border-[#374151] mb-[20px]">
+            {(
+              [
+                { key: 'duplicates', title: 'Дублі в реєстрі' },
+                { key: 'cases', title: 'Неповні дані справ' },
+              ] as const
+            ).map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                className={`px-[18px] h-[42px] text-[15px] font-medium border-b-2 -mb-px transition-colors ${
+                  tab === t.key
+                    ? 'border-[#2563EB] text-[#2563EB]'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-[#F3F4F6]'
+                }`}
+              >
+                {t.title}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'cases' ? (
+            <CaseInconsistencies onError={(message) => setToast({ message, type: 'error' })} />
+          ) : (
+            <>
           <p className="text-gray-700 dark:text-gray-300 text-[14px] mb-[20px] lg:mb-[30px]">
             Записи не видаляються фізично: обраним проставляється{' '}
             <code className="px-1 rounded bg-gray-100 dark:bg-[#374151]">approved = false</code>.
@@ -1373,6 +1403,8 @@ export default function AdminDuplicatesPage() {
                   <span className="text-[15px] font-medium">Зберегти зображенням</span>
                 </button>
               </div>
+            </>
+          )}
             </>
           )}
         </div>

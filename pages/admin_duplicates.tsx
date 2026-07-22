@@ -1103,15 +1103,28 @@ export default function AdminDuplicatesPage() {
                             </div>
                           </div>
 
-                          <a
-                            href={`/record/${r.id}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-[6px] text-[#2563EB] hover:underline text-[14px]"
-                          >
-                            Відкрити запис
-                            <ExternalLink className="w-4 h-4" strokeWidth={2} />
-                          </a>
+                          <div className="flex flex-col items-end gap-[6px]">
+                            <a
+                              href={`/record/${r.id}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-[6px] text-[#2563EB] hover:underline text-[14px] whitespace-nowrap"
+                            >
+                              Відкрити запис
+                              <ExternalLink className="w-4 h-4" strokeWidth={2} />
+                            </a>
+                            {r.case_signature && (
+                              <a
+                                href={`/case?case_signature=${encodeURIComponent(r.case_signature)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-[6px] text-[#2563EB] hover:underline text-[14px] whitespace-nowrap"
+                              >
+                                Сторінка справи
+                                <ExternalLink className="w-4 h-4" strokeWidth={2} />
+                              </a>
+                            )}
+                          </div>
                         </div>
 
                         {/* Повний склад запису */}

@@ -176,30 +176,41 @@ export default function CaseInconsistencies({
                 key={group.signature_key}
                 className="rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]"
               >
-                <button
-                  type="button"
-                  onClick={() => openGroup(group)}
-                  className="w-full text-left p-[15px]"
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-[10px]">
-                    <span className="text-gray-900 dark:text-[#F3F4F6] text-[16px] font-semibold">
-                      {group.case_signature}
-                    </span>
-                    <span className="text-gray-600 dark:text-gray-400 text-[14px]">
-                      записів: {group.records_count}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-[6px] mt-[8px]">
-                    {diffFields.map((f) => (
-                      <span
-                        key={f.key}
-                        className="px-[8px] py-[2px] rounded bg-amber-100 dark:bg-[#4A3413] text-amber-900 dark:text-amber-200 text-[12px]"
-                      >
-                        {f.label}: {group.diffs[f.key].length} варіант(и)
+                <div className="flex items-start gap-[10px] p-[15px]">
+                  <button
+                    type="button"
+                    onClick={() => openGroup(group)}
+                    className="flex-1 text-left"
+                  >
+                    <div className="flex flex-wrap items-baseline gap-[10px]">
+                      <span className="text-gray-900 dark:text-[#F3F4F6] text-[16px] font-semibold">
+                        {group.case_signature}
                       </span>
-                    ))}
-                  </div>
-                </button>
+                      <span className="text-gray-600 dark:text-gray-400 text-[14px]">
+                        записів: {group.records_count}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-[6px] mt-[8px]">
+                      {diffFields.map((f) => (
+                        <span
+                          key={f.key}
+                          className="px-[8px] py-[2px] rounded bg-amber-100 dark:bg-[#4A3413] text-amber-900 dark:text-amber-200 text-[12px]"
+                        >
+                          {f.label}: {group.diffs[f.key].length} варіант(и)
+                        </span>
+                      ))}
+                    </div>
+                  </button>
+                  <a
+                    href={`/case?case_signature=${encodeURIComponent(group.case_signature)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-[6px] text-[#2563EB] hover:underline text-[14px] whitespace-nowrap"
+                  >
+                    Сторінка справи
+                    <ExternalLink className="w-4 h-4" strokeWidth={2} />
+                  </a>
+                </div>
 
                 {isOpen && (
                   <div className="px-[15px] pb-[15px]">

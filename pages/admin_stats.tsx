@@ -55,6 +55,7 @@ export default function StatsPage() {
         const { data, error } = await supabase
           .from('records')
           .select('created_at, current_region, email, archive, case_signature')
+          .eq('approved', true)
           .range(from, from + pageSize - 1);
         
         if (error) {

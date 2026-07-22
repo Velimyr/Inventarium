@@ -40,6 +40,7 @@ export default function SettlementRecordsPage() {
     const { data, error, count } = await supabase
       .from('records')
       .select('*', { count: 'exact' })
+      .eq('approved', true)
       .match({
         current_settlement_name,
         current_community,

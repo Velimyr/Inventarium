@@ -62,12 +62,14 @@ export default function StatsPage() {
         // Total approved records
         const { count: totalApproved } = await supabase
           .from('records')
-          .select('*', { count: 'exact', head: true });
+          .select('*', { count: 'exact', head: true })
+          .eq('approved', true);
 
         // User's approved records
         const { count: userApproved } = await supabase
           .from('records')
           .select('*', { count: 'exact', head: true })
+          .eq('approved', true)
           .eq('created_by', user.id);
 
         // User's unverified records
@@ -86,6 +88,7 @@ export default function StatsPage() {
         const { count: userMonthly } = await supabase
           .from('records')
           .select('*', { count: 'exact', head: true })
+          .eq('approved', true)
           .eq('created_by', user.id)
           .gte('created_at', oneMonthAgoISO);
 
@@ -93,6 +96,7 @@ export default function StatsPage() {
         const { count: totalMonthly } = await supabase
           .from('records')
           .select('*', { count: 'exact', head: true })
+          .eq('approved', true)
           .gte('created_at', oneMonthAgoISO);
 
         // Unread messages for user

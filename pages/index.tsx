@@ -53,6 +53,7 @@ export default function Home() {
       const { count: userApproved } = await supabase
         .from('records')
         .select('*', { count: 'exact', head: true })
+        .eq('approved', true)
         .eq('created_by', user.id);
 
       const { count: userUnverified } = await supabase

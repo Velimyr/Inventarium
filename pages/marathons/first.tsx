@@ -35,6 +35,7 @@ export default function MarathonPage() {
         const { data: approvedRecords, error: approvedError } = await supabase
           .from('records')
           .select('id, created_by, created_at')
+          .eq('approved', true)
           .gte('created_at', fromDate)
           .lte('created_at', toDate);
         if (approvedError) {

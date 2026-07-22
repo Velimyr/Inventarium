@@ -50,6 +50,7 @@ export default function CasePage() {
             const { data, error } = await supabase
                 .from('records')
                 .select('*')
+                .eq('approved', true)
                 .eq('case_signature', case_signature);
 
             if (error) {

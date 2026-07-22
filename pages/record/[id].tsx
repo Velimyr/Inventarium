@@ -34,7 +34,7 @@ export default function RecordPage() {
             created_at, mark_type, archive, fonds, series, record, old_province, old_district,
             old_community, old_settlement_type, old_settlement_name, current_region,
             current_district, current_community, current_settlement_type, current_settlement_name,
-            cobook_link, cobook_transcript
+            cobook_link, cobook_transcript, approved
         `).eq('id', id).single();
         if (error) {
             console.error('Помилка:', error);
@@ -97,6 +97,17 @@ export default function RecordPage() {
             <Header />
             <main className="min-h-screen bg-white dark:bg-[#111827]">
                 <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+                    {/* Запис прибрано з реєстру як дубль (approved = false), але пряме
+                        посилання лишається робочим — попереджаємо про це */}
+                    {record.approved === false && (
+                        <div className="mb-[20px] p-[15px] rounded-lg border border-amber-500 bg-amber-50 dark:bg-[#4A3413]">
+                            <p className="text-amber-900 dark:text-amber-200 text-[14px] lg:text-[16px]">
+                                Цей запис прибрано з реєстру як дубль іншого інвентаря. Він не
+                                показується в пошуку, на карті та в статистиці.
+                            </p>
+                        </div>
+                    )}
+
                     {/* Page Title with Badge */}
                     <div className={`flex gap-[15px] md:gap-[20px] mb-[20px] lg:mb-[29px] ${isTitleMultiline ? 'items-center' : 'flex-wrap items-baseline'}`}>
                         <h1 

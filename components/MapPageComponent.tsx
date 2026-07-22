@@ -377,6 +377,7 @@ export default function MapPageComponent() {
                     supabase
                         .from('records')
                         .select(RECORD_FIELDS)
+                        .eq('approved', true)
                         .eq('mark_type', 0)
                         .not('latitude', 'is', null)
                         .not('longitude', 'is', null)

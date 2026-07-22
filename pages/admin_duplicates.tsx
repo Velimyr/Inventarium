@@ -64,12 +64,14 @@ const SCOPE_LEVELS: { key: ScopeLevel; field: keyof DuplicateGroup; title: strin
 
 // Значення обсягу придатне, лише якщо всі його складові заповнені:
 // 'цдіал|146|19' — так, '||' або 'цдіал||' — ні
-const scopeValueOf = (group: DuplicateGroup, field: keyof DuplicateGroup): string | null => {
+const isValidScopeValue = (value: string) =>
+  !!value && !value.split('|').some((part) => part.trim() === '');
+
+const scopeValuesOf = (group: DuplicateGroup, field: keyof DuplicateGroup): string[] | null => {
   const values = group[field] as string[] | null;
-  if (!values || values.length !== 1) return null;
-  const value = values[0];
-  if (!value || value.split('|').some((part) => part.trim() === '')) return null;
-  return value;
+  if (!values || values.length === 0) return null;
+  if (values.some((v) => !isValidScopeValue(v))) return null;
+  return [...values].sort();
 };
 
 const scopeLabel = (value: string) => value.split('|').join(' · ');
@@ -155,6 +157,7 @@ export default function AdminDuplicatesPage() {
   const [reviewedCount, setReviewedCount] = useState<number | null>(null);
 
   const [bulkScope, setBulkScope] = useState<ScopeLevel | null>(null);
+  const [scopeSelected, setScopeSelected] = useState<Set<string>>(new Set());
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeChoices, setMergeChoices] = useState<Record<string, string>>({});
   const [mergeComment, setMergeComment] = useState('');
@@ -193,24 +196,34 @@ export default function AdminDuplicatesPage() {
     });
   }, [mergeCandidates]);
 
-  // Обсяги, доступні для поточної групи, і скільки груп кожен накриває
+  // Обсяги, доступні для поточної групи. На кожному рівні може бути кілька
+  // значень — наприклад, група з записами і ЦДІАЛ, і ЛННБ дає два фонди,
+  // і тоді обсягом стає їх об'єднання.
   const availableScopes = useMemo(() => {
     if (!currentGroup) return [];
     return SCOPE_LEVELS.map((level) => {
-      const value = scopeValueOf(currentGroup, level.field);
-      if (!value) return null;
-      const affected = groups.filter((g) => scopeValueOf(g, level.field) === value);
-      return { ...level, value, affected };
+      const values = scopeValuesOf(currentGroup, level.field);
+      if (!values) return null;
+      return { ...level, values };
     }).filter(Boolean) as {
       key: ScopeLevel;
       field: keyof DuplicateGroup;
       title: string;
-      value: string;
-      affected: DuplicateGroup[];
+      values: string[];
     }[];
-  }, [currentGroup, groups]);
+  }, [currentGroup]);
 
   const activeScope = availableScopes.find((s) => s.key === bulkScope) ?? null;
+
+  // Група потрапляє під дію, лише якщо КОЖЕН її запис належить хоча б одному
+  // з обраних значень обсягу
+  const affectedGroups = useMemo(() => {
+    if (!activeScope || scopeSelected.size === 0) return [] as DuplicateGroup[];
+    return groups.filter((g) => {
+      const values = scopeValuesOf(g, activeScope.field);
+      return !!values && values.every((v) => scopeSelected.has(v));
+    });
+  }, [activeScope, scopeSelected, groups]);
 
   const loadReviewedCount = useCallback(async (nextMode: Mode) => {
     const { count, error: countError } = await supabase
@@ -318,6 +331,7 @@ export default function AdminDuplicatesPage() {
       setSelected(new Set());
       setMergeOpen(false);
       setBulkScope(null);
+      setScopeSelected(new Set());
 
       const { data, error: fetchError } = await supabase
         .from('records')
@@ -548,19 +562,20 @@ export default function AdminDuplicatesPage() {
 
   // Масова відмітка «не дублі» для всіх груп обраного обсягу
   const markScopeReviewed = async () => {
-    if (!activeScope || activeScope.affected.length === 0) return;
+    if (!activeScope || affectedGroups.length === 0) return;
 
     const confirmed = window.confirm(
-      `Позначити «не дублі» ${activeScope.affected.length} груп(и) за обсягом ` +
-        `${activeScope.title}: ${scopeLabel(activeScope.value)}?\n\n` +
-        'Ці групи зникнуть зі списку. Записи в реєстрі не змінюються — ' +
+      `Позначити «не дублі» ${affectedGroups.length} груп(и) за обсягом ` +
+        `${activeScope.title}:\n` +
+        Array.from(scopeSelected).map(scopeLabel).join('\n') +
+        '\n\nЦі групи зникнуть зі списку. Записи в реєстрі не змінюються — ' +
         'повернути групи можна кнопкою «Очистити список переглянутих».'
     );
     if (!confirmed) return;
 
     setSaving(true);
 
-    const rows = activeScope.affected.map((g) => ({
+    const rows = affectedGroups.map((g) => ({
       mode,
       group_key: g.group_key,
       reviewed_by: user?.id ?? null,
@@ -586,7 +601,7 @@ export default function AdminDuplicatesPage() {
 
     setSaving(false);
 
-    const markedKeys = new Set(activeScope.affected.map((g) => g.group_key));
+    const markedKeys = new Set(affectedGroups.map((g) => g.group_key));
     const nextGroups = groups.filter((g) => !markedKeys.has(g.group_key));
 
     setGroups(nextGroups);
@@ -594,6 +609,7 @@ export default function AdminDuplicatesPage() {
     setCounts((prev) => ({ ...prev, [mode]: nextGroups.length }));
     setReviewedCount((prev) => (prev === null ? null : prev + markedKeys.size));
     setBulkScope(null);
+    setScopeSelected(new Set());
     setToast({ message: `✅ Позначено «не дублі»: ${markedKeys.size} груп(и)`, type: 'success' });
   };
 
@@ -887,15 +903,25 @@ export default function AdminDuplicatesPage() {
                     Не дублі — одразу для всього обсягу
                   </h2>
                   <p className="text-gray-600 dark:text-gray-400 text-[13px] mb-[12px]">
-                    Група потрапляє в обсяг, лише якщо в ньому всі її записи. Групи, де є запис
-                    з іншого фонду чи архіву, лишаються на ручний розгляд.
+                    Група потрапляє в обсяг, лише якщо кожен її запис належить до одного з
+                    відмічених значень. Якщо в групі кілька архівів чи фондів — відмітьте всі
+                    потрібні, і обсягом стане їх об'єднання.
                   </p>
                   <div className="flex flex-wrap gap-[10px]">
                     {availableScopes.map((scope) => (
                       <button
                         key={scope.key}
                         type="button"
-                        onClick={() => setBulkScope(bulkScope === scope.key ? null : scope.key)}
+                        onClick={() => {
+                          if (bulkScope === scope.key) {
+                            setBulkScope(null);
+                            setScopeSelected(new Set());
+                          } else {
+                            setBulkScope(scope.key);
+                            // за замовчуванням беремо всі значення поточної групи
+                            setScopeSelected(new Set(scope.values));
+                          }
+                        }}
                         disabled={saving}
                         className={`text-left px-[14px] py-[10px] rounded border text-[14px] transition-colors disabled:opacity-40 ${
                           bulkScope === scope.key
@@ -905,7 +931,9 @@ export default function AdminDuplicatesPage() {
                       >
                         <span className="block font-medium">{scope.title}</span>
                         <span className="block text-gray-600 dark:text-gray-400 text-[13px]">
-                          {scopeLabel(scope.value)} — груп: {scope.affected.length}
+                          {scope.values.length === 1
+                            ? scopeLabel(scope.values[0])
+                            : `значень у групі: ${scope.values.length}`}
                         </span>
                       </button>
                     ))}
@@ -913,12 +941,43 @@ export default function AdminDuplicatesPage() {
 
                   {activeScope && (
                     <div className="mt-[15px] pt-[15px] border-t border-gray-300 dark:border-[#374151]">
+                      <p className="text-gray-900 dark:text-[#F3F4F6] text-[14px] font-medium mb-[6px]">
+                        Що входить в обсяг
+                      </p>
+                      <div className="flex flex-col gap-[4px] mb-[12px]">
+                        {activeScope.values.map((value) => (
+                          <label
+                            key={value}
+                            className="flex items-center gap-[8px] cursor-pointer text-[14px]"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={scopeSelected.has(value)}
+                              onChange={() =>
+                                setScopeSelected((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(value)) {
+                                    next.delete(value);
+                                  } else {
+                                    next.add(value);
+                                  }
+                                  return next;
+                                })
+                              }
+                              className="w-[16px] h-[16px] accent-[#2563EB]"
+                            />
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {scopeLabel(value)}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+
                       <p className="text-gray-900 dark:text-[#F3F4F6] text-[14px] mb-[8px]">
-                        Буде позначено «не дублі»: {activeScope.affected.length} груп(и) за обсягом{' '}
-                        <span className="font-semibold">{scopeLabel(activeScope.value)}</span>
+                        Буде позначено «не дублі»: {affectedGroups.length} груп(и)
                       </p>
                       <div className="max-h-[260px] overflow-y-auto rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] divide-y divide-gray-200 dark:divide-[#374151]">
-                        {activeScope.affected.map((g) => (
+                        {affectedGroups.map((g) => (
                           <p
                             key={g.group_key}
                             className={`px-[10px] py-[6px] text-[13px] ${
@@ -934,14 +993,14 @@ export default function AdminDuplicatesPage() {
                       <button
                         type="button"
                         onClick={markScopeReviewed}
-                        disabled={saving}
+                        disabled={saving || affectedGroups.length === 0}
                         className="flex items-center justify-center gap-[8px] h-[44px] px-[18px] mt-[12px] bg-[#14AE5C] hover:bg-[#0F8A4A] disabled:opacity-40 text-white rounded transition-colors"
                       >
                         <CheckCheck className="w-5 h-5" strokeWidth={2} />
                         <span className="text-[15px] font-medium">
                           {saving
                             ? 'Збереження...'
-                            : `Не дублі — підтвердити для ${activeScope.affected.length} груп(и)`}
+                            : `Не дублі — підтвердити для ${affectedGroups.length} груп(и)`}
                         </span>
                       </button>
                     </div>

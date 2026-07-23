@@ -3,6 +3,13 @@ import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
+import {
+  ARCHIVE_PART_FIELDS,
+  buildCaseSignature,
+  hasAllArchiveParts,
+  hasAnyArchivePart,
+  isArchivePartField,
+} from '../lib/caseSignature';
 
 const MapSelector = dynamic(() => import('../components/MapSelector'), { ssr: false });
 
@@ -155,14 +162,25 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
       const value = target.value;
       const updated = { ...formData, [name]: value };
 
+      // Перемикач чистить протилежну гілку. Інакше приховані архів/фонд/опис/
+      // справа лишаються від попередньо збереженого запису і їдуть у базу разом
+      // із вручну введеним іноземним шифром.
+      if (name === 'is_ukrainian_archive') {
+        if (value === 'Ні') {
+          for (const field of ARCHIVE_PART_FIELDS) updated[field] = '';
+        } else {
+          updated.case_signature = '';
+        }
+      }
+
+      // Перегенеровуємо шифр лише коли змінили саме його складові, а не будь-яке
+      // поле форми: інакше правка населеного пункту мовчки затирає шифр.
       if (
         updated.is_ukrainian_archive === 'Так' &&
-        updated.archive &&
-        updated.fonds &&
-        updated.series &&
-        updated.record
+        (name === 'is_ukrainian_archive' || isArchivePartField(name)) &&
+        hasAllArchiveParts(updated)
       ) {
-        updated.case_signature = `${updated.archive} ${updated.fonds}-${updated.series}-${updated.record}`;
+        updated.case_signature = buildCaseSignature(updated);
       }
 
       setFormData(updated);
@@ -469,6 +487,34 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
                 placeholder="Шифр справи"
               />
             </div>
+
+            {/* Записи, додані до виправлення форми, могли зберегти архівні поля
+                від попередньої справи. Показуємо їх явно — інакше приховані
+                значення неможливо прибрати. */}
+            {hasAnyArchivePart(formData) && (
+              <div className="p-[10px] rounded bg-[#FEF3C7] dark:bg-[#EAB308] mb-[15px]">
+                <p className="text-[#92400E] dark:text-[#451A03] text-[13px] lg:text-[14px] mb-[10px]">
+                  У записі лишилися поля українського архіву:{' '}
+                  <span className="font-semibold">
+                    {[formData.archive, formData.fonds, formData.series, formData.record]
+                      .filter(Boolean)
+                      .join(' / ')}
+                  </span>
+                  . Найімовірніше вони належать іншій справі. Для справи в іноземному архіві
+                  вони мають бути порожні — якщо ця ж справа є і в українському архіві,
+                  вкажіть її нижче, у полі «Сигнатура додаткової справи».
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData((fd: any) => ({ ...fd, archive: '', fonds: '', series: '', record: '' }))
+                  }
+                  className="px-[12px] h-[32px] rounded bg-[#92400E] hover:bg-[#78350F] transition-colors text-white text-[13px] font-medium"
+                >
+                  Очистити поля архіву
+                </button>
+              </div>
+            )}
           </>
         )}
 

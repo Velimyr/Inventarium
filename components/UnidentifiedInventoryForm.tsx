@@ -3,6 +3,12 @@ import dynamic from 'next/dynamic';
 import Toast from './Toast';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
+import {
+  ARCHIVE_PART_FIELDS,
+  buildCaseSignature,
+  hasAllArchiveParts,
+  isArchivePartField,
+} from '../lib/caseSignature';
 
 const MapSelector = dynamic(() => import('./MapSelector'), { ssr: false });
 
@@ -82,14 +88,21 @@ export default function UnidentifiedInventoryForm({
       const value = target.value;
       const updated = { ...formData, [name]: value };
 
+      // Перемикач чистить протилежну гілку — див. EditableInventoryForm.
+      if (name === 'is_ukrainian_archive') {
+        if (value === 'Ні') {
+          for (const field of ARCHIVE_PART_FIELDS) updated[field] = '';
+        } else {
+          updated.case_signature = '';
+        }
+      }
+
       if (
         updated.is_ukrainian_archive === 'Так' &&
-        updated.archive &&
-        updated.fonds &&
-        updated.series &&
-        updated.record
+        (name === 'is_ukrainian_archive' || isArchivePartField(name)) &&
+        hasAllArchiveParts(updated)
       ) {
-        updated.case_signature = `${updated.archive} ${updated.fonds}-${updated.series}-${updated.record}`;
+        updated.case_signature = buildCaseSignature(updated);
       }
 
       setFormData(updated);

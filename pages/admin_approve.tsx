@@ -10,6 +10,7 @@ import { sendNotification } from '../components/notifications';
 import { Save, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
 import { findDuplicateVerifiedRecord, normalizeKeyFields } from '../lib/adminApproveUtils';
+import { resolveIsUkrainianArchive, validateCaseSignature } from '../lib/caseSignature';
 
 const getSettlementCodeByPath = (
   structure: any,
@@ -118,6 +119,18 @@ export default function AdminPage() {
 
   const saveRecord = async () => {
     try {
+      // Для чернеток, доданих до появи колонки, прапорець відновлюємо з даних
+      const recordWithFlag = {
+        ...formData,
+        is_ukrainian_archive: resolveIsUkrainianArchive(formData),
+      };
+
+      const signatureError = validateCaseSignature(recordWithFlag);
+      if (signatureError) {
+        setToast({ message: `❌ ${signatureError}`, type: 'error' });
+        return;
+      }
+
       const existing = await findDuplicateVerifiedRecord(formData);
 
       if (existing) {
@@ -128,7 +141,8 @@ export default function AdminPage() {
         return;
       }
 
-      const { is_ukrainian_archive, ...recordToInsert } = normalizeKeyFields(formData);
+      // is_ukrainian_archive зберігається разом із записом — див. adminApproveUtils
+      const recordToInsert = normalizeKeyFields(recordWithFlag);
 
       const parseIntegerOrNull = (value: any) => {
         if (value === "" || value === null || value === undefined) return null;

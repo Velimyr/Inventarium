@@ -6,6 +6,7 @@ import { useUser } from '../contexts/UserContext';
 import { supabase } from '../lib/supabaseClient';
 import { Save, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { buildCaseSignature, hasAllArchiveParts, validateCaseSignature } from '../lib/caseSignature';
 
 const UnidentifiedInventoryForm = dynamic(
     () => import('../components/UnidentifiedInventoryForm'),
@@ -111,26 +112,26 @@ export default function AddUnidentifiedInventoryPage() {
             return 'Поле "Назва справи" може містити лише кириличні символи, апостроф та пробіли.';
         }
 
+        // Шифр і його складові мають описувати одну справу
+        const signatureError = validateCaseSignature(formData);
+        if (signatureError) return signatureError;
+
         return null;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Формуємо case_signature якщо архів український — до валідації,
+        // щоб вона перевіряла вже остаточний шифр
+        if (formData.is_ukrainian_archive === 'Так' && hasAllArchiveParts(formData)) {
+            formData.case_signature = buildCaseSignature(formData);
+        }
+
         const validationError = await validate();
         if (validationError) {
             setToast({ message: validationError, type: 'error' });
             return;
-        }
-
-        // Формуємо case_signature якщо архів український
-        if (
-            formData.is_ukrainian_archive === 'Так' &&
-            formData.archive &&
-            formData.fonds &&
-            formData.series &&
-            formData.record
-        ) {
-            formData.case_signature = `${formData.archive} ${formData.fonds}-${formData.series}-${formData.record}`;
         }
 
         // Перевірка унікальності case_signature

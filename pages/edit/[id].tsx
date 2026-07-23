@@ -9,6 +9,7 @@ import { Save } from 'lucide-react';
 import Link from 'next/link';
 import { sendNotification } from '../../components/notifications';
 import { getAdminUserIds } from '../../lib/adminUsers';
+import { resolveIsUkrainianArchive, validateCaseSignature } from '../../lib/caseSignature';
 
 const EditableInventoryForm = dynamic(() => import('../../components/EditableInventoryForm'), {
     ssr: false,
@@ -64,7 +65,9 @@ export default function EditSingleRecordPage() {
             const { email: _emailFromRecord, ...rest } = data;
 
             // ** Рядок "Так" або "Ні" для селекту **
-            const isUkrainianArchive = rest.archive && rest.fonds && rest.series && rest.record ? "Так" : "Ні";
+            // Беремо збережене значення; для старих записів, де колонки ще не було,
+            // виводимо його з даних (див. resolveIsUkrainianArchive)
+            const isUkrainianArchive = resolveIsUkrainianArchive(rest);
 
             const baseData = {
                 ...rest,
@@ -111,6 +114,13 @@ export default function EditSingleRecordPage() {
 
         formData['email'] = emailToSave;
         formData['comment'] = comment.trim();
+
+        // Шифр і його складові мають описувати одну справу
+        const signatureError = validateCaseSignature(formData);
+        if (signatureError) {
+            setToast({ message: `❌ ${signatureError}`, type: 'error' });
+            return;
+        }
 
         // Перевірка унікальності — тільки якщо змінились ключові поля
         const keyFields = [

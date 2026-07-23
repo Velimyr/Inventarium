@@ -9,6 +9,7 @@ import { sendNotification } from '../components/notifications';
 import { getAdminUserIds } from '../lib/adminUsers';
 import { Save, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { validateCaseSignature } from '../lib/caseSignature';
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
     ssr: false,
@@ -174,6 +175,10 @@ export default function AddInventoryPage() {
                 return `Поле "${label}" обов'язкове.`;
             }
         }
+
+        // Шифр і його складові мають описувати одну справу
+        const signatureError = validateCaseSignature(formData);
+        if (signatureError) return signatureError;
 
         const year = parseInt(formData.inventory_year);
         if (formData.inventory_year && (isNaN(year) || year < 1400 || year > 2000)) {

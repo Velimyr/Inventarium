@@ -2,6 +2,7 @@ import emailjs from 'emailjs-com';
 import regionStructure from '../public/data/region_structure.json';
 import { sendNotification } from '../components/notifications';
 import { supabase } from './supabaseClient';
+import { resolveIsUkrainianArchive, validateCaseSignature } from './caseSignature';
 
 const getSettlementCodeByPath = (
   structure: any,
@@ -156,6 +157,14 @@ export async function approveUnverifiedRecord({
   recordId: string;
 }> {
   try {
+    // Для чернеток, доданих до появи колонки, прапорець доводиться відновлювати
+    const recordWithFlag = { ...record, is_ukrainian_archive: resolveIsUkrainianArchive(record) };
+
+    const signatureError = validateCaseSignature(recordWithFlag);
+    if (signatureError) {
+      return { status: 'error', message: signatureError, recordId: record.id };
+    }
+
     const existing = await findDuplicateVerifiedRecord(record);
 
     if (existing) {
@@ -166,7 +175,10 @@ export async function approveUnverifiedRecord({
       };
     }
 
-    const { is_ukrainian_archive, ...recordToInsert } = record;
+    // is_ukrainian_archive зберігаємо разом із записом: виводити його потім із
+    // даних не можна — для записів з іноземним шифром і заповненими архівними
+    // полями таке виведення дає «Так» і форма редагування затирає шифр.
+    const recordToInsert = recordWithFlag;
 
     const preparedRecord = {
       ...normalizeKeyFields(recordToInsert),

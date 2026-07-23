@@ -6,6 +6,14 @@ import { useUser } from '../contexts/UserContext';
 import { sendNotification } from '../components/notifications';
 import { FileText, Check, X, ChevronLeft, ChevronRight, ExternalLink, Mail } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
+import {
+    SIGNATURE_FIELDS,
+    buildCaseSignature,
+    hasAllArchiveParts,
+    isSignatureField,
+    resolveIsUkrainianArchive,
+    validateCaseSignature,
+} from '../lib/caseSignature';
 
 export default function ReviewEditedRecordsPage() {
     const { user, loading: userLoading } = useUser();
@@ -32,6 +40,7 @@ export default function ReviewEditedRecordsPage() {
         latitude: 'Широта',
         longitude: 'Довгота',
         mark_type: 'Тип позначки',
+        is_ukrainian_archive: 'Справа в українському архіві',
         case_signature: 'Шифр справи',
         archive: 'Архів',
         fonds: 'Фонд',
@@ -48,7 +57,12 @@ export default function ReviewEditedRecordsPage() {
     };
 
     // Fields excluded from display and updates
-    const EXCLUDED_FIELDS = ['id', 'approved', 'email', 'created_by', 'created_at', 'comment', 'json_full_data', 'is_ukrainian_archive', 'cobook_link'];
+    const EXCLUDED_FIELDS = ['id', 'approved', 'email', 'created_by', 'created_at', 'comment', 'json_full_data', 'cobook_link'];
+
+    // Поля шифру підтверджуються одним чекбоксом: підтвердити, скажімо, фонд
+    // окремо від case_signature означає лишити запис із шифром від однієї
+    // справи і координатами від іншої.
+    const SIGNATURE_BLOCK_KEY = '__signature_block';
 
     useEffect(() => {
         if (userLoading) return;
@@ -116,7 +130,7 @@ export default function ReviewEditedRecordsPage() {
 
             const initialConfirmFields: Record<string, Record<string, boolean>> = {};
             filteredEdits.forEach((rec) => {
-                initialConfirmFields[rec.id] = {};
+                initialConfirmFields[rec.id] = { [SIGNATURE_BLOCK_KEY]: true };
                 Object.entries(rec).forEach(([field, val]) => {
                     if (field === 'id') return;
                     if (val !== undefined) {
@@ -155,13 +169,35 @@ export default function ReviewEditedRecordsPage() {
         const fieldsToUpdate = confirmFields[recordEdit.id];
         if (!fieldsToUpdate) return;
 
+        const recordOriginal = recordsOriginal[recordEdit.id] || {};
+        const value = (field: string) => (recordEdit[field] === '' ? null : recordEdit[field]);
+
         const updateData: Record<string, any> = { id: recordEdit.id };
         Object.entries(fieldsToUpdate).forEach(([field, checked]) => {
+            // поля шифру обробляємо нижче, одним блоком
+            if (field === SIGNATURE_BLOCK_KEY || isSignatureField(field)) return;
             if (checked && !EXCLUDED_FIELDS.includes(field)) {
-                const value = recordEdit[field];
-                updateData[field] = value === '' ? null : value;
+                updateData[field] = value(field);
             }
         });
+
+        // Блок шифру: або всі п'ять полів разом, або жодного
+        const signatureChanged = SIGNATURE_FIELDS.some((field) => recordEdit[field] !== recordOriginal[field]);
+        if (signatureChanged && fieldsToUpdate[SIGNATURE_BLOCK_KEY]) {
+            for (const field of SIGNATURE_FIELDS) updateData[field] = value(field);
+            updateData.is_ukrainian_archive = resolveIsUkrainianArchive(recordEdit);
+
+            // Шифр збираємо зі складових, а не довіряємо тому, що прийшло у формі
+            if (updateData.is_ukrainian_archive === 'Так' && hasAllArchiveParts(updateData)) {
+                updateData.case_signature = buildCaseSignature(updateData);
+            }
+
+            const signatureError = validateCaseSignature(updateData);
+            if (signatureError) {
+                setToast({ message: `❌ ${signatureError}`, type: 'error' });
+                return;
+            }
+        }
 
         if (Object.keys(updateData).length <= 1) {
             setToast({ message: 'ℹ️ Оберіть хоча б одне поле для підтвердження', type: 'error' });
@@ -337,9 +373,15 @@ export default function ReviewEditedRecordsPage() {
             return value !== recordOriginal[key];
         });
 
-    const originalFields = editFields
-        .map(([field]) => [field, recordOriginal[field]])
-        .filter(([key]) => key !== 'email');
+    // Поля шифру виносимо в окремий блок з одним чекбоксом і показуємо всі п'ять,
+    // навіть незмінені — вони застосуються разом
+    const otherEditFields = editFields.filter(([key]) => !isSignatureField(key));
+    const signatureChanged = SIGNATURE_FIELDS.some((field) => recordEdit[field] !== recordOriginal[field]);
+    const signatureBlockFields: string[] = signatureChanged ? [...SIGNATURE_FIELDS] : [];
+
+    const originalFields = [...otherEditFields.map(([field]) => field), ...signatureBlockFields]
+        .filter((key) => key !== 'email')
+        .map((field) => [field, recordOriginal[field]]);
 
     return (
         <>
@@ -425,7 +467,7 @@ export default function ReviewEditedRecordsPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {editFields.map(([field, val]) => (
+                                        {otherEditFields.map(([field, val]) => (
                                             <tr key={field} className="border-b border-gray-200 dark:border-[#374151]">
                                                 <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px] font-medium">
                                                     {fieldLabels[field] || field}
@@ -444,6 +486,46 @@ export default function ReviewEditedRecordsPage() {
                                                 </td>
                                             </tr>
                                         ))}
+
+                                        {signatureBlockFields.length > 0 && (
+                                            <>
+                                                <tr className="bg-gray-100 dark:bg-[#111827]">
+                                                    <td
+                                                        colSpan={3}
+                                                        className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px] font-semibold"
+                                                    >
+                                                        Шифр справи — підтверджується цілком
+                                                    </td>
+                                                </tr>
+                                                {signatureBlockFields.map((field, i) => (
+                                                    <tr key={field} className="border-b border-gray-200 dark:border-[#374151]">
+                                                        <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px] font-medium">
+                                                            {fieldLabels[field] || field}
+                                                            {recordEdit[field] !== recordOriginal[field] && (
+                                                                <span className="ml-[6px] text-[#2563EB]">●</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
+                                                            {recordEdit[field]?.toString() || '—'}
+                                                        </td>
+                                                        {i === 0 && (
+                                                            <td
+                                                                rowSpan={signatureBlockFields.length}
+                                                                className="border border-gray-300 dark:border-[#374151] p-[10px] text-center align-middle"
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={confirmFields[recordEdit.id]?.[SIGNATURE_BLOCK_KEY] ?? true}
+                                                                    onChange={() => handleCheckboxChange(recordEdit.id, SIGNATURE_BLOCK_KEY)}
+                                                                    className="w-4 h-4 rounded border-gray-300 dark:border-[#374151] text-[#2563EB] focus:ring-[#2563EB] cursor-pointer"
+                                                                    aria-label="Підтвердити шифр справи цілком"
+                                                                />
+                                                            </td>
+                                                        )}
+                                                    </tr>
+                                                ))}
+                                            </>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>

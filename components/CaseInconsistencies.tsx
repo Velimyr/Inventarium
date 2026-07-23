@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { ExternalLink, RefreshCw, ClipboardCopy, Play, Check } from 'lucide-react';
+import { ExternalLink, RefreshCw, ClipboardCopy, Play, Check, ArrowRightLeft } from 'lucide-react';
 
 // Поля справи, які мають бути однакові в усіх записів з тим самим шифром
 export const CASE_FIELDS: { key: string; label: string }[] = [
@@ -78,6 +78,7 @@ export default function CaseInconsistencies({
   // Яке значення лишаємо по кожному полю, що розходиться
   const [keepValues, setKeepValues] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
+  const [transferValue, setTransferValue] = useState('');
   const [executing, setExecuting] = useState(false);
   // Шифри справ, які вже опрацьовано в цій сесії: показуємо сірими
   const [resolved, setResolved] = useState<Set<string>>(new Set());
@@ -157,8 +158,11 @@ export default function CaseInconsistencies({
     const group = groups.find((g) => g.signature_key === openKey);
     if (!group) return '';
 
+    // Поле потрапляє у скрипт, якщо для нього обрано значення. Зазвичай це поля,
+    // що розходяться, але перенесення в дод. сигнатуру додає сюди й archive/fonds/
+    // series/record → '' і additional_case_signature, навіть якщо вони не в diffs.
     const assignments = CASE_FIELDS.filter(
-      (f) => group.diffs?.[f.key] && activeFields.has(f.key) && keepValues[f.key] !== undefined
+      (f) => activeFields.has(f.key) && keepValues[f.key] !== undefined
     ).map((f) => `  ${f.key} = ${sqlLiteral(keepValues[f.key])}`);
 
     if (assignments.length === 0) return '';
@@ -173,6 +177,40 @@ export default function CaseInconsistencies({
     ].join('\n');
   }, [groups, openKey, activeFields, keepValues]);
 
+  // Окремі шифри, «зашиті» в поля архів/фонд/опис/справа (усі чотири заповнені).
+  // Саме їх переносимо в дод. сигнатуру.
+  const composedSignatures = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of records) {
+      const a = String(r.archive ?? '').trim();
+      const f = String(r.fonds ?? '').trim();
+      const s = String(r.series ?? '').trim();
+      const rec = String(r.record ?? '').trim();
+      if (a && f && s && rec) set.add(`${a} ${f}-${s}-${rec}`);
+    }
+    return [...set];
+  }, [records]);
+
+  // За замовчуванням пропонуємо перший знайдений шифр (адмін може виправити)
+  useEffect(() => {
+    setTransferValue(composedSignatures[0] ?? '');
+  }, [composedSignatures]);
+
+  // Додає перенесення в основний скрипт: дод. сигнатура = шифр,
+  // а поля архів/фонд/опис/справа очищаються
+  const transferToScript = () => {
+    if (!transferValue.trim()) return;
+    setKeepValues((prev) => ({
+      ...prev,
+      additional_case_signature: transferValue.trim(),
+      archive: '',
+      fonds: '',
+      series: '',
+      record: '',
+    }));
+    onToast('✅ Додано в скрипт оновлення', 'success');
+  };
+
   const copyScript = async () => {
     try {
       await navigator.clipboard.writeText(updateScript);
@@ -185,30 +223,18 @@ export default function CaseInconsistencies({
   };
 
   // Ті самі присвоєння, що й у скрипті, але як об'єкт для supabase.update()
-  const buildUpdate = (group: CaseGroup): Record<string, any> => {
+  const buildUpdate = (): Record<string, any> => {
     const update: Record<string, any> = {};
     for (const f of CASE_FIELDS) {
-      if (group.diffs?.[f.key] && activeFields.has(f.key) && keepValues[f.key] !== undefined) {
+      if (activeFields.has(f.key) && keepValues[f.key] !== undefined) {
         update[f.key] = keepValues[f.key] === '' ? null : keepValues[f.key];
       }
     }
     return update;
   };
 
-  // Виконує оновлення, ховає блок і переходить до наступного неопрацьованого
-  const executeUpdate = async () => {
-    const group = groups.find((g) => g.signature_key === openKey);
-    if (!group) return;
-
-    const update = buildUpdate(group);
-    if (Object.keys(update).length === 0) return;
-
-    const confirmed = window.confirm(
-      `Оновити ${group.records_count} записів справи ${group.case_signature}?\n\n` +
-        'Зміни застосуються до всіх записів з цим шифром і незворотні.'
-    );
-    if (!confirmed) return;
-
+  // Застосовує оновлення до всіх записів справи, ховає блок і переходить далі
+  const applyUpdate = async (group: CaseGroup, update: Record<string, any>) => {
     setExecuting(true);
     const { error } = await supabase
       .from('records')
@@ -241,6 +267,22 @@ export default function CaseInconsistencies({
       setRecords([]);
       setKeepValues({});
     }
+  };
+
+  const executeUpdate = async () => {
+    const group = groups.find((g) => g.signature_key === openKey);
+    if (!group) return;
+
+    const update = buildUpdate();
+    if (Object.keys(update).length === 0) return;
+
+    const confirmed = window.confirm(
+      `Оновити ${group.records_count} записів справи ${group.case_signature}?\n\n` +
+        'Зміни застосуються до всіх записів з цим шифром і незворотні.'
+    );
+    if (!confirmed) return;
+
+    await applyUpdate(group, update);
   };
 
   const toggleField = (key: string) => {
@@ -520,6 +562,63 @@ export default function CaseInconsistencies({
                             ))}
                           </tbody>
                         </table>
+                      </div>
+                    )}
+
+                    {/* Перенесення окремого шифру в дод. сигнатуру.
+                        Лише коли архів/фонд/опис/справа справді розходяться (заповнені
+                        в частині записів) — інакше це коректні координати всієї справи,
+                        які чіпати не треба. */}
+                    {composedSignatures.length > 0 &&
+                      ['archive', 'fonds', 'series', 'record'].some((k) => group.diffs?.[k]) && (
+                      <div className="mt-[18px] p-[12px] rounded-lg border border-[#2563EB] bg-blue-50 dark:bg-[#1E3A5F]">
+                        <p className="text-gray-900 dark:text-[#F3F4F6] text-[14px] font-semibold mb-[4px]">
+                          Перенести шифр у «Дод. сигнатура»
+                        </p>
+                        <p className="text-gray-700 dark:text-gray-300 text-[13px] mb-[10px]">
+                          У полях архів/фонд/опис/справа заповнено окремий шифр. «Додати в
+                          скрипт» впише його в дод. сигнатуру, а самі поля очистить — усе це
+                          потрапить у скрипт оновлення нижче, який виконується однією кнопкою.
+                        </p>
+
+                        {composedSignatures.length > 1 && (
+                          <div className="flex flex-col gap-[4px] mb-[10px]">
+                            {composedSignatures.map((sig) => (
+                              <label
+                                key={sig}
+                                className="flex items-center gap-[8px] text-[13px] cursor-pointer"
+                              >
+                                <input
+                                  type="radio"
+                                  name={`transfer-${group.signature_key}`}
+                                  checked={transferValue === sig}
+                                  onChange={() => setTransferValue(sig)}
+                                  className="w-[14px] h-[14px] accent-[#2563EB]"
+                                />
+                                <span className="text-gray-900 dark:text-[#F3F4F6]">{sig}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap items-center gap-[8px] mb-[10px]">
+                          <input
+                            type="text"
+                            value={transferValue}
+                            onChange={(e) => setTransferValue(e.target.value)}
+                            placeholder="Дод. сигнатура"
+                            className="flex-1 min-w-[240px] h-[36px] px-[10px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] text-gray-900 dark:text-[#F3F4F6] text-[14px]"
+                          />
+                          <button
+                            type="button"
+                            onClick={transferToScript}
+                            disabled={!transferValue.trim()}
+                            className="flex items-center gap-[6px] h-[36px] px-[14px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-40 text-white text-[13px]"
+                          >
+                            <ArrowRightLeft className="w-4 h-4" strokeWidth={2} />
+                            Додати в скрипт
+                          </button>
+                        </div>
                       </div>
                     )}
 

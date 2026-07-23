@@ -921,7 +921,7 @@ export default function AdminDuplicatesPage() {
           </div>
 
           {tab === 'cases' ? (
-            <CaseInconsistencies onError={(message) => setToast({ message, type: 'error' })} />
+            <CaseInconsistencies onToast={(message, type) => setToast({ message, type })} />
           ) : (
             <>
           <p className="text-gray-700 dark:text-gray-300 text-[14px] mb-[20px] lg:mb-[30px]">

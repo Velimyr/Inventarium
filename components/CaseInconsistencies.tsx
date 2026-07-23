@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { ExternalLink, RefreshCw, ClipboardCopy } from 'lucide-react';
+import { ExternalLink, RefreshCw, ClipboardCopy, Play, Check } from 'lucide-react';
 
 // Поля справи, які мають бути однакові в усіх записів з тим самим шифром
 export const CASE_FIELDS: { key: string; label: string }[] = [
@@ -63,9 +63,9 @@ function FieldValue({ value }: { value: string }) {
 }
 
 export default function CaseInconsistencies({
-  onError,
+  onToast,
 }: {
-  onError: (message: string) => void;
+  onToast: (message: string, type: 'success' | 'error') => void;
 }) {
   const [groups, setGroups] = useState<CaseGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +78,9 @@ export default function CaseInconsistencies({
   // Яке значення лишаємо по кожному полю, що розходиться
   const [keepValues, setKeepValues] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
+  const [executing, setExecuting] = useState(false);
+  // Шифри справ, які вже опрацьовано в цій сесії: показуємо сірими
+  const [resolved, setResolved] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -85,15 +88,16 @@ export default function CaseInconsistencies({
 
     if (error) {
       console.error('Помилка пошуку неповних даних справ:', error);
-      onError('❌ Помилка пошуку: ' + error.message);
+      onToast('❌ Помилка пошуку: ' + error.message, 'error');
       setGroups([]);
     } else {
       setGroups((data as CaseGroup[]) || []);
     }
 
     setOpenKey(null);
+    setResolved(new Set());
     setLoading(false);
-  }, [onError]);
+  }, [onToast]);
 
   useEffect(() => {
     load();
@@ -105,6 +109,9 @@ export default function CaseInconsistencies({
       groups.filter((g) => Object.keys(g.diffs || {}).some((field) => activeFields.has(field))),
     [groups, activeFields]
   );
+
+  const resolvedCount = visibleGroups.filter((g) => resolved.has(g.signature_key)).length;
+  const openCount = visibleGroups.length - resolvedCount;
 
   const openGroup = async (group: CaseGroup) => {
     if (openKey === group.signature_key) {
@@ -127,7 +134,7 @@ export default function CaseInconsistencies({
 
     if (error) {
       console.error('Помилка завантаження записів справи:', error);
-      onError('❌ Помилка завантаження записів');
+      onToast('❌ Помилка завантаження записів', 'error');
       setRecords([]);
     } else {
       const rows = data || [];
@@ -173,7 +180,66 @@ export default function CaseInconsistencies({
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Не вдалося скопіювати:', err);
-      onError('❌ Не вдалося скопіювати — виділіть текст вручну');
+      onToast('❌ Не вдалося скопіювати — виділіть текст вручну', 'error');
+    }
+  };
+
+  // Ті самі присвоєння, що й у скрипті, але як об'єкт для supabase.update()
+  const buildUpdate = (group: CaseGroup): Record<string, any> => {
+    const update: Record<string, any> = {};
+    for (const f of CASE_FIELDS) {
+      if (group.diffs?.[f.key] && activeFields.has(f.key) && keepValues[f.key] !== undefined) {
+        update[f.key] = keepValues[f.key] === '' ? null : keepValues[f.key];
+      }
+    }
+    return update;
+  };
+
+  // Виконує оновлення, ховає блок і переходить до наступного неопрацьованого
+  const executeUpdate = async () => {
+    const group = groups.find((g) => g.signature_key === openKey);
+    if (!group) return;
+
+    const update = buildUpdate(group);
+    if (Object.keys(update).length === 0) return;
+
+    const confirmed = window.confirm(
+      `Оновити ${group.records_count} записів справи ${group.case_signature}?\n\n` +
+        'Зміни застосуються до всіх записів з цим шифром і незворотні.'
+    );
+    if (!confirmed) return;
+
+    setExecuting(true);
+    const { error } = await supabase
+      .from('records')
+      .update(update)
+      .eq('case_signature', group.case_signature)
+      .eq('approved', true);
+    setExecuting(false);
+
+    if (error) {
+      console.error('Помилка оновлення справи:', error);
+      onToast('❌ Помилка оновлення: ' + error.message, 'error');
+      return;
+    }
+
+    onToast(`✅ Оновлено записів: ${group.records_count}`, 'success');
+
+    const nextResolved = new Set(resolved).add(group.signature_key);
+    setResolved(nextResolved);
+
+    // Наступний неопрацьований блок у видимому списку
+    const idx = visibleGroups.findIndex((g) => g.signature_key === group.signature_key);
+    const next = visibleGroups
+      .slice(idx + 1)
+      .find((g) => !nextResolved.has(g.signature_key));
+
+    if (next) {
+      openGroup(next);
+    } else {
+      setOpenKey(null);
+      setRecords([]);
+      setKeepValues({});
     }
   };
 
@@ -230,6 +296,11 @@ export default function CaseInconsistencies({
       <div className="flex flex-wrap items-center justify-between gap-[10px] mb-[15px]">
         <p className="text-gray-900 dark:text-[#F3F4F6] text-[16px] font-semibold">
           Справ із розбіжностями: {visibleGroups.length}
+          <span className="text-gray-600 dark:text-gray-400 font-normal">
+            {' '}
+            · відкритих: {openCount}
+            {resolvedCount > 0 ? ` · опрацьовано: ${resolvedCount}` : ''}
+          </span>
         </p>
         <button
           type="button"
@@ -254,11 +325,16 @@ export default function CaseInconsistencies({
               (f) => group.diffs?.[f.key] && activeFields.has(f.key)
             );
             const isOpen = openKey === group.signature_key;
+            const isResolved = resolved.has(group.signature_key);
 
             return (
               <section
                 key={group.signature_key}
-                className="rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]"
+                className={`rounded-lg border ${
+                  isResolved
+                    ? 'border-gray-200 dark:border-[#2A2F3A] bg-gray-100 dark:bg-[#161B24] opacity-60'
+                    : 'border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]'
+                }`}
               >
                 <div className="flex items-start gap-[10px] p-[15px]">
                   <button
@@ -273,6 +349,12 @@ export default function CaseInconsistencies({
                       <span className="text-gray-600 dark:text-gray-400 text-[14px]">
                         записів: {group.records_count}
                       </span>
+                      {isResolved && (
+                        <span className="inline-flex items-center gap-[4px] px-[8px] py-[2px] rounded bg-[#14AE5C] text-white text-[12px]">
+                          <Check className="w-3 h-3" strokeWidth={2} />
+                          опрацьовано
+                        </span>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-[6px] mt-[8px]">
                       {diffFields.map((f) => (
@@ -447,15 +529,26 @@ export default function CaseInconsistencies({
                         <p className="text-gray-900 dark:text-[#F3F4F6] text-[14px] font-semibold">
                           Скрипт оновлення
                         </p>
-                        <button
-                          type="button"
-                          onClick={copyScript}
-                          disabled={!updateScript}
-                          className="flex items-center gap-[6px] h-[34px] px-[12px] rounded border border-gray-300 dark:border-[#374151] text-gray-900 dark:text-[#F3F4F6] text-[13px] disabled:opacity-40"
-                        >
-                          <ClipboardCopy className="w-4 h-4" strokeWidth={2} />
-                          {copied ? 'Скопійовано' : 'Копіювати'}
-                        </button>
+                        <div className="flex items-center gap-[8px]">
+                          <button
+                            type="button"
+                            onClick={copyScript}
+                            disabled={!updateScript}
+                            className="flex items-center gap-[6px] h-[34px] px-[12px] rounded border border-gray-300 dark:border-[#374151] text-gray-900 dark:text-[#F3F4F6] text-[13px] disabled:opacity-40"
+                          >
+                            <ClipboardCopy className="w-4 h-4" strokeWidth={2} />
+                            {copied ? 'Скопійовано' : 'Копіювати'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={executeUpdate}
+                            disabled={!updateScript || executing}
+                            className="flex items-center gap-[6px] h-[34px] px-[12px] rounded bg-[#14AE5C] hover:bg-[#0F8A4A] disabled:opacity-40 text-white text-[13px]"
+                          >
+                            <Play className="w-4 h-4" strokeWidth={2} />
+                            {executing ? 'Виконання...' : 'Виконати'}
+                          </button>
+                        </div>
                       </div>
                       {updateScript ? (
                         <>
@@ -463,8 +556,9 @@ export default function CaseInconsistencies({
                             {updateScript}
                           </pre>
                           <p className="text-gray-600 dark:text-gray-400 text-[12px] mt-[6px]">
-                            Скрипт не виконується сторінкою — скопіюйте його в Supabase → SQL
-                            Editor. Оновлює всі записи з цим шифром.
+                            «Виконати» застосує ці зміни одразу до всіх записів з цим шифром.
+                            «Копіювати» дає той самий скрипт для ручного запуску в Supabase → SQL
+                            Editor.
                           </p>
                         </>
                       ) : (

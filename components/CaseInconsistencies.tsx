@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { ExternalLink, RefreshCw, ClipboardCopy, Play, Check, ArrowRightLeft } from 'lucide-react';
+import { ExternalLink, RefreshCw, ClipboardCopy, Play, Check, ArrowRightLeft, RotateCcw } from 'lucide-react';
 
 // Поля справи, які мають бути однакові в усіх записів з тим самим шифром
 export const CASE_FIELDS: { key: string; label: string }[] = [
@@ -27,6 +27,107 @@ const countVariants = (records: any[], field: string): [string, number][] => {
 
 // Екранування рядка для SQL-літерала: одинарна лапка подвоюється
 const sqlLiteral = (value: string) => (value === '' ? 'null' : `'${value.replace(/'/g, "''")}'`);
+
+// Зчитує SQL-літерал у лапках, враховуючи подвоєні лапки всередині
+const readQuoted = (s: string, from: number): { value: string; end: number } | null => {
+  if (s[from] !== "'") return null;
+  let out = '';
+  let i = from + 1;
+  while (i < s.length) {
+    if (s[i] === "'") {
+      if (s[i + 1] === "'") {
+        out += "'";
+        i += 2;
+        continue;
+      }
+      return { value: out, end: i + 1 };
+    }
+    out += s[i];
+    i += 1;
+  }
+  return null;
+};
+
+type ParsedScript =
+  | { update: Record<string, any>; signature: string; approvedOnly: boolean }
+  | { error: string };
+
+// Розбирає відредагований скрипт назад у присвоєння для supabase.update().
+// Навмисно строгий: виконуємо лише те, що впевнено розпізнали, і лише
+// дозволені поля — довільний SQL з клієнта не виконується.
+const parseUpdateScript = (sql: string): ParsedScript => {
+  const body = sql
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('--'))
+    .join('\n')
+    .trim()
+    .replace(/;\s*$/, '');
+
+  const shape = body.match(/^update\s+(?:public\.)?records\s+set\s+([\s\S]+?)\s+where\s+([\s\S]+)$/i);
+  if (!shape) {
+    return { error: 'Очікується: update public.records set ... where case_signature = \'...\'' };
+  }
+
+  const [, setPart, wherePart] = shape;
+
+  // Ділимо присвоєння комами верхнього рівня — коми всередині лапок не рахуються
+  const chunks: string[] = [];
+  let buf = '';
+  for (let i = 0; i < setPart.length; i += 1) {
+    if (setPart[i] === "'") {
+      const quoted = readQuoted(setPart, i);
+      if (!quoted) return { error: 'Незакрита одинарна лапка у значенні' };
+      buf += setPart.slice(i, quoted.end);
+      i = quoted.end - 1;
+      continue;
+    }
+    if (setPart[i] === ',') {
+      chunks.push(buf);
+      buf = '';
+      continue;
+    }
+    buf += setPart[i];
+  }
+  if (buf.trim()) chunks.push(buf);
+
+  const allowed = new Set(CASE_FIELDS.map((f) => f.key));
+  const update: Record<string, any> = {};
+
+  for (const chunk of chunks) {
+    const pair = chunk.trim().match(/^([a-zA-Z_]+)\s*=\s*([\s\S]+)$/);
+    if (!pair) return { error: `Не вдалося розібрати: ${chunk.trim().slice(0, 60)}` };
+
+    const key = pair[1].toLowerCase();
+    const raw = pair[2].trim();
+
+    if (!allowed.has(key)) return { error: `Поле «${key}» тут змінювати не можна` };
+
+    if (/^null$/i.test(raw)) {
+      update[key] = null;
+      continue;
+    }
+
+    const quoted = readQuoted(raw, 0);
+    if (!quoted || quoted.end !== raw.length) {
+      return { error: `Значення для «${key}» має бути в одинарних лапках або null` };
+    }
+    update[key] = quoted.value;
+  }
+
+  if (Object.keys(update).length === 0) return { error: 'Немає жодного присвоєння' };
+
+  const sigAt = wherePart.search(/case_signature\s*=\s*'/i);
+  if (sigAt === -1) return { error: "WHERE має містити case_signature = '...'" };
+  const quoteAt = wherePart.indexOf("'", sigAt);
+  const sig = readQuoted(wherePart, quoteAt);
+  if (!sig) return { error: 'Незакрита лапка в шифрі справи' };
+
+  return {
+    update,
+    signature: sig.value,
+    approvedOnly: /approved\s*=\s*true/i.test(wherePart),
+  };
+};
 
 interface CaseGroup {
   signature_key: string;
@@ -79,6 +180,9 @@ export default function CaseInconsistencies({
   const [keepValues, setKeepValues] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
   const [transferValue, setTransferValue] = useState('');
+  // Текст скрипта, який реально виконується: можна правити вручну
+  const [scriptDraft, setScriptDraft] = useState('');
+  const [scriptDirty, setScriptDirty] = useState(false);
   const [executing, setExecuting] = useState(false);
   // Шифри справ, які вже опрацьовано в цій сесії: показуємо сірими
   const [resolved, setResolved] = useState<Set<string>>(new Set());
@@ -200,6 +304,19 @@ export default function CaseInconsistencies({
     setTransferValue(composedSignatures[0] ?? '');
   }, [composedSignatures]);
 
+  // Згенерований скрипт перезаписує чернетку — ручні правки скидаються,
+  // щойно змінено вибір значень
+  useEffect(() => {
+    setScriptDraft(updateScript);
+    setScriptDirty(false);
+  }, [updateScript]);
+
+  const parsedScript = useMemo(
+    () => (scriptDraft.trim() ? parseUpdateScript(scriptDraft) : null),
+    [scriptDraft]
+  );
+  const scriptError = parsedScript && 'error' in parsedScript ? parsedScript.error : null;
+
   // Додає перенесення в основний скрипт: дод. сигнатура = шифр,
   // а поля архів/фонд/опис/справа очищаються
   const transferToScript = () => {
@@ -217,7 +334,7 @@ export default function CaseInconsistencies({
 
   const copyScript = async () => {
     try {
-      await navigator.clipboard.writeText(updateScript);
+      await navigator.clipboard.writeText(scriptDraft);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -226,25 +343,17 @@ export default function CaseInconsistencies({
     }
   };
 
-  // Ті самі присвоєння, що й у скрипті, але як об'єкт для supabase.update()
-  const buildUpdate = (): Record<string, any> => {
-    const update: Record<string, any> = {};
-    for (const f of CASE_FIELDS) {
-      if (activeFields.has(f.key) && keepValues[f.key] !== undefined) {
-        update[f.key] = keepValues[f.key] === '' ? null : keepValues[f.key];
-      }
-    }
-    return update;
-  };
-
   // Застосовує оновлення до всіх записів справи, ховає блок і переходить далі
-  const applyUpdate = async (group: CaseGroup, update: Record<string, any>) => {
+  const applyUpdate = async (
+    group: CaseGroup,
+    update: Record<string, any>,
+    signature: string,
+    approvedOnly: boolean
+  ) => {
     setExecuting(true);
-    const { error } = await supabase
-      .from('records')
-      .update(update)
-      .eq('case_signature', group.case_signature)
-      .eq('approved', true);
+    let query = supabase.from('records').update(update).eq('case_signature', signature);
+    if (approvedOnly) query = query.eq('approved', true);
+    const { error } = await query;
     setExecuting(false);
 
     if (error) {
@@ -277,16 +386,27 @@ export default function CaseInconsistencies({
     const group = groups.find((g) => g.signature_key === openKey);
     if (!group) return;
 
-    const update = buildUpdate();
-    if (Object.keys(update).length === 0) return;
+    if (!parsedScript) return;
+    if ('error' in parsedScript) {
+      onToast('❌ Скрипт не розібрано: ' + parsedScript.error, 'error');
+      return;
+    }
+
+    const { update, signature, approvedOnly } = parsedScript;
+    const fieldList = Object.keys(update)
+      .map((k) => CASE_FIELDS.find((f) => f.key === k)?.label ?? k)
+      .join(', ');
 
     const confirmed = window.confirm(
-      `Оновити ${group.records_count} записів справи ${group.case_signature}?\n\n` +
-        'Зміни застосуються до всіх записів з цим шифром і незворотні.'
+      `Оновити записи справи ${signature}?\n\n` +
+        `Поля: ${fieldList}\n` +
+        (approvedOnly ? '' : '\nУВАГА: без умови approved = true — зачепить і прибрані записи.\n') +
+        (scriptDirty ? '\nСкрипт відредаговано вручну.\n' : '') +
+        '\nЗміни застосуються до всіх записів з цим шифром і незворотні.'
     );
     if (!confirmed) return;
 
-    await applyUpdate(group, update);
+    await applyUpdate(group, update, signature, approvedOnly);
   };
 
   const toggleField = (key: string) => {
@@ -631,12 +751,30 @@ export default function CaseInconsistencies({
                       <div className="flex flex-wrap items-center justify-between gap-[10px] mb-[8px]">
                         <p className="text-gray-900 dark:text-[#F3F4F6] text-[14px] font-semibold">
                           Скрипт оновлення
+                          {scriptDirty && (
+                            <span className="ml-[8px] font-normal text-amber-700 dark:text-amber-300 text-[13px]">
+                              змінено вручну
+                            </span>
+                          )}
                         </p>
                         <div className="flex items-center gap-[8px]">
+                          {scriptDirty && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setScriptDraft(updateScript);
+                                setScriptDirty(false);
+                              }}
+                              className="flex items-center gap-[6px] h-[34px] px-[12px] rounded border border-gray-300 dark:border-[#374151] text-gray-900 dark:text-[#F3F4F6] text-[13px]"
+                            >
+                              <RotateCcw className="w-4 h-4" strokeWidth={2} />
+                              Скинути
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={copyScript}
-                            disabled={!updateScript}
+                            disabled={!scriptDraft.trim()}
                             className="flex items-center gap-[6px] h-[34px] px-[12px] rounded border border-gray-300 dark:border-[#374151] text-gray-900 dark:text-[#F3F4F6] text-[13px] disabled:opacity-40"
                           >
                             <ClipboardCopy className="w-4 h-4" strokeWidth={2} />
@@ -645,7 +783,7 @@ export default function CaseInconsistencies({
                           <button
                             type="button"
                             onClick={executeUpdate}
-                            disabled={!updateScript || executing}
+                            disabled={!scriptDraft.trim() || !!scriptError || executing}
                             className="flex items-center gap-[6px] h-[34px] px-[12px] rounded bg-[#14AE5C] hover:bg-[#0F8A4A] disabled:opacity-40 text-white text-[13px]"
                           >
                             <Play className="w-4 h-4" strokeWidth={2} />
@@ -653,16 +791,33 @@ export default function CaseInconsistencies({
                           </button>
                         </div>
                       </div>
-                      {updateScript ? (
+                      {scriptDraft.trim() ? (
                         <>
-                          <pre className="p-[12px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] text-gray-900 dark:text-[#F3F4F6] text-[13px] overflow-x-auto whitespace-pre">
-                            {updateScript}
-                          </pre>
-                          <p className="text-gray-600 dark:text-gray-400 text-[12px] mt-[6px]">
-                            «Виконати» застосує ці зміни одразу до всіх записів з цим шифром.
-                            «Копіювати» дає той самий скрипт для ручного запуску в Supabase → SQL
-                            Editor.
-                          </p>
+                          <textarea
+                            value={scriptDraft}
+                            onChange={(e) => {
+                              setScriptDraft(e.target.value);
+                              setScriptDirty(true);
+                            }}
+                            spellCheck={false}
+                            rows={Math.max(6, scriptDraft.split('\n').length + 1)}
+                            className={`w-full p-[12px] rounded border font-mono bg-white dark:bg-[#111827] text-gray-900 dark:text-[#F3F4F6] text-[13px] ${
+                              scriptError
+                                ? 'border-red-500'
+                                : 'border-gray-300 dark:border-[#374151]'
+                            }`}
+                          />
+                          {scriptError ? (
+                            <p className="text-red-600 dark:text-red-400 text-[12px] mt-[6px]">
+                              {scriptError} — «Виконати» недоступне. Для складніших змін
+                              скопіюйте скрипт і запустіть у Supabase → SQL Editor.
+                            </p>
+                          ) : (
+                            <p className="text-gray-600 dark:text-gray-400 text-[12px] mt-[6px]">
+                              Скрипт можна правити перед виконанням. «Виконати» застосує саме те,
+                              що написано тут; змінювати можна лише поля справи.
+                            </p>
+                          )}
                         </>
                       ) : (
                         <p className="text-gray-600 dark:text-gray-400 text-[13px]">

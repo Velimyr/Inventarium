@@ -100,9 +100,13 @@ export default function CaseInconsistencies({
     setLoading(false);
   }, [onToast]);
 
+  // Завантажуємо лише раз на монтуванні. Далі дані оновлюються кнопкою «Оновити»
+  // або після виконання — але НЕ через зміну ідентичності load, інакше будь-який
+  // тост скидав би відкритий блок і вибрані значення.
   useEffect(() => {
     load();
-  }, [load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Показуємо лише групи, що розходяться за обраними полями
   const visibleGroups = useMemo(

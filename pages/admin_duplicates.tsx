@@ -212,6 +212,13 @@ export default function AdminDuplicatesPage() {
   const [mergeChoices, setMergeChoices] = useState<Record<string, string>>({});
   const [mergeComment, setMergeComment] = useState('');
 
+  // Стабільна функція тостів: інлайн-стрілка мінялась щорендеру й перезапускала
+  // ефект завантаження у вкладці «Неповні дані справ», скидаючи її стан
+  const showToast = useCallback(
+    (message: string, type: 'success' | 'error') => setToast({ message, type }),
+    []
+  );
+
   const currentGroup = groups[index] ?? null;
 
   // Найраніший запис групи — за замовчуванням саме його лишаємо в реєстрі
@@ -921,7 +928,7 @@ export default function AdminDuplicatesPage() {
           </div>
 
           {tab === 'cases' ? (
-            <CaseInconsistencies onToast={(message, type) => setToast({ message, type })} />
+            <CaseInconsistencies onToast={showToast} />
           ) : (
             <>
           <p className="text-gray-700 dark:text-gray-300 text-[14px] mb-[20px] lg:mb-[30px]">

@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Head from 'next/head';
-import Link from 'next/link';
 
 type Theme = 'light' | 'dark';
 
@@ -46,12 +45,6 @@ export default function Maintenance() {
             <p className="text-xl text-gray-700 dark:text-gray-300">
               проводяться ремонтні роботи
             </p>
-            <Link
-              href="/auth"
-              className="inline-block text-sm text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400 transition"
-            >
-              Вхід для адміністраторів
-            </Link>
           </div>
         </div>
       </div>

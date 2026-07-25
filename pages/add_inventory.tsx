@@ -10,6 +10,7 @@ import { getAdminUserIds } from '../lib/adminUsers';
 import { Save, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { fromSignatureList, validateCaseSignature } from '../lib/caseSignature';
+import { reportAddProblem as reportProblemToAdmins } from '../lib/reportProblem';
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
     ssr: false,
@@ -217,21 +218,17 @@ export default function AddInventoryPage() {
         return null;
     };
 
-    // Звіт адмінам у бот про будь-яку невдачу додавання (сервер сам вирішує,
-    // чи слати, за глобальним налаштуванням report_add_problems). Fire-and-forget:
-    // не блокує й не ламає UX, якщо звіт не пішов.
+    // Звіт адмінам про будь-яку невдачу додавання (Telegram-файл + /messages),
+    // під прапорцем report_add_problems. Fire-and-forget: UX не блокує.
     const reportAddProblem = (reason: string) => {
-        fetch('/api/report-add-problem', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                source: 'add_inventory',
-                reason,
-                email: formData.email || user?.email || null,
-                userId: user?.id || null,
-                formData,
-            }),
-        }).catch((err) => console.error('Не вдалося надіслати звіт про помилку:', err));
+        reportProblemToAdmins({
+            supabase,
+            source: 'add_inventory',
+            reason,
+            email: formData.email || user?.email || null,
+            userId: user?.id || null,
+            formData,
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

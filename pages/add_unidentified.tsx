@@ -12,6 +12,7 @@ import {
     hasAllArchiveParts,
     validateCaseSignature,
 } from '../lib/caseSignature';
+import { reportAddProblem as reportProblemToAdmins } from '../lib/reportProblem';
 
 const UnidentifiedInventoryForm = dynamic(
     () => import('../components/UnidentifiedInventoryForm'),
@@ -125,19 +126,17 @@ export default function AddUnidentifiedInventoryPage() {
         return null;
     };
 
-    // Звіт адмінам у бот про будь-яку невдачу (сервер сам вирішує, чи слати).
+    // Звіт адмінам про будь-яку невдачу (Telegram-файл + /messages) під
+    // прапорцем report_add_problems. Fire-and-forget.
     const reportAddProblem = (reason: string) => {
-        fetch('/api/report-add-problem', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                source: 'add_unidentified',
-                reason,
-                email: formData.email || user?.email || null,
-                userId: user?.id || null,
-                formData,
-            }),
-        }).catch((err) => console.error('Не вдалося надіслати звіт про помилку:', err));
+        reportProblemToAdmins({
+            supabase,
+            source: 'add_unidentified',
+            reason,
+            email: formData.email || user?.email || null,
+            userId: user?.id || null,
+            formData,
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

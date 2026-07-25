@@ -157,10 +157,11 @@ export function validateCaseSignature(record: any): string | null {
     if (!signatureMatchesParts(record)) {
       return `Шифр справи не збігається з архівом/фондом/описом/справою. Очікується "${buildCaseSignature(record)}".`;
     }
-    // Асерт формату автоскладеного шифру: спрацьовує лише коли складові
-    // містять щось незвичне (за нормального вводу маска виконується завжди).
+    // Асерт формату автоскладеного шифру. UA перевіряє структуру АРХІВ Ф-О-С,
+    // але дозволяє літери в частинах (для «КМФ-15» тощо), тож додаємо SANITY —
+    // він вимагає хоча б одну цифру й відсікає складові без номерів («ц-ц-ц»).
     const built = buildCaseSignature(record);
-    if (!CASE_SIGNATURE_UA.test(built)) {
+    if (!CASE_SIGNATURE_UA.test(built) || !CASE_SIGNATURE_SANITY.test(built)) {
       return `Складений шифр «${built}» виглядає незвично — перевірте архів/фонд/опис/справу. ${SIGNATURE_HINT}`;
     }
   } else {

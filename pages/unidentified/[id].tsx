@@ -11,6 +11,7 @@ import { sendNotification } from '../../components/notifications';
 import { getAdminUserIds } from '../../lib/adminUsers';
 import { MapPin, FileText, Save, X, Check, ChevronDown } from 'lucide-react';
 import { formatSignatureList, fromSignatureList } from '../../lib/caseSignature';
+import HelpTooltip from '../../components/HelpTooltip';
 
 const MapSelector = dynamic(() => import('../../components/MapSelector'), { ssr: false });
 
@@ -651,6 +652,22 @@ export default function NotIdentifyDetails() {
                                             />
                                         </div>
 
+                                        <div className="flex items-center gap-[8px] mb-[8px]">
+                                            <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] font-medium">
+                                                Тип позначки
+                                            </span>
+                                            <HelpTooltip label="Що означають Місце і Регіон" width={320}>
+                                                <span className="block">
+                                                    <b>Місце</b> — запис стосується конкретного населеного пункту, вказаного у формі.
+                                                    Обираємо, коли знаємо, що саме цей населений пункт зустрічається в інвентарі.
+                                                </span>
+                                                <span className="block">
+                                                    <b>Регіон</b> — запис стосується певного регіону навколо населеного пункту,
+                                                    вказаного у формі. Обираємо, коли в інвентарі вказано лише назву ключа або повіту й
+                                                    немає сканів, щоб перевірити, які саме населені пункти входять у документ.
+                                                </span>
+                                            </HelpTooltip>
+                                        </div>
                                         <FormSelect
                                             name="mark_type"
                                             value={formData.mark_type}

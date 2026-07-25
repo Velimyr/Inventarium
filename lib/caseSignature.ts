@@ -135,7 +135,7 @@ export function validateSignatureFormats(record: any): string | null {
   if (caseErr) return caseErr;
 
   for (const extra of toSignatureList(record?.additional_case_signature)) {
-    const extraErr = validateSignatureValue(extra, 'Додаткова сигнатура');
+    const extraErr = validateSignatureValue(extra, 'Додатковий шифр справи');
     if (extraErr) return extraErr;
   }
   return null;
@@ -162,7 +162,7 @@ export function validateCaseSignature(record: any): string | null {
     // він вимагає хоча б одну цифру й відсікає складові без номерів («ц-ц-ц»).
     const built = buildCaseSignature(record);
     if (!CASE_SIGNATURE_UA.test(built) || !CASE_SIGNATURE_SANITY.test(built)) {
-      return `Складений шифр «${built}» виглядає незвично — перевірте архів/фонд/опис/справу. ${SIGNATURE_HINT}`;
+      return `Шифр справи «${built}» виглядає незвично — перевірте архів/фонд/опис/справу. ${SIGNATURE_HINT}`;
     }
   } else {
     // Іноземний архів: шифр вводиться вручну, українських координат бути не повинно.
@@ -178,7 +178,7 @@ export function validateCaseSignature(record: any): string | null {
 
   // Додаткові сигнатури — будь-якого архіву, тож лише базова перевірка формату.
   for (const extra of toSignatureList(record?.additional_case_signature)) {
-    const extraErr = validateSignatureValue(extra, 'Додаткова сигнатура');
+    const extraErr = validateSignatureValue(extra, 'Додатковий шифр справи');
     if (extraErr) return extraErr;
   }
   return null;

@@ -9,11 +9,30 @@ import { isAdminUser } from '../lib/adminUsers';
 import {
     SIGNATURE_FIELDS,
     buildCaseSignature,
+    formatSignatureList,
+    fromSignatureList,
     hasAllArchiveParts,
     isSignatureField,
     resolveIsUkrainianArchive,
+    sameSignatureList,
     validateCaseSignature,
 } from '../lib/caseSignature';
+
+const ADDITIONAL_SIGNATURE_FIELD = 'additional_case_signature';
+
+// Значення поля в таблиці. Дод. сигнатури — масив, і його треба зібрати в рядок:
+// React вивів би елементи масиву впритул один до одного.
+const displayValue = (field: string, value: any) => {
+    if (field === ADDITIONAL_SIGNATURE_FIELD) return formatSignatureList(value) || '—';
+    return value === null || value === undefined || value === '' ? '—' : String(value);
+};
+
+// Чи змінилося поле. Для масиву `!==` завжди істинний — порівнюємо вміст,
+// інакше дод. сигнатура потрапляла б у список змін у кожному записі.
+const fieldChanged = (field: string, edited: any, original: any) => {
+    if (field === ADDITIONAL_SIGNATURE_FIELD) return !sameSignatureList(edited, original);
+    return edited !== original;
+};
 
 export default function ReviewEditedRecordsPage() {
     const { user, loading: userLoading } = useUser();
@@ -46,7 +65,7 @@ export default function ReviewEditedRecordsPage() {
         fonds: 'Фонд',
         series: 'Опис',
         record: 'Справа',
-        additional_case_signature: 'Шифр дод. справи',
+        additional_case_signature: 'Шифри дод. справ',
         case_date: 'Дати справи',
         inventory_year: 'Рік складання інвентаря',
         pages_count: 'К-ть сторінок',
@@ -170,7 +189,10 @@ export default function ReviewEditedRecordsPage() {
         if (!fieldsToUpdate) return;
 
         const recordOriginal = recordsOriginal[recordEdit.id] || {};
-        const value = (field: string) => (recordEdit[field] === '' ? null : recordEdit[field]);
+        const value = (field: string) => {
+            if (field === ADDITIONAL_SIGNATURE_FIELD) return fromSignatureList(recordEdit[field]);
+            return recordEdit[field] === '' ? null : recordEdit[field];
+        };
 
         const updateData: Record<string, any> = { id: recordEdit.id };
         Object.entries(fieldsToUpdate).forEach(([field, checked]) => {
@@ -370,7 +392,7 @@ export default function ReviewEditedRecordsPage() {
     const editFields = Object.entries(recordEdit)
         .filter(([key, value]) => {
             if (EXCLUDED_FIELDS.includes(key)) return false;
-            return value !== recordOriginal[key];
+            return fieldChanged(key, value, recordOriginal[key]);
         });
 
     // Поля шифру виносимо в окремий блок з одним чекбоксом і показуємо всі п'ять,
@@ -423,7 +445,7 @@ export default function ReviewEditedRecordsPage() {
                                                     {fieldLabels[field] || field}
                                                 </td>
                                                 <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
-                                                    {val ?? '—'}
+                                                    {displayValue(field as string, val)}
                                                 </td>
                                             </tr>
                                         ))}
@@ -473,7 +495,7 @@ export default function ReviewEditedRecordsPage() {
                                                     {fieldLabels[field] || field}
                                                 </td>
                                                 <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
-                                                    {val?.toString() ?? '—'}
+                                                    {displayValue(field as string, val)}
                                                 </td>
                                                 <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-center">
                                                     <input

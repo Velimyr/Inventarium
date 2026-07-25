@@ -10,7 +10,7 @@ import { sendNotification } from '../components/notifications';
 import { Save, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
 import { findDuplicateVerifiedRecord, normalizeKeyFields } from '../lib/adminApproveUtils';
-import { resolveIsUkrainianArchive, validateCaseSignature } from '../lib/caseSignature';
+import { fromSignatureList, resolveIsUkrainianArchive, validateCaseSignature } from '../lib/caseSignature';
 
 const getSettlementCodeByPath = (
   structure: any,
@@ -159,6 +159,7 @@ export default function AdminPage() {
       const preparedRecord = {
         ...recordToInsert,
         approved: true,
+        additional_case_signature: fromSignatureList(formData.additional_case_signature),
         latitude: parseFloatOrNull(formData.latitude) ?? parseFloatOrNull(originalCoords.latitude),
         longitude: parseFloatOrNull(formData.longitude) ?? parseFloatOrNull(originalCoords.longitude),
         pages_count: parseIntegerOrNull(recordToInsert.pages_count ?? formData.pages_count),

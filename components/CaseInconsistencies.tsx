@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { ExternalLink, RefreshCw, ClipboardCopy, Play, Check, ArrowRightLeft } from 'lucide-react';
+import { formatSignatureList, toSignatureList } from '../lib/caseSignature';
 
 // Поля справи, які мають бути однакові в усіх записів з тим самим шифром
 export const CASE_FIELDS: { key: string; label: string }[] = [
@@ -12,14 +13,32 @@ export const CASE_FIELDS: { key: string; label: string }[] = [
   { key: 'case_date', label: 'Дати справи' },
   { key: 'pages_count', label: 'К-ть сторінок' },
   { key: 'scans_url', label: 'Посилання на скани' },
-  { key: 'additional_case_signature', label: 'Дод. сигнатура' },
+  { key: 'additional_case_signature', label: 'Дод. сигнатури' },
 ];
+
+// Дод. сигнатури — text[]. Уся сторінка працює з рядками (варіанти, вибір,
+// скрипт), тому масив показуємо і повертаємо назад через '; ' — саме за цим
+// роздільником toSignatureList розбирає рядок назад у масив.
+const ADDITIONAL_FIELD = 'additional_case_signature';
+const LIST_SEPARATOR = '; ';
+
+/** Значення поля запису як рядок — для порівняння, показу і вибору. */
+const fieldText = (field: string, value: any) =>
+  field === ADDITIONAL_FIELD
+    ? formatSignatureList(value, LIST_SEPARATOR)
+    : String(value ?? '').trim();
+
+/** Обране значення назад у той тип, що лежить у колонці. */
+const fieldValue = (field: string, value: string) =>
+  field === ADDITIONAL_FIELD
+    ? (toSignatureList(value).length > 0 ? toSignatureList(value) : null)
+    : value === '' ? null : value;
 
 // Скільки записів має кожне значення поля, від найпоширенішого до рідкісного
 const countVariants = (records: any[], field: string): [string, number][] => {
   const counts = new Map<string, number>();
   for (const record of records) {
-    const value = String(record[field] ?? '').trim();
+    const value = fieldText(field, record[field]);
     counts.set(value, (counts.get(value) ?? 0) + 1);
   }
   return [...counts.entries()].sort((a, b) => b[1] - a[1]);
@@ -27,6 +46,13 @@ const countVariants = (records: any[], field: string): [string, number][] => {
 
 // Екранування рядка для SQL-літерала: одинарна лапка подвоюється
 const sqlLiteral = (value: string) => (value === '' ? 'null' : `'${value.replace(/'/g, "''")}'`);
+
+// Літерал для колонки: масив пишемо як array[...], решту — як рядок
+const sqlValue = (field: string, value: string) => {
+  if (field !== ADDITIONAL_FIELD) return sqlLiteral(value);
+  const list = toSignatureList(value);
+  return list.length === 0 ? 'null' : `array[${list.map(sqlLiteral).join(', ')}]`;
+};
 
 interface CaseGroup {
   signature_key: string;
@@ -167,7 +193,7 @@ export default function CaseInconsistencies({
     // series/record → '' і additional_case_signature, навіть якщо вони не в diffs.
     const assignments = CASE_FIELDS.filter(
       (f) => activeFields.has(f.key) && keepValues[f.key] !== undefined
-    ).map((f) => `  ${f.key} = ${sqlLiteral(keepValues[f.key])}`);
+    ).map((f) => `  ${f.key} = ${sqlValue(f.key, keepValues[f.key])}`);
 
     if (assignments.length === 0) return '';
 
@@ -203,15 +229,24 @@ export default function CaseInconsistencies({
   // Додає перенесення в основний скрипт: дод. сигнатура = шифр,
   // а поля архів/фонд/опис/справа очищаються
   const transferToScript = () => {
-    if (!transferValue.trim()) return;
-    setKeepValues((prev) => ({
-      ...prev,
-      additional_case_signature: transferValue.trim(),
-      archive: '',
-      fonds: '',
-      series: '',
-      record: '',
-    }));
+    const signature = transferValue.trim();
+    if (!signature) return;
+    setKeepValues((prev) => {
+      // Дод. сигнатур може бути кілька, тож шифр додаємо до вже обраних, а не
+      // затираємо їх. Якщо поле ще не чіпали — беремо найпоширеніше значення.
+      const current = toSignatureList(
+        prev[ADDITIONAL_FIELD] ?? countVariants(records, ADDITIONAL_FIELD)[0]?.[0] ?? ''
+      );
+      const next = current.includes(signature) ? current : [...current, signature];
+      return {
+        ...prev,
+        [ADDITIONAL_FIELD]: next.join(LIST_SEPARATOR),
+        archive: '',
+        fonds: '',
+        series: '',
+        record: '',
+      };
+    });
     onToast('✅ Додано в скрипт оновлення', 'success');
   };
 
@@ -231,7 +266,7 @@ export default function CaseInconsistencies({
     const update: Record<string, any> = {};
     for (const f of CASE_FIELDS) {
       if (activeFields.has(f.key) && keepValues[f.key] !== undefined) {
-        update[f.key] = keepValues[f.key] === '' ? null : keepValues[f.key];
+        update[f.key] = fieldValue(f.key, keepValues[f.key]);
       }
     }
     return update;
@@ -535,7 +570,7 @@ export default function CaseInconsistencies({
                                   {record.current_settlement_type} {record.current_settlement_name}
                                 </td>
                                 {diffFields.map((f) => {
-                                  const value = String(record[f.key] ?? '').trim();
+                                  const value = fieldText(f.key, record[f.key]);
                                   const majority = countVariants(records, f.key)[0]?.[0];
                                   const deviates = value !== majority;
                                   return (

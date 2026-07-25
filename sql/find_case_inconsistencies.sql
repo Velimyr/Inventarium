@@ -17,6 +17,9 @@
 -- на сторінці збігається один в один із тим, що покаже /case?case_signature=...
 --
 -- Запустити один раз у Supabase → SQL Editor.
+-- Перезапустити в кроці 2 міграції
+-- (2026-07-25_additional_case_signature_array_step2.sql), разом із деплоєм:
+-- additional_case_signature стала text[].
 
 create or replace function public.find_case_inconsistencies()
 returns table (
@@ -45,7 +48,9 @@ as $$
       btrim(coalesce(r.case_date::text, ''))                  as f_case_date,
       btrim(coalesce(r.pages_count::text, ''))                as f_pages_count,
       btrim(coalesce(r.scans_url::text, ''))                  as f_scans_url,
-      btrim(coalesce(r.additional_case_signature::text, ''))  as f_add_signature
+      -- дод. сигнатур може бути кілька: порівнюємо їх як один рядок, тим самим
+      -- роздільником, яким їх показує і приймає назад адмінка
+      coalesce(array_to_string(r.additional_case_signature, '; '), '') as f_add_signature
     from records r
     where r.approved = true
       and btrim(coalesce(r.case_signature, '')) <> ''

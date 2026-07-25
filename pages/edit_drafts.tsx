@@ -5,6 +5,7 @@ import Toast from '../components/Toast';
 import dynamic from 'next/dynamic';
 import { useUser } from '../contexts/UserContext';
 import { Save, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { fromSignatureList } from '../lib/caseSignature';
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
     ssr: false,
@@ -72,6 +73,7 @@ export default function MyDraftsPage() {
 
         // Підготовка payload для оновлення
         const payload = { ...formData };
+        payload.additional_case_signature = fromSignatureList(payload.additional_case_signature);
         const payloadYear = payload.inventory_year?.toString().trim();
         payload.inventory_year = payloadYear ? Number(payloadYear) : null;
 

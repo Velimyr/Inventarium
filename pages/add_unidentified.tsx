@@ -6,7 +6,12 @@ import { useUser } from '../contexts/UserContext';
 import { supabase } from '../lib/supabaseClient';
 import { Save, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import { buildCaseSignature, hasAllArchiveParts, validateCaseSignature } from '../lib/caseSignature';
+import {
+    buildCaseSignature,
+    fromSignatureList,
+    hasAllArchiveParts,
+    validateCaseSignature,
+} from '../lib/caseSignature';
 
 const UnidentifiedInventoryForm = dynamic(
     () => import('../components/UnidentifiedInventoryForm'),
@@ -22,6 +27,7 @@ export default function AddUnidentifiedInventoryPage() {
         series: '',
         record: '',
         case_signature: '',
+        additional_case_signature: [] as string[],
         case_title: '',
         case_date: '',
         pages_count: '',
@@ -161,6 +167,7 @@ export default function AddUnidentifiedInventoryPage() {
         const { error } = await supabase.from('records_notidentify').insert([
             {
                 ...dataToSave,
+                additional_case_signature: fromSignatureList(formData.additional_case_signature),
                 pages_count: formData.pages_count ? parseInt(formData.pages_count) : null,
                 inventory_year: formData.inventory_year ? parseInt(formData.inventory_year) : null,
                 status: 'new',

@@ -2,7 +2,7 @@ import emailjs from 'emailjs-com';
 import regionStructure from '../public/data/region_structure.json';
 import { sendNotification } from '../components/notifications';
 import { supabase } from './supabaseClient';
-import { resolveIsUkrainianArchive, validateCaseSignature } from './caseSignature';
+import { fromSignatureList, resolveIsUkrainianArchive, validateCaseSignature } from './caseSignature';
 
 const getSettlementCodeByPath = (
   structure: any,
@@ -183,6 +183,7 @@ export async function approveUnverifiedRecord({
     const preparedRecord = {
       ...normalizeKeyFields(recordToInsert),
       approved: true,
+      additional_case_signature: fromSignatureList(record.additional_case_signature),
       latitude: parseFloatOrNull(record.latitude),
       longitude: parseFloatOrNull(record.longitude),
       pages_count: parseIntegerOrNull(record.pages_count),

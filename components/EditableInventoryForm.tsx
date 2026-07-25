@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
+import SignatureListInput from '../components/SignatureListInput';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import {
@@ -549,14 +550,15 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
         </div>
 
         <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80 mb-[15px]">
-          Заповнюєте це поле якщо ЦЯ Ж справа знаходиться, ще в одному архіві (бібліотеці). Наприклад основна справа "ЦДІАК 1-2-3", а додаткова справа "AGAD 10/20/30/40"
+          Заповнюєте це поле якщо ЦЯ Ж справа знаходиться, ще в одному архіві (бібліотеці). Наприклад основна справа "ЦДІАК 1-2-3", а додаткова справа "AGAD 10/20/30/40". Якщо справа є в кількох архівах — додайте окремий рядок для кожного
         </p>
 
-        {/* Additional Signature */}
-        <FormInput
-          name="additional_case_signature"
+        {/* Additional Signatures */}
+        <SignatureListInput
           value={formData.additional_case_signature}
-          onChange={handleChange}
+          onChange={(list) =>
+            setFormData((fd: any) => ({ ...fd, additional_case_signature: list }))
+          }
           placeholder="Сигнатура додаткової справи"
         />
       </section>

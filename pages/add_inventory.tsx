@@ -9,7 +9,7 @@ import { sendNotification } from '../components/notifications';
 import { getAdminUserIds } from '../lib/adminUsers';
 import { Save, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import { validateCaseSignature } from '../lib/caseSignature';
+import { fromSignatureList, validateCaseSignature } from '../lib/caseSignature';
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
     ssr: false,
@@ -39,7 +39,7 @@ export default function AddInventoryPage() {
         series: '',
         record: '',
         case_signature: '',
-        additional_case_signature: '',
+        additional_case_signature: [] as string[],
         case_title: '',
         case_date: '',
         pages_count: '',
@@ -292,6 +292,7 @@ export default function AddInventoryPage() {
 
         const toInsert = {
             ...formData,
+            additional_case_signature: fromSignatureList(formData.additional_case_signature),
             latitude: formData.latitude ? parseFloat(formData.latitude) : null,
             longitude: formData.longitude ? parseFloat(formData.longitude) : null,
             mark_type: formData.mark_type ? parseInt(formData.mark_type) : null,

@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient';
 import Header from '../../components/header';
 import { useEffect, useState, useRef } from 'react';
 import { ExternalLink, MapPin, Search, Edit3, AlertTriangle, Map, FileText, Clock, Feather, HelpCircle, Image, ArrowUpRight, BookOpen } from "lucide-react";
+import { toSignatureList } from '../../lib/caseSignature';
 
 export default function RecordPage() {
     const router = useRouter();
@@ -51,6 +52,8 @@ export default function RecordPage() {
 
     if (loading) return <p className="p-4 text-gray-900 dark:text-white">Завантаження...</p>;
     if (!record) return <p className="p-4 text-gray-900 dark:text-white">Запис не знайдено</p>;
+
+    const additionalSignatures = toSignatureList(record.additional_case_signature);
 
     const fullLocationOld = [
         record.old_province,
@@ -387,7 +390,13 @@ export default function RecordPage() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.additional_case_signature || '-'}</p>
+                                        {additionalSignatures.length > 0 ? (
+                                            additionalSignatures.map((signature: string) => (
+                                                <p key={signature} className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{signature}</p>
+                                            ))
+                                        ) : (
+                                            <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">-</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>

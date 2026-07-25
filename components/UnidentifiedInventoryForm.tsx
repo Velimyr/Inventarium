@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Toast from './Toast';
+import SignatureListInput from './SignatureListInput';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import {
@@ -241,11 +242,15 @@ export default function UnidentifiedInventoryForm({
           />
         </div>
 
-        {/* Additional Signature */}
-        <FormInput
-          name="additional_case_signature"
+        {/* Additional Signatures */}
+        <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80 mb-[15px]">
+          Якщо ця ж справа є ще в одному архіві (бібліотеці) — вкажіть її шифр. Для кількох архівів додайте окремий рядок для кожного
+        </p>
+        <SignatureListInput
           value={formData.additional_case_signature}
-          onChange={handleChange}
+          onChange={(list) =>
+            setFormData((fd: any) => ({ ...fd, additional_case_signature: list }))
+          }
           placeholder="Шифр додаткової справи (якщо є)"
         />
       </section>

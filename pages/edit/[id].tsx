@@ -9,7 +9,12 @@ import { Save } from 'lucide-react';
 import Link from 'next/link';
 import { sendNotification } from '../../components/notifications';
 import { getAdminUserIds } from '../../lib/adminUsers';
-import { resolveIsUkrainianArchive, validateCaseSignature } from '../../lib/caseSignature';
+import {
+    fromSignatureList,
+    resolveIsUkrainianArchive,
+    toSignatureList,
+    validateCaseSignature,
+} from '../../lib/caseSignature';
 
 const EditableInventoryForm = dynamic(() => import('../../components/EditableInventoryForm'), {
     ssr: false,
@@ -72,6 +77,8 @@ export default function EditSingleRecordPage() {
             const baseData = {
                 ...rest,
                 is_ukrainian_archive: isUkrainianArchive,
+                // Записи, збережені до міграції поля в text[], лишилися рядком
+                additional_case_signature: toSignatureList(rest.additional_case_signature),
             };
 
             // Якщо користувач залогінений і має валідний email — підставити його у форму (це НЕ з DB запису)
@@ -167,7 +174,9 @@ export default function EditSingleRecordPage() {
         const sanitizedFormData: any = {};
         for (const key in formData) {
             let value = formData[key];
-            if (value === "") value = null; // заміна порожніх рядків на null
+            // порожній список сигнатур у базі — це null, а не порожній масив
+            if (key === 'additional_case_signature') value = fromSignatureList(value);
+            else if (value === "") value = null; // заміна порожніх рядків на null
             sanitizedFormData[key] = value;
         }
         try {

@@ -7,6 +7,9 @@
 -- Ці функції нормалізують значення й групують записи за трьома критеріями.
 --
 -- Запустити один раз у Supabase → SQL Editor.
+-- Перезапустити в кроці 2 міграції
+-- (2026-07-25_additional_case_signature_array_step2.sql), разом із деплоєм:
+-- additional_case_signature стала text[].
 
 -- Нормалізація тексту: нижній регістр, латинські гомогліфи → кирилиця,
 -- уніфікація апострофів і дефісів, схлопування пробілів.
@@ -163,7 +166,13 @@ as $$
       inv_norm(r.series)                  as n_series,
       inv_norm(r.record)                  as n_record,
       inv_norm(r.case_signature)          as n_case_sig,
-      inv_norm_sig(r.additional_case_signature) as n_sig_add,
+      -- дод. сигнатур може бути кілька — нормалізуємо кожну окремо
+      (select coalesce(array_agg(t.sig), '{}'::text[])
+       from (
+         select inv_norm_sig(v) as sig
+         from unnest(coalesce(r.additional_case_signature, '{}'::text[])) as v
+       ) t
+       where t.sig <> '') as n_sig_add,
       -- шифр беремо з case_signature, а якщо він порожній — складаємо з
       -- архів+фонд+опис+справа; після inv_norm_sig обидві форми збігаються
       coalesce(
@@ -191,14 +200,14 @@ as $$
                     inventory_year::text, sv.sig_variant)
       end as k
     from base
-    -- У режимі 'D' запис бере участь під обома своїми шифрами — основним і
-    -- додатковим, — тож група виникає там, де шифр однієї справи збігається
-    -- з додатковим шифром іншої. В інших режимах варіант рівно один,
+    -- У режимі 'D' запис бере участь під усіма своїми шифрами — основним і
+    -- кожним додатковим, — тож група виникає там, де шифр однієї справи
+    -- збігається з додатковим шифром іншої. В інших режимах варіант рівно один,
     -- і кількість рядків не змінюється.
     cross join lateral (
       select unnest(
         case when p_mode = 'D'
-          then array_remove(array[n_sig, n_sig_add], '')
+          then array_remove(array[n_sig] || n_sig_add, '')
           else array[n_sig]
         end
       ) as sig_variant

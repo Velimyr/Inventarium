@@ -5,6 +5,7 @@ import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
 import { isAdminUser } from '../lib/adminUsers';
 import CaseInconsistencies from '../components/CaseInconsistencies';
+import { formatSignatureList, fromSignatureList } from '../lib/caseSignature';
 import {
   Copy,
   ExternalLink,
@@ -106,7 +107,7 @@ const FIELDS: { key: string; label: string }[] = [
   { key: 'series', label: 'Опис' },
   { key: 'record', label: 'Справа' },
   { key: 'case_signature', label: 'Шифр справи' },
-  { key: 'additional_case_signature', label: 'Дод. шифр справи' },
+  { key: 'additional_case_signature', label: 'Дод. шифри справи' },
   { key: 'case_title', label: 'Назва справи' },
   { key: 'case_date', label: 'Дати справи' },
   { key: 'inventory_year', label: 'Рік складання інвентаря' },
@@ -130,6 +131,8 @@ const MERGEABLE = FIELDS.map((f) => f.key).filter(
 
 const formatValue = (key: string, value: any) => {
   if (value === null || value === undefined || value === '') return '—';
+  // Дод. сигнатури — масив: показуємо через кому, порожній вважаємо незаповненим
+  if (key === 'additional_case_signature') return formatSignatureList(value) || '—';
   if (key === 'created_at') {
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('uk-UA');
@@ -142,8 +145,11 @@ const formatValue = (key: string, value: any) => {
 };
 
 // Для порівняння між записами групи: порожні значення вважаємо однаковими
-const comparable = (value: any) =>
-  value === null || value === undefined ? '' : String(value).trim();
+const comparable = (value: any) => {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value)) return formatSignatureList(value);
+  return String(value).trim();
+};
 
 // У картинку, якою діляться, не тягнемо контакти й ідентифікатори авторів
 const IMAGE_SKIP_FIELDS = ['email', 'created_by'];
@@ -534,7 +540,10 @@ export default function AdminDuplicatesPage() {
       const sourceId = mergeChoices[key] ?? keepId;
       const source = records.find((r) => r.id === sourceId) ?? keepRecord;
       const value = source[key];
-      merged[key] = value === '' ? null : (value ?? null);
+      merged[key] =
+        key === 'additional_case_signature'
+          ? fromSignatureList(value)
+          : value === '' ? null : (value ?? null);
     }
 
     setSaving(true);

@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { sendNotification } from '../../components/notifications';
 import { getAdminUserIds } from '../../lib/adminUsers';
 import { MapPin, FileText, Save, X, Check, ChevronDown } from 'lucide-react';
+import { formatSignatureList, fromSignatureList } from '../../lib/caseSignature';
 
 const MapSelector = dynamic(() => import('../../components/MapSelector'), { ssr: false });
 
@@ -313,7 +314,7 @@ export default function NotIdentifyDetails() {
             case_title: record.case_title || null,
             case_date: record.case_date || null,
             pages_count: record.pages_count || null,
-            additional_case_signature: record.additional_case_signature || null,
+            additional_case_signature: fromSignatureList(record.additional_case_signature),
             inventory_year: record.inventory_year ? parseInt(record.inventory_year, 10) : null,
             scans_url: record.scans_url || null,
             is_ukrainian_archive: record.is_ukrainian_archive || null,
@@ -522,6 +523,10 @@ export default function NotIdentifyDetails() {
                                 <InfoRow label="Номер фонд" value={record.fonds} />
                                 <InfoRow label="Номер опису" value={record.series} />
                                 <InfoRow label="Номер справи" value={record.record} />
+                                <InfoRow
+                                    label="Додаткові сигнатури"
+                                    value={formatSignatureList(record.additional_case_signature)}
+                                />
                                 <InfoRow label="Назва справи" value={record.case_title} />
                                 <InfoRow label="Рік складання" value={record.inventory_year} />
                                 <InfoRow label="Примітки" value={record.notes} />

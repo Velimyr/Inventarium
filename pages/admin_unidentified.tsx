@@ -5,6 +5,7 @@ import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
 import { Search, Check, RotateCcw, ChevronDown, ChevronRight, ExternalLink, MapPin, Mail } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
+import { formatSignatureList, fromSignatureList } from '../lib/caseSignature';
 
 export default function AdminNotIdentifyPage() {
   const { user, loading: userLoading } = useUser();
@@ -158,7 +159,7 @@ export default function AdminNotIdentifyPage() {
         fonds: point.fonds,
         series: point.series,
         record: point.record,
-        additional_case_signature: point.additional_case_signature,
+        additional_case_signature: fromSignatureList(point.additional_case_signature),
         case_date: point.case_date,
         inventory_year: point.inventory_year,
         pages_count: point.pages_count,
@@ -339,7 +340,7 @@ export default function AdminNotIdentifyPage() {
                           {record.case_date || '—'}
                         </td>
                         <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
-                          {record.additional_case_signature || '—'}
+                          {formatSignatureList(record.additional_case_signature) || '—'}
                         </td>
                         <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
                           {record.inventory_year || '—'}

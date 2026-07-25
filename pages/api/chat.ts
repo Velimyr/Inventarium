@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { OpenAI } from 'openai';
 import { QdrantClient } from '@qdrant/js-client-rest';
+import { formatSignatureList } from '../../lib/caseSignature';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -47,7 +48,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const p = item.payload ?? {};
       return {
         id: p.record_id ?? item.id,
-        case_signature: p.case_signature ?? p.additional_case_signature ?? null,
+        // дод. сигнатур може бути кілька — в індексі Qdrant це масив
+        case_signature: p.case_signature ?? (formatSignatureList(p.additional_case_signature) || null),
         old_province: p.old_province ?? null,
         old_district: p.old_district ?? null,
         old_community: p.old_community ?? null,

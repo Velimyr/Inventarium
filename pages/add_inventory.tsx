@@ -217,6 +217,23 @@ export default function AddInventoryPage() {
         return null;
     };
 
+    // Звіт адмінам у бот про будь-яку невдачу додавання (сервер сам вирішує,
+    // чи слати, за глобальним налаштуванням report_add_problems). Fire-and-forget:
+    // не блокує й не ламає UX, якщо звіт не пішов.
+    const reportAddProblem = (reason: string) => {
+        fetch('/api/report-add-problem', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                source: 'add_inventory',
+                reason,
+                email: formData.email || user?.email || null,
+                userId: user?.id || null,
+                formData,
+            }),
+        }).catch((err) => console.error('Не вдалося надіслати звіт про помилку:', err));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
@@ -227,6 +244,7 @@ export default function AddInventoryPage() {
         if (validationError) {
             setError(validationError);
             setToast({ message: validationError, type: 'error' });
+            reportAddProblem(validationError);
             return;
         }
 
@@ -263,6 +281,7 @@ export default function AddInventoryPage() {
                 message: `Такий інвентар уже існує. Спробуйте пошукати його в реєстрі інвентарів`,
                 type: 'error',
             });
+            reportAddProblem('Дубль: інвентар уже існує в реєстрі');
             return;
         }
 
@@ -287,6 +306,7 @@ export default function AddInventoryPage() {
                 message: `Такий інвентар уже надіслано на перевірку. Зачекайте, доки адміністратор Inventarium його опрацює.`,
                 type: 'error',
             });
+            reportAddProblem('Дубль: інвентар уже в черзі на перевірку');
             return;
         }
 
@@ -307,6 +327,7 @@ export default function AddInventoryPage() {
         if (insertError) {
             setError('Помилка збереження даних');
             setToast({ message: 'Помилка збереження даних: ' + insertError, type: 'error' });
+            reportAddProblem('Помилка збереження в БД: ' + (insertError.message || String(insertError)));
         } else {
             setSuccess(true);
 

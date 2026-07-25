@@ -5,7 +5,7 @@ import Toast from '../components/Toast';
 import dynamic from 'next/dynamic';
 import { useUser } from '../contexts/UserContext';
 import { Save, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
-import { fromSignatureList } from '../lib/caseSignature';
+import { fromSignatureList, resolveIsUkrainianArchive, validateCaseSignature } from '../lib/caseSignature';
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
     ssr: false,
@@ -59,6 +59,16 @@ export default function MyDraftsPage() {
     const saveRecord = async () => {
         const recordId = formData.id;
         if (!recordId) return;
+
+        // Шифр і його складові мають описувати одну справу й мати коректний формат
+        const signatureError = validateCaseSignature({
+            ...formData,
+            is_ukrainian_archive: resolveIsUkrainianArchive(formData),
+        });
+        if (signatureError) {
+            setToast({ message: `❌ ${signatureError}`, type: 'error' });
+            return;
+        }
 
         // Додаємо у matchQuery лише непорожні значення
         const matchQuery: any = {};

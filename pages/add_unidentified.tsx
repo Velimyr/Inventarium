@@ -125,6 +125,21 @@ export default function AddUnidentifiedInventoryPage() {
         return null;
     };
 
+    // Звіт адмінам у бот про будь-яку невдачу (сервер сам вирішує, чи слати).
+    const reportAddProblem = (reason: string) => {
+        fetch('/api/report-add-problem', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                source: 'add_unidentified',
+                reason,
+                email: formData.email || user?.email || null,
+                userId: user?.id || null,
+                formData,
+            }),
+        }).catch((err) => console.error('Не вдалося надіслати звіт про помилку:', err));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -137,6 +152,7 @@ export default function AddUnidentifiedInventoryPage() {
         const validationError = await validate();
         if (validationError) {
             setToast({ message: validationError, type: 'error' });
+            reportAddProblem(validationError);
             return;
         }
 
@@ -157,6 +173,7 @@ export default function AddUnidentifiedInventoryPage() {
             if ((existingNotIdentify && existingNotIdentify.length > 0) ||
                 (existingRecords && existingRecords.length > 0)) {
                 setToast({ message: 'Запис з таким шифром справи вже існує в реєстрі.', type: 'error' });
+                reportAddProblem('Дубль: шифр справи вже існує в реєстрі');
                 return;
             }
         }
@@ -177,8 +194,9 @@ export default function AddUnidentifiedInventoryPage() {
 
         if (error) {
             setToast({ message: 'Помилка збереження інвентарю', type: 'error' });
+            reportAddProblem('Помилка збереження в БД: ' + (error.message || String(error)));
         } else {
-            setToast({ message: 'Інвентар успішно додано до перевірки.', type: 'success' });            
+            setToast({ message: 'Інвентар успішно додано до перевірки.', type: 'success' });
         }
     };
 

@@ -86,6 +86,61 @@ export function signatureMatchesParts(record: any): boolean {
   return text(record?.case_signature) === buildCaseSignature(record);
 }
 
+// ---------------------------------------------------------------------------
+// Формат шифру справи.
+//
+// Регекси й пороги виведені з аналізу 15 186 наявних шифрів робочої бази.
+//   SANITY   — базова перевірка (проходить 99.85% наявних значень): є хоча б
+//              одна літера і одна цифра, лише дозволені символи, довжина 3–90.
+//              Відкидає реальне сміття: зворотний слеш, «?», рядки без цифр,
+//              завеликий текст. Застосовується до case_signature (іноземний,
+//              вводиться руками) і до КОЖНОЇ додаткової сигнатури.
+//   UA       — строга маска українського дефісного шифру «АРХІВ Ф-О-С».
+//              Автоскладені шифри (buildCaseSignature) проходять її завжди;
+//              це асерт-гарантія для нових українських записів.
+// ---------------------------------------------------------------------------
+
+export const CASE_SIGNATURE_SANITY =
+  /^(?=.*\p{L})(?=.*\p{N})[\p{L}\p{N} .,:;()\/\-–‑—'’ʼ«»"№]{3,90}$/u;
+
+export const CASE_SIGNATURE_UA =
+  /^[\p{L}][\p{L}.'’ʼ]*(?: [\p{L}.'’ʼ]+)*\s[\p{L}\p{N}]+(?:\s?\([\p{L}\p{N}]+\))?(?:-[\p{L}\p{N}()]+(?:\/[\p{L}\p{N}]+)?){2,}$/u;
+
+// Єдиний текст-підказка: і у формі (тултіп), і в повідомленнях про помилку.
+export const SIGNATURE_HINT =
+  'Приклади: «ЦДІАК 1-2-3» (український архів) або «AGAD ASK 1/7/0/9/4» (іноземний). ' +
+  'Потрібні щонайменше одна літера й одна цифра; без символів \\ та ?, без лапок і надто довгого тексту.';
+
+/**
+ * Формат ОДНОГО шифру (case_signature або елемент additional_case_signature).
+ * Повертає текст помилки або null. Порожній рядок вважається валідним —
+ * обов'язковість перевіряється окремо.
+ */
+export function validateSignatureValue(value: string, label: string): string | null {
+  const sig = text(value);
+  if (sig === '') return null;
+  if (!CASE_SIGNATURE_SANITY.test(sig)) {
+    return `${label} «${sig}» має недопустимий формат. ${SIGNATURE_HINT}`;
+  }
+  return null;
+}
+
+/**
+ * Формат усіх шифрів запису: case_signature + кожна непорожня additional-сигнатура.
+ * Не перевіряє узгодженість зі складовими — лише формат (для точкових місць,
+ * як-от підтвердження редагування адміном, де перевіряються саме змінені поля).
+ */
+export function validateSignatureFormats(record: any): string | null {
+  const caseErr = validateSignatureValue(text(record?.case_signature), 'Шифр справи');
+  if (caseErr) return caseErr;
+
+  for (const extra of toSignatureList(record?.additional_case_signature)) {
+    const extraErr = validateSignatureValue(extra, 'Додаткова сигнатура');
+    if (extraErr) return extraErr;
+  }
+  return null;
+}
+
 /**
  * Перевіряє, що шифр і його складові несуперечливі.
  * Повертає текст помилки для тоста або null, якщо все гаразд.
@@ -102,15 +157,28 @@ export function validateCaseSignature(record: any): string | null {
     if (!signatureMatchesParts(record)) {
       return `Шифр справи не збігається з архівом/фондом/описом/справою. Очікується "${buildCaseSignature(record)}".`;
     }
-    return null;
+    // Асерт формату автоскладеного шифру: спрацьовує лише коли складові
+    // містять щось незвичне (за нормального вводу маска виконується завжди).
+    const built = buildCaseSignature(record);
+    if (!CASE_SIGNATURE_UA.test(built)) {
+      return `Складений шифр «${built}» виглядає незвично — перевірте архів/фонд/опис/справу. ${SIGNATURE_HINT}`;
+    }
+  } else {
+    // Іноземний архів: шифр вводиться вручну, українських координат бути не повинно.
+    if (text(record?.case_signature) === '') {
+      return 'Поле "Шифр справи" обов\'язкове.';
+    }
+    if (hasAnyArchivePart(record)) {
+      return 'Для справи в іноземному архіві поля архів/фонд/опис/справа мають бути порожні. Якщо ця ж справа є і в українському архіві, вкажіть її в полі "Сигнатура додаткової справи".';
+    }
+    const caseErr = validateSignatureValue(text(record?.case_signature), 'Шифр справи');
+    if (caseErr) return caseErr;
   }
 
-  // Іноземний архів: шифр вводиться вручну, українських координат бути не повинно.
-  if (text(record?.case_signature) === '') {
-    return 'Поле "Шифр справи" обов\'язкове.';
-  }
-  if (hasAnyArchivePart(record)) {
-    return 'Для справи в іноземному архіві поля архів/фонд/опис/справа мають бути порожні. Якщо ця ж справа є і в українському архіві, вкажіть її в полі "Сигнатура додаткової справи".';
+  // Додаткові сигнатури — будь-якого архіву, тож лише базова перевірка формату.
+  for (const extra of toSignatureList(record?.additional_case_signature)) {
+    const extraErr = validateSignatureValue(extra, 'Додаткова сигнатура');
+    if (extraErr) return extraErr;
   }
   return null;
 }

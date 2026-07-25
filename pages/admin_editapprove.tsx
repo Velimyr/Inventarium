@@ -16,6 +16,7 @@ import {
     resolveIsUkrainianArchive,
     sameSignatureList,
     validateCaseSignature,
+    validateSignatureFormats,
 } from '../lib/caseSignature';
 
 const ADDITIONAL_SIGNATURE_FIELD = 'additional_case_signature';
@@ -223,6 +224,15 @@ export default function ReviewEditedRecordsPage() {
 
         if (Object.keys(updateData).length <= 1) {
             setToast({ message: 'ℹ️ Оберіть хоча б одне поле для підтвердження', type: 'error' });
+            return;
+        }
+
+        // Формат шифру/додаткових сигнатур серед підтверджених полів. Блок шифру
+        // вже пройшов validateCaseSignature вище; тут ловимо випадок, коли
+        // змінилась лише additional_case_signature (вона не в SIGNATURE_FIELDS).
+        const formatError = validateSignatureFormats(updateData);
+        if (formatError) {
+            setToast({ message: `❌ ${formatError}`, type: 'error' });
             return;
         }
 

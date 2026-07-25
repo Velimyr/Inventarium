@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Toast from '../components/Toast';
 import SignatureListInput from '../components/SignatureListInput';
+import SignatureHelp from '../components/SignatureHelp';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import {
@@ -415,8 +416,9 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
 
       {/* Archive Case Information Section */}
       <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#111827] mb-[20px]">
-        <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold mb-[15px]">
+        <h2 className="flex items-center gap-[8px] text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold mb-[15px]">
           Інформація про архівну справу
+          <SignatureHelp />
         </h2>
 
         {/* Ukrainian Archive Selector */}

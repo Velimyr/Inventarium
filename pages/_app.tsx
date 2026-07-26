@@ -16,9 +16,10 @@ import { isAdminUser } from '../lib/adminUsers';
 
 const maintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true';
 
-// Сторінки, доступні під час технічних робіт: сама заглушка
-// і вхід (інакше адмін не зможе авторизуватися, щоб отримати доступ)
-const MAINTENANCE_ALLOWED_PATHS = ['/maintenance', '/auth'];
+// Сторінки, доступні під час технічних робіт: сама заглушка,
+// вхід (інакше адмін не зможе авторизуватися, щоб отримати доступ)
+// і редактор структури регіонів (має працювати навіть під час робіт)
+const MAINTENANCE_ALLOWED_PATHS = ['/maintenance', '/auth', '/region_structure_editor'];
 
 // Під час технічних робіт усіх ведемо на /maintenance, окрім адміністраторів
 function MaintenanceGate({ children }: { children: ReactNode }) {

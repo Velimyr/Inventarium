@@ -265,10 +265,16 @@ export default function CaseInconsistencies({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Показуємо лише групи, що розходяться за обраними полями
+  // Показуємо лише групи, що розходяться за обраними полями.
+  // Виняток: якщо ЄДИНА розбіжність — посилання на скани (scans_url),
+  // групу не виводимо: різні посилання на скани не вважаємо помилкою даних.
   const visibleGroups = useMemo(
     () =>
-      groups.filter((g) => Object.keys(g.diffs || {}).some((field) => activeFields.has(field))),
+      groups.filter((g) => {
+        const diffKeys = Object.keys(g.diffs || {});
+        if (diffKeys.length === 1 && diffKeys[0] === 'scans_url') return false;
+        return diffKeys.some((field) => activeFields.has(field));
+      }),
     [groups, activeFields]
   );
 

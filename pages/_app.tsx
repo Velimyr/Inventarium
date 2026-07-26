@@ -7,22 +7,62 @@ import '../styles/marker-cluster.css';
 import { Analytics } from '@vercel/analytics/react';
 import Head from 'next/head';
 import Script from 'next/script';
-import { useEffect } from 'react';
-import { UserProvider } from '../contexts/UserContext';
+import { useEffect, useState, ReactNode } from 'react';
+import { UserProvider, useUser } from '../contexts/UserContext';
 import { useRouter } from 'next/router';
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { supabase } from '../lib/supabaseClient';
+import { isAdminUser } from '../lib/adminUsers';
 
-export default function App({ Component, pageProps }: AppProps) {
+const maintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true';
+
+// Сторінки, доступні під час технічних робіт: сама заглушка
+// і вхід (інакше адмін не зможе авторизуватися, щоб отримати доступ)
+const MAINTENANCE_ALLOWED_PATHS = ['/maintenance', '/auth'];
+
+// Під час технічних робіт усіх ведемо на /maintenance, окрім адміністраторів
+function MaintenanceGate({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const maintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true';
+  const { user, loading } = useUser();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    // Перенаправлення на сторінку maintenance
-    if (maintenanceMode && router.pathname !== '/maintenance') {
+    if (!maintenanceMode || loading) return;
+
+    let cancelled = false;
+    (async () => {
+      const hasAdminAccess = await isAdminUser(supabase, user?.id);
+      if (cancelled) return;
+      setIsAdmin(hasAdminAccess);
+      setChecked(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, loading]);
+
+  const allowed = MAINTENANCE_ALLOWED_PATHS.includes(router.pathname);
+  const blocked = maintenanceMode && checked && !isAdmin && !allowed;
+
+  useEffect(() => {
+    if (blocked) {
       router.replace('/maintenance');
     }
-  }, [maintenanceMode, router]);
+  }, [blocked, router]);
 
+  if (!maintenanceMode || allowed) {
+    return <>{children}</>;
+  }
+
+  // Поки не знаємо роль (або вже редіректимо) — контент не показуємо
+  if (!checked || blocked) return null;
+
+  return <>{children}</>;
+}
+
+export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     // 🧠 Іконки Leaflet ініціалізуємо тільки на клієнті
     (async () => {
@@ -45,7 +85,9 @@ export default function App({ Component, pageProps }: AppProps) {
         <title>Inventarium</title>
       </Head>
       <UserProvider>
-        <Component {...pageProps} />
+        <MaintenanceGate>
+          <Component {...pageProps} />
+        </MaintenanceGate>
         <Analytics />
       </UserProvider>
       <SpeedInsights/>

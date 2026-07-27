@@ -26,6 +26,9 @@ interface Record {
 
 interface CaseMapComponentProps {
     records: Record[];
+    // Запис, що додається/редагується — показуємо зеленим, щоб відрізнити від
+    // наявних у реєстрі (сині/червоні).
+    candidateRecords?: Record[];
 }
 
 const blueIcon = L.icon({
@@ -42,12 +45,19 @@ const redIcon = L.icon({
     popupAnchor: [1, -41],
 });
 
-export default function CaseMapComponent({ records }: CaseMapComponentProps) {
+const greenIcon = L.icon({
+    iconUrl: '/icons/marker-green.svg',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -41],
+});
+
+export default function CaseMapComponent({ records, candidateRecords = [] }: CaseMapComponentProps) {
     const router = useRouter();
 
     // Обчислюємо центр карти
     const getMapCenter = (): [number, number] => {
-        const validRecords = records.filter(r => r.latitude && r.longitude);
+        const validRecords = [...records, ...candidateRecords].filter(r => r.latitude && r.longitude);
         if (validRecords.length === 0) return [50.4501, 30.5234]; // Київ
 
         const avgLat = validRecords.reduce((sum, r) => sum + (r.latitude || 0), 0) / validRecords.length;
@@ -106,6 +116,22 @@ export default function CaseMapComponent({ records }: CaseMapComponentProps) {
                         {isRegion && (
                             <Circle center={position} radius={20000} pathOptions={{ color: 'rgba(255,0,0,0.3)' }} />
                         )}
+                    </Marker>
+                );
+            })}
+
+            {candidateRecords.map((record, i) => {
+                if (!record.latitude || !record.longitude) return null;
+                const position: [number, number] = [record.latitude, record.longitude];
+                return (
+                    <Marker key={`candidate-${record.id || i}`} position={position} icon={greenIcon}>
+                        <Popup>
+                            <div>
+                                <strong>Запис, що додається</strong>
+                                <br />
+                                {record.current_settlement_type} {record.current_settlement_name || 'Невідома назва'}
+                            </div>
+                        </Popup>
                     </Marker>
                 );
             })}

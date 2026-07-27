@@ -6,6 +6,7 @@ import { useUser } from '../contexts/UserContext';
 import { sendNotification } from '../components/notifications';
 import { FileText, Check, X, ChevronLeft, ChevronRight, ExternalLink, Mail } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
+import AdminDuplicateWarnings from '../components/AdminDuplicateWarnings';
 import {
     SIGNATURE_FIELDS,
     buildCaseSignature,
@@ -415,6 +416,20 @@ export default function ReviewEditedRecordsPage() {
         .filter((key) => key !== 'email')
         .map((field) => [field, recordOriginal[field]]);
 
+    // Кандидат для перевірок збігів — підсумковий стан запису після редагування.
+    // json_full_data містить повний стан форми; інакше накладаємо на оригінал
+    // лише НЕпорожні змінені поля (null у records_edit — це незмінене поле,
+    // ним не можна затирати значення оригіналу).
+    const editCandidate = recordEdit.json_full_data
+        ? { ...recordEdit.json_full_data, id: recordEdit.id }
+        : (() => {
+            const merged: any = { ...recordOriginal };
+            for (const [k, v] of Object.entries(recordEdit)) {
+                if (v !== null && v !== undefined) merged[k] = v;
+            }
+            return merged;
+        })();
+
     return (
         <>
             <Header />
@@ -424,6 +439,8 @@ export default function ReviewEditedRecordsPage() {
                     <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px] lg:mb-[30px]">
                         Перегляд редагованих записів
                     </h1>
+
+                    <AdminDuplicateWarnings record={editCandidate} />
 
                     {/* Two Column Layout */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-[20px] mb-[20px]">

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { sameSignatureList } from './caseSignature';
 
 // Поля, що визначають «той самий населений пункт».
 const SETTLEMENT_FIELDS = [
@@ -8,6 +9,23 @@ const SETTLEMENT_FIELDS = [
   'current_settlement_type',
   'current_settlement_name',
 ] as const;
+
+// Характеристики справи, що мають збігатися для записів з одним case_signature.
+export const CASE_DETAIL_FIELDS = [
+  { key: 'case_title', label: 'Назва справи' },
+  { key: 'case_date', label: 'Дати справи' },
+  { key: 'pages_count', label: 'Кількість сторінок' },
+  { key: 'additional_case_signature', label: 'Додатковий шифр справи' },
+  { key: 'scans_url', label: 'Посилання на скани' },
+] as const;
+
+const text = (v: any) => (v === null || v === undefined ? '' : String(v).trim());
+
+// Чи однакове значення поля у кандидата й наявного запису.
+function sameDetail(field: string, a: any, b: any): boolean {
+  if (field === 'additional_case_signature') return sameSignatureList(a, b);
+  return text(a) === text(b);
+}
 
 type SettlementKey = {
   [K in (typeof SETTLEMENT_FIELDS)[number]]?: string | null;
@@ -45,4 +63,53 @@ export async function findRecordWithAdditionalSignature(
   const { data, error } = await query.limit(1);
   if (error) throw error;
   return data && data.length > 0 ? data[0] : null;
+}
+
+/**
+ * Наявні в реєстрі записи ТОГО САМОГО населеного пункту (сучасний адмін поділ)
+ * і ТОГО САМОГО року складання інвентаря. Кандидата (за id) виключаємо.
+ * Якщо в кандидата не заповнені всі поля населеного пункту — повертаємо [].
+ */
+export async function findSettlementYearMatches(record: any): Promise<any[]> {
+  if (SETTLEMENT_FIELDS.some((f) => text(record[f]) === '')) return [];
+
+  let query = supabase.from('records').select('*').eq('approved', true);
+  for (const field of SETTLEMENT_FIELDS) query = query.eq(field, record[field]);
+
+  const yearRaw = text(record.inventory_year);
+  const year = yearRaw === '' ? null : parseInt(yearRaw, 10);
+  query = year === null || Number.isNaN(year) ? query.is('inventory_year', null) : query.eq('inventory_year', year);
+
+  if (record.id) query = query.neq('id', record.id);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Наявні в реєстрі записи з ТИМ САМИМ case_signature, у яких відрізняється хоча б
+ * одна характеристика справи (назва, дати, к-ть сторінок, додатковий шифр,
+ * посилання). Повертає записи разом зі списком полів, що розходяться.
+ */
+export async function findSignatureDetailDiffs(
+  record: any
+): Promise<{ record: any; diffs: string[] }[]> {
+  const sig = text(record.case_signature);
+  if (sig === '') return [];
+
+  let query = supabase.from('records').select('*').eq('approved', true).eq('case_signature', sig);
+  if (record.id) query = query.neq('id', record.id);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data || [])
+    .map((existing) => ({
+      record: existing,
+      diffs: CASE_DETAIL_FIELDS.filter((f) => !sameDetail(f.key, record[f.key], existing[f.key])).map(
+        (f) => f.key
+      ),
+    }))
+    .filter((x) => x.diffs.length > 0);
 }

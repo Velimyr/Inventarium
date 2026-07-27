@@ -192,6 +192,15 @@ interface CaseGroup {
 
 const isUrl = (value: string) => /^https?:\/\//i.test(value);
 
+// Хто/коли додав запис — для таблиці розбіжностей
+const authorText = (record: any) => String(record?.email ?? '').trim() || '—';
+const createdAtText = (record: any) => {
+  const v = record?.created_at;
+  if (!v) return '—';
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('uk-UA');
+};
+
 // Значення поля: порожнє показуємо явно, посилання — повністю і клікабельно
 function FieldValue({ value }: { value: string }) {
   if (value === '') {
@@ -710,6 +719,12 @@ export default function CaseInconsistencies({
                                   {f.label}
                                 </th>
                               ))}
+                              <th className="text-left p-[8px] text-gray-900 dark:text-[#F3F4F6] font-medium whitespace-nowrap">
+                                Хто додав
+                              </th>
+                              <th className="text-left p-[8px] text-gray-900 dark:text-[#F3F4F6] font-medium whitespace-nowrap">
+                                Коли
+                              </th>
                               <th className="p-[8px]" />
                             </tr>
                           </thead>
@@ -739,6 +754,12 @@ export default function CaseInconsistencies({
                                     </td>
                                   );
                                 })}
+                                <td className="p-[8px] align-top text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                  {authorText(record)}
+                                </td>
+                                <td className="p-[8px] align-top text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                  {createdAtText(record)}
+                                </td>
                                 <td className="p-[8px] whitespace-nowrap">
                                   <a
                                     href={`/edit/${record.id}`}

@@ -11,6 +11,7 @@ import { Save, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
 import { findDuplicateVerifiedRecord, normalizeKeyFields } from '../lib/adminApproveUtils';
 import { findRecordWithAdditionalSignature } from '../lib/duplicateCheck';
+import AdminDuplicateWarnings from '../components/AdminDuplicateWarnings';
 import { fromSignatureList, resolveIsUkrainianArchive, validateCaseSignature } from '../lib/caseSignature';
 
 const getSettlementCodeByPath = (
@@ -368,6 +369,8 @@ export default function AdminPage() {
                   Запис <span className="font-bold">{index + 1}</span> з <span className="font-bold">{records.length}</span>
                 </p>
               </div>
+
+              <AdminDuplicateWarnings record={formData} />
 
               <EditableInventoryForm data={formData} onChange={setFormData} />
 

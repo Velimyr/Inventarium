@@ -3,8 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { useUser } from '../contexts/UserContext';
 import { isAdminUser } from '../lib/adminUsers';
-import { getAppSetting, setAppSetting, REPORT_ADD_PROBLEMS } from '../lib/appSettings';
-import { BarChart3, FileText, Bell, Edit, Search, Send, ArrowRight, CheckCheck, KeyRound, Copy, Bug } from 'lucide-react';
+import { BarChart3, FileText, Bell, Edit, Search, Send, ArrowRight, CheckCheck, KeyRound, Copy, Settings } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { user, loading: userLoading } = useUser();
@@ -17,22 +16,6 @@ export default function AdminDashboard() {
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Глобальне налаштування «звітувати в бот про проблеми з додаванням»
-  const [reportProblems, setReportProblems] = useState<boolean>(false);
-  const [savingReport, setSavingReport] = useState(false);
-
-  const toggleReportProblems = async () => {
-    const next = !reportProblems;
-    setReportProblems(next); // оптимістично
-    setSavingReport(true);
-    const { error: saveError } = await setAppSetting(supabase, REPORT_ADD_PROBLEMS, next, user?.id);
-    setSavingReport(false);
-    if (saveError) {
-      console.error('Не вдалося зберегти налаштування:', saveError);
-      setReportProblems(!next); // відкат
-    }
-  };
 
   useEffect(() => {
     if (userLoading) return;
@@ -90,9 +73,6 @@ export default function AdminDashboard() {
       setEditCount(editCount ?? 0);
       setIdentifiedCount(identifiedCount ?? 0);
       setPendingKeys((keysCount ?? 0) + (keysEditCount ?? 0));
-
-      const reportFlag = await getAppSetting(supabase, REPORT_ADD_PROBLEMS, false);
-      setReportProblems(reportFlag === true);
 
       setLoading(false);
     };
@@ -362,40 +342,25 @@ export default function AdminDashboard() {
             <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
               <div>
                 <div className="flex items-center gap-[10px] mb-[15px]">
-                  <Bug className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
+                  <Settings className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
                   <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
                     Глобальні налаштування
                   </h2>
                 </div>
                 <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80">
-                  Звітувати про проблеми з додаванням. Коли увімкнено й користувачу не вдалося
-                  додати інвентар — адмінам надійде звіт: у Telegram (JSON-файл усіх надісланих
-                  даних) і в /messages (короткий підсумок).
+                  Глобальні перемикачі застосунку: звіти про проблеми з додаванням та інші
+                  налаштування.
                 </p>
               </div>
-
               <button
-                onClick={toggleReportProblems}
-                disabled={savingReport}
-                role="switch"
-                aria-checked={reportProblems}
+                onClick={() => {
+                  window.location.href = '/admin_settings';
+                }}
+                className="flex items-center justify-center gap-[8px] w-full h-[40px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded transition-colors mt-[15px]"
                 type="button"
-                className="flex items-center justify-between gap-[10px] w-full h-[40px] px-[12px] mt-[15px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] disabled:opacity-60 transition-colors"
               >
-                <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium">
-                  {reportProblems ? 'Увімкнено' : 'Вимкнено'}
-                </span>
-                <span
-                  className={`relative inline-flex h-[24px] w-[44px] flex-shrink-0 rounded-full transition-colors ${
-                    reportProblems ? 'bg-[#2563EB]' : 'bg-gray-300 dark:bg-[#374151]'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-[2px] left-[2px] h-[20px] w-[20px] rounded-full bg-white transition-transform ${
-                      reportProblems ? 'translate-x-[20px]' : 'translate-x-0'
-                    }`}
-                  />
-                </span>
+                <span className="text-[14px] lg:text-[16px] font-medium">Відкрити налаштування</span>
+                <ArrowRight className="w-5 h-5" strokeWidth={2} />
               </button>
             </section>
           </div>

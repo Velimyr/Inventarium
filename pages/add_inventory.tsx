@@ -11,6 +11,7 @@ import { Save, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { fromSignatureList, validateCaseSignature } from '../lib/caseSignature';
 import { reportAddProblem as reportProblemToAdmins } from '../lib/reportProblem';
+import { findRecordWithAdditionalSignature } from '../lib/duplicateCheck';
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
     ssr: false,
@@ -304,6 +305,17 @@ export default function AddInventoryPage() {
                 type: 'error',
             });
             reportAddProblem('Дубль: інвентар уже в черзі на перевірку');
+            return;
+        }
+
+        // Той самий шифр уже вказано як додатковий шифр справи в іншому записі
+        // цього населеного пункту — це та сама справа.
+        const crossMatch = await findRecordWithAdditionalSignature(formData.case_signature, formData);
+        if (crossMatch) {
+            setDuplicateUrl(`/records/${crossMatch.id}`);
+            const msg = `Шифр справи «${formData.case_signature}» вже вказано як додатковий шифр справи в іншому записі цього населеного пункту.`;
+            setToast({ message: msg, type: 'error' });
+            reportAddProblem(msg);
             return;
         }
 

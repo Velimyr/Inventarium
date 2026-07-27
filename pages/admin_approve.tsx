@@ -10,6 +10,7 @@ import { sendNotification } from '../components/notifications';
 import { Save, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
 import { findDuplicateVerifiedRecord, normalizeKeyFields } from '../lib/adminApproveUtils';
+import { findRecordWithAdditionalSignature } from '../lib/duplicateCheck';
 import { fromSignatureList, resolveIsUkrainianArchive, validateCaseSignature } from '../lib/caseSignature';
 
 const getSettlementCodeByPath = (
@@ -136,6 +137,17 @@ export default function AdminPage() {
       if (existing) {
         setToast({
           message: `Такий інвентар уже існує. Спробуйте пошукати його в реєстрі інвентарів`,
+          type: 'error',
+        });
+        return;
+      }
+
+      // Той самий шифр уже вказано як додатковий шифр справи в іншому записі
+      // цього населеного пункту.
+      const crossMatch = await findRecordWithAdditionalSignature(formData.case_signature, formData);
+      if (crossMatch) {
+        setToast({
+          message: `Шифр справи «${formData.case_signature}» вже вказано як додатковий шифр справи в іншому записі цього населеного пункту.`,
           type: 'error',
         });
         return;

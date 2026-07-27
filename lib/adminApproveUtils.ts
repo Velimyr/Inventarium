@@ -3,6 +3,7 @@ import regionStructure from '../public/data/region_structure.json';
 import { sendNotification } from '../components/notifications';
 import { supabase } from './supabaseClient';
 import { fromSignatureList, resolveIsUkrainianArchive, validateCaseSignature } from './caseSignature';
+import { findRecordWithAdditionalSignature } from './duplicateCheck';
 
 const getSettlementCodeByPath = (
   structure: any,
@@ -171,6 +172,17 @@ export async function approveUnverifiedRecord({
       return {
         status: 'duplicate',
         message: 'Такий інвентар уже існує в реєстрі.',
+        recordId: record.id,
+      };
+    }
+
+    // Той самий шифр уже вказано як додатковий шифр справи в іншому записі
+    // цього населеного пункту.
+    const crossMatch = await findRecordWithAdditionalSignature(record.case_signature, record);
+    if (crossMatch) {
+      return {
+        status: 'duplicate',
+        message: `Шифр справи «${record.case_signature}» вже вказано як додатковий шифр справи в іншому записі цього населеного пункту.`,
         recordId: record.id,
       };
     }

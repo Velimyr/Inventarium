@@ -80,9 +80,16 @@ export default function CasePage() {
                 <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
                     {/* Page Title */}
                     {caseInfo && (
-                        <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px] lg:mb-[30px]">
-                            Справа: {case_signature}
-                        </h1>
+                        <div className="mb-[20px] lg:mb-[30px]">
+                            <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold">
+                                Справа: {case_signature}
+                            </h1>
+                            {caseInfo.case_title && (
+                                <p className="text-gray-700 dark:text-gray-300 text-[16px] lg:text-[18px] mt-[8px]">
+                                    {caseInfo.case_title}
+                                </p>
+                            )}
+                        </div>
                     )}
 
                     {/* Map Section */}

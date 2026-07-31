@@ -5,13 +5,14 @@ import Header from '../../components/header';
 import Toast from '../../components/Toast';
 import dynamic from 'next/dynamic';
 import { useUser } from '../../contexts/UserContext';
-import { Save } from 'lucide-react';
+import { Save, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { sendNotification } from '../../components/notifications';
 import { getAdminUserIds } from '../../lib/adminUsers';
 import {
     fromSignatureList,
     resolveIsUkrainianArchive,
+    sameSignatureList,
     toSignatureList,
     validateCaseSignature,
 } from '../../lib/caseSignature';
@@ -20,6 +21,24 @@ import DuplicateWarnings from '../../components/DuplicateWarnings';
 const EditableInventoryForm = dynamic(() => import('../../components/EditableInventoryForm'), {
     ssr: false,
 });
+
+// Поля рівня СПРАВИ — вони однакові для всіх записів з тим самим шифром. Якщо
+// користувач змінює якесь із них, пропонуємо застосувати зміну й до інших
+// населених пунктів тієї самої справи.
+const SHARED_CASE_FIELDS = [
+    'case_signature',
+    'archive',
+    'fonds',
+    'series',
+    'record',
+    'case_title',
+    'case_date',
+    'pages_count',
+    'scans_url',
+    'additional_case_signature',
+];
+
+const normCmp = (v: any) => (v === null || v === undefined ? '' : String(v).trim());
 
 // Простий валідатор email
 function isValidEmail(email: string | undefined | null) {
@@ -38,6 +57,9 @@ export default function EditSingleRecordPage() {
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [comment, setComment] = useState<string>("");
+    // Поп-ап пропозиції поширити зміни на інші н.п. тієї самої справи
+    const [siblingPrompt, setSiblingPrompt] = useState<{ siblings: any[]; propagate: string[]; skipped: number } | null>(null);
+    const [saving, setSaving] = useState(false);
 
     // Зберігаємо останній завантажений ID, щоб не перезавантажувати при перемиканні вкладок
     const [lastLoadedId, setLastLoadedId] = useState<string | null>(null);
@@ -171,54 +193,135 @@ export default function EditSingleRecordPage() {
                 return;
             }
         }
-        // Виконуємо upsert у таблицю records_edit
-        const sanitizedFormData: any = {};
-        for (const key in formData) {
-            let value = formData[key];
-            // порожній список сигнатур у базі — це null, а не порожній масив
-            if (key === 'additional_case_signature') value = fromSignatureList(value);
-            else if (value === "") value = null; // заміна порожніх рядків на null
-            sanitizedFormData[key] = value;
+        // Які поля рівня справи змінились?
+        const changed = SHARED_CASE_FIELDS.filter((f) =>
+            f === 'additional_case_signature'
+                ? !sameSignatureList(formData[f], originalData[f])
+                : normCmp(formData[f]) !== normCmp(originalData[f])
+        );
+
+        // Якщо змінились — шукаємо інші н.п. з тим самим шифром і питаємо в поп-апі
+        if (changed.length > 0 && normCmp(originalData.case_signature) !== '') {
+            const propagate = [...changed];
+
+            const { data: siblings, error: sibErr } = await supabase
+                .from('records')
+                .select('*')
+                .eq('approved', true)
+                .eq('case_signature', originalData.case_signature)
+                .neq('id', id);
+
+            if (sibErr) {
+                console.error(sibErr);
+            } else if (siblings && siblings.length > 0) {
+                // Сусідів, у яких уже є неопрацьована пропозиція редагування, не чіпаємо
+                const { data: pending } = await supabase
+                    .from('records_edit')
+                    .select('id')
+                    .in('id', siblings.map((s) => s.id));
+                const pendingIds = new Set((pending || []).map((p) => p.id));
+                const available = siblings.filter((s) => !pendingIds.has(s.id));
+
+                if (available.length > 0) {
+                    setSiblingPrompt({
+                        siblings: available,
+                        propagate,
+                        skipped: siblings.length - available.length,
+                    });
+                    return; // чекаємо на вибір у поп-апі
+                }
+            }
         }
+
+        await commitEdits([], []);
+    };
+
+    // Створює пропозиції редагування: цей запис + (за вибором) інші н.п. тієї
+    // самої справи, у які підставляються ті самі зміни рівня справи.
+    const commitEdits = async (siblings: any[], propagate: string[]) => {
+        if (!id) return;
+        setSaving(true);
+
+        // form-стан → рядок для records_edit (як у одиночному збереженні)
+        const toEditRow = (formLike: any, rowId: string) => {
+            const s: any = {};
+            for (const key in formLike) {
+                let value = formLike[key];
+                if (key === 'additional_case_signature') value = fromSignatureList(value);
+                else if (value === '') value = null;
+                s[key] = value;
+            }
+            return { ...s, id: rowId, json_full_data: formLike };
+        };
+
         try {
-            const { error } = await supabase
+            const emailToSave = formData.email;
+            const commentText = comment.trim();
+
+            const rows: any[] = [toEditRow(formData, id as string)];
+
+            for (const sib of siblings) {
+                // Повний стан сусіда + наші зміни рівня справи згори
+                const sibForm: any = {
+                    ...sib,
+                    is_ukrainian_archive: resolveIsUkrainianArchive(sib),
+                    additional_case_signature: toSignatureList(sib.additional_case_signature),
+                    email: emailToSave,
+                    comment: commentText,
+                };
+                for (const f of propagate) sibForm[f] = formData[f];
+                rows.push(toEditRow(sibForm, sib.id));
+            }
+
+            // Поточний запис — оновлюємо (це власна пропозиція користувача)
+            const { error: curErr } = await supabase
                 .from('records_edit')
-                .upsert(
-                    {
-                        id,
-                        ...sanitizedFormData,          // тільки змінені поля
-                        json_full_data: formData,            // повний стан форми у json
-                    },
-                    { onConflict: "id" }
-                );
+                .upsert([rows[0]], { onConflict: 'id' });
+            if (curErr) throw curErr;
 
-            if (error) throw error;
-             //Відправка повідомлення адмінам по новий доданий інвентар
-             const adminIds = await getAdminUserIds(supabase);
+            // Сусіди — лише СТВОРЮЄМО нові; наявні пропозиції не перезаписуємо
+            // (ignoreDuplicates → ON CONFLICT DO NOTHING) — захист і від гонки
+            const sibRows = rows.slice(1);
+            if (sibRows.length > 0) {
+                const { error: sibErr } = await supabase
+                    .from('records_edit')
+                    .upsert(sibRows, { onConflict: 'id', ignoreDuplicates: true });
+                if (sibErr) throw sibErr;
+            }
 
-         if (adminIds.length > 0) {
-             const messageText =
-                 `Інвентар відредаговано ${id} і він очікує на перевірку.\n\n`  +
-                 `Email автора редагування: ${emailFromUser}`;
+            const adminIds = await getAdminUserIds(supabase);
+            if (adminIds.length > 0) {
+                const extra = siblings.length > 0 ? ` та ще ${siblings.length} записів тієї самої справи` : '';
+                const messageText =
+                    `Інвентар відредаговано ${id}${extra}, очікує на перевірку.\n\n` +
+                    `Email автора редагування: ${emailToSave}`;
+                for (const adminId of adminIds) {
+                    try {
+                        await sendNotification({
+                            fromUserId: user?.id || 'system',
+                            toUserId: adminId,
+                            messageType: 'new_edit',
+                            messageText,
+                        });
+                    } catch (err) {
+                        console.error('Помилка відправки повідомлення адміну:', err);
+                    }
+                }
+            }
 
-             for (const adminId of adminIds) {
-                 try {
-                     await sendNotification({
-                         fromUserId: user?.id || 'system',
-                         toUserId: adminId,
-                         messageType: 'new_edit',
-                         messageText
-                     });
-                 } catch (err) {
-                     console.error('Помилка відправки повідомлення адміну:', err);
-                 }
-             }
-         }
-
-            setToast({ message: '✅ Зміни збережено, вони будуть перевірені і підтверджені адміністратором', type: 'success' });
+            setToast({
+                message:
+                    siblings.length > 0
+                        ? `✅ Створено ${rows.length} пропозицій редагування (цей запис і ще ${siblings.length}). Їх перевірить адміністратор.`
+                        : '✅ Зміни збережено, вони будуть перевірені і підтверджені адміністратором',
+                type: 'success',
+            });
         } catch (err) {
             console.error(err);
             setToast({ message: '❌ Помилка при збереженні', type: 'error' });
+        } finally {
+            setSaving(false);
+            setSiblingPrompt(null);
         }
     };
 
@@ -237,6 +340,89 @@ export default function EditSingleRecordPage() {
                     </p>
 
                     {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+                    {siblingPrompt && (
+                        <div
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+                            onClick={() => !saving && setSiblingPrompt(null)}
+                        >
+                            <div
+                                className="w-full max-w-[600px] max-h-[85vh] overflow-auto rounded-lg border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#1F2937] p-[24px]"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <h2 className="text-gray-900 dark:text-white text-[18px] lg:text-[20px] font-semibold mb-[10px]">
+                                    Застосувати зміни до інших населених пунктів?
+                                </h2>
+                                <p className="text-gray-700 dark:text-gray-300 text-[14px] lg:text-[15px] mb-[8px]">
+                                    Ви змінили дані справи (шифр{' '}
+                                    <span className="font-mono">{originalData.case_signature}</span>).
+                                </p>
+                                <p className="text-gray-700 dark:text-gray-300 text-[14px] lg:text-[15px] mb-[14px]">
+                                    Ця справа є ще в <b>{siblingPrompt.siblings.length}</b> населених пунктах.
+                                    Створити для кожного пропозицію редагування з тими самими змінами?
+                                </p>
+
+                                {siblingPrompt.skipped > 0 && (
+                                    <p className="text-gray-500 dark:text-gray-400 text-[13px] mb-[10px]">
+                                        Ще {siblingPrompt.skipped} запис(ів) уже мають неопрацьовану пропозицію
+                                        редагування — їх пропущено.
+                                    </p>
+                                )}
+
+                                <div className="max-h-[240px] overflow-auto rounded border border-gray-200 dark:border-[#374151] mb-[18px]">
+                                    <ul className="divide-y divide-gray-200 dark:divide-[#374151]">
+                                        {siblingPrompt.siblings.map((s) => (
+                                            <li key={s.id}>
+                                                <a
+                                                    href={`/record/${s.id}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="flex items-center justify-between gap-[10px] px-[12px] py-[8px] text-[13px] text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors"
+                                                >
+                                                    <span>
+                                                        {[
+                                                            s.current_region,
+                                                            s.current_district,
+                                                            s.current_community,
+                                                            [s.current_settlement_type, s.current_settlement_name]
+                                                                .filter(Boolean)
+                                                                .join(' '),
+                                                        ]
+                                                            .filter(Boolean)
+                                                            .join(', ')}
+                                                        {s.inventory_year ? ` · ${s.inventory_year}` : ''}
+                                                    </span>
+                                                    <ExternalLink
+                                                        className="w-3.5 h-3.5 text-[#2563EB] flex-shrink-0"
+                                                        strokeWidth={2}
+                                                    />
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                <div className="flex flex-wrap gap-[10px] justify-end">
+                                    <button
+                                        type="button"
+                                        disabled={saving}
+                                        onClick={() => commitEdits([], [])}
+                                        className="px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#111827] hover:bg-gray-200 dark:hover:bg-[#374151] text-gray-900 dark:text-[#F3F4F6] text-[14px] font-medium disabled:opacity-60 transition-colors"
+                                    >
+                                        Ні, лише цей запис
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={saving}
+                                        onClick={() => commitEdits(siblingPrompt.siblings, siblingPrompt.propagate)}
+                                        className="px-[15px] h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-[14px] font-medium disabled:opacity-60 transition-colors"
+                                    >
+                                        {saving ? 'Збереження...' : `Так, для всіх (${siblingPrompt.siblings.length})`}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {loading ? (
                         <div className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">

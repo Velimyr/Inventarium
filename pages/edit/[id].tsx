@@ -275,7 +275,7 @@ export default function EditSingleRecordPage() {
                                 />
                             </section>
 
-                            <DuplicateWarnings record={formData} showCompareButtons={false} />
+                            <DuplicateWarnings record={formData} />
 
                             {/* Action Buttons */}
                             <div className="flex flex-wrap items-center gap-[15px]">

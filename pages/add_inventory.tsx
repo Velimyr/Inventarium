@@ -409,7 +409,7 @@ export default function AddInventoryPage() {
                         </p>
                     </div>
 
-                    <DuplicateWarnings record={formData} showCompareButtons={false} />
+                    <DuplicateWarnings record={formData} />
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap items-center gap-[15px]">

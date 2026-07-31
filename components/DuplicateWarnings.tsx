@@ -11,15 +11,15 @@ import {
  * Попередження на сторінках підтвердження інвентаря (додавання й редагування):
  *   1) у реєстрі вже є записи того самого населеного пункту й року;
  *   2) є записи з тим самим шифром, але з іншими характеристиками справи.
- * Кнопки відкривають /admin_compare у новій вкладці (кандидат — через localStorage).
+ * Кнопки відкривають /compare у новій вкладці (кандидат — через localStorage).
  */
 export default function DuplicateWarnings({
   record,
   showCompareButtons = true,
 }: {
   record: any;
-  // Кнопки «Переглянути» відкривають /admin_compare (лише для адмінів). На
-  // користувацьких формах їх ховаємо — лишаються тексти попереджень.
+  // Кнопки «Переглянути» відкривають /compare (доступно всім). За потреби їх
+  // можна сховати цим прапорцем — лишаться тексти попереджень.
   showCompareButtons?: boolean;
 }) {
   const [settlementMatches, setSettlementMatches] = useState<any[]>([]);
@@ -67,9 +67,9 @@ export default function DuplicateWarnings({
   }, [key]);
 
   const openCompare = (mode: 'settlement' | 'signature' | 'similar') => {
-    const storageKey = 'admin_compare_candidate';
+    const storageKey = 'compare_candidate';
     localStorage.setItem(storageKey, JSON.stringify(record));
-    window.open(`/admin_compare?mode=${mode}&key=${encodeURIComponent(storageKey)}`, '_blank');
+    window.open(`/compare?mode=${mode}&key=${encodeURIComponent(storageKey)}`, '_blank');
   };
 
   // Унікальні поля, що розходяться, — для тексту банера

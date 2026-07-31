@@ -3,9 +3,6 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import Header from '../components/header';
 import ClientOnly from '../components/clientonly';
-import { useUser } from '../contexts/UserContext';
-import { supabase } from '../lib/supabaseClient';
-import { isAdminUser } from '../lib/adminUsers';
 import {
   CASE_DETAIL_FIELDS,
   findSettlementYearMatches,
@@ -50,43 +47,34 @@ const settlementLabel = (r: any) =>
     .filter(Boolean)
     .join(', ');
 
-export default function AdminComparePage() {
-  const { user, loading: userLoading } = useUser();
+export default function ComparePage() {
   const router = useRouter();
   const mode = (router.query.mode as string) || 'settlement';
   const storageKey = router.query.key as string | undefined;
 
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [candidate, setCandidate] = useState<any | null>(null);
+  const [checked, setChecked] = useState(false); // localStorage прочитано
   const [loading, setLoading] = useState(true);
   const [settlementMatches, setSettlementMatches] = useState<any[]>([]);
   const [signatureDiffs, setSignatureDiffs] = useState<{ record: any; diffs: string[] }[]>([]);
   const [similarMatches, setSimilarMatches] = useState<any[]>([]);
 
-  // Роль адміністратора
+  // Кандидат із localStorage (його поклала форма, з якої відкрили порівняння).
+  // Сторінка показує лише публічні дані реєстру + власний ввід, тож без гейту.
   useEffect(() => {
-    if (userLoading) return;
-    if (!user) {
-      setIsAdmin(false);
-      return;
-    }
-    isAdminUser(supabase, user.id).then(setIsAdmin);
-  }, [user, userLoading]);
-
-  // Кандидат із localStorage (його поклала сторінка підтвердження)
-  useEffect(() => {
-    if (!storageKey) return;
     try {
-      const raw = localStorage.getItem(storageKey);
+      const raw = storageKey ? localStorage.getItem(storageKey) : null;
       if (raw) setCandidate(JSON.parse(raw));
     } catch (e) {
       console.error('Не вдалося прочитати кандидата:', e);
+    } finally {
+      setChecked(true);
     }
   }, [storageKey]);
 
   // Завантаження збігів
   useEffect(() => {
-    if (isAdmin !== true || !candidate) return;
+    if (!candidate) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -110,7 +98,7 @@ export default function AdminComparePage() {
     return () => {
       cancelled = true;
     };
-  }, [isAdmin, candidate, mode]);
+  }, [candidate, mode]);
 
   const candidateForMap = useMemo(() => {
     if (!candidate) return [];
@@ -120,23 +108,12 @@ export default function AdminComparePage() {
     return [{ ...candidate, id: candidate.id || 'candidate', latitude: lat, longitude: lon }];
   }, [candidate]);
 
-  if (userLoading || isAdmin === null) {
+  if (!checked) {
     return (
       <>
         <Header />
         <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
           <p className="text-gray-900 dark:text-white text-[16px]">Завантаження...</p>
-        </div>
-      </>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <>
-        <Header />
-        <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
-          <p className="text-gray-900 dark:text-white text-[16px]">⛔ У вас немає доступу до цієї сторінки</p>
         </div>
       </>
     );

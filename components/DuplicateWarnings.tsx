@@ -93,7 +93,7 @@ export default function DuplicateWarnings({
             <button
               type="button"
               onClick={() => openCompare('similar')}
-              className="inline-flex items-center gap-[6px] h-[36px] px-[14px] rounded bg-[#EC221F] hover:bg-[#C81E1B] text-white text-[13px] lg:text-[14px] font-medium whitespace-nowrap"
+              className="inline-flex items-center justify-center gap-[6px] h-[36px] w-[210px] rounded bg-[#EC221F] hover:bg-[#C81E1B] text-white text-[13px] lg:text-[14px] font-medium whitespace-nowrap"
             >
               Переглянути схожі
               <ExternalLink className="w-4 h-4" strokeWidth={2} />
@@ -113,7 +113,7 @@ export default function DuplicateWarnings({
             <button
               type="button"
               onClick={() => openCompare('settlement')}
-              className="inline-flex items-center gap-[6px] h-[36px] px-[14px] rounded bg-amber-600 hover:bg-amber-700 text-white text-[13px] lg:text-[14px] font-medium whitespace-nowrap"
+              className="inline-flex items-center justify-center gap-[6px] h-[36px] w-[210px] rounded bg-amber-600 hover:bg-amber-700 text-white text-[13px] lg:text-[14px] font-medium whitespace-nowrap"
             >
               Переглянути на карті
               <ExternalLink className="w-4 h-4" strokeWidth={2} />
@@ -133,7 +133,7 @@ export default function DuplicateWarnings({
             <button
               type="button"
               onClick={() => openCompare('signature')}
-              className="inline-flex items-center gap-[6px] h-[36px] px-[14px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-[13px] lg:text-[14px] font-medium whitespace-nowrap"
+              className="inline-flex items-center justify-center gap-[6px] h-[36px] w-[210px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-[13px] lg:text-[14px] font-medium whitespace-nowrap"
             >
               Переглянути різницю
               <ExternalLink className="w-4 h-4" strokeWidth={2} />

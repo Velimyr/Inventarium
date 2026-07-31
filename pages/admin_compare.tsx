@@ -262,7 +262,7 @@ export default function AdminComparePage() {
                       </tr>
                       {similarMatches.map((r) => (
                         <tr key={r.id} className="border-t border-gray-200 dark:border-[#374151]">
-                          <td className="p-[10px] text-gray-900 dark:text-white font-mono">{r.case_signature || '—'}</td>
+                          <td className="p-[10px] font-mono"><a href={`/record/${r.id}`} target="_blank" rel="noreferrer" className="text-[#2563EB] hover:underline">{r.case_signature || '—'}</a></td>
                           <td className="p-[10px] text-gray-900 dark:text-white">{r.case_title || '—'}</td>
                           <td className="p-[10px] text-gray-900 dark:text-white">{r.inventory_year || '—'}</td>
                           <td className="p-[10px] whitespace-nowrap">
@@ -333,7 +333,7 @@ export default function AdminComparePage() {
                           </tr>
                           {settlementMatches.map((r) => (
                             <tr key={r.id} className="border-t border-gray-200 dark:border-[#374151]">
-                              <td className="p-[10px] text-gray-900 dark:text-white font-mono">{r.case_signature || '—'}</td>
+                              <td className="p-[10px] font-mono"><a href={`/record/${r.id}`} target="_blank" rel="noreferrer" className="text-[#2563EB] hover:underline">{r.case_signature || '—'}</a></td>
                               <td className="p-[10px] text-gray-900 dark:text-white">{r.case_title || '—'}</td>
                               <td className="p-[10px] text-gray-900 dark:text-white">{r.inventory_year || '—'}</td>
                               <td className="p-[10px] whitespace-nowrap">

@@ -22,10 +22,22 @@ const num = (v: any) => {
   return Number.isNaN(n) ? null : n;
 };
 
-// Значення поля справи для показу в таблиці діфу
-const showDetail = (field: string, value: any) => {
+const isUrl = (v: string) => /^https?:\/\//i.test(v);
+
+// Значення поля справи для показу в таблиці діфу. URL-значення (напр. посилання
+// на скани) робимо клікабельними.
+const renderDetail = (field: string, value: any) => {
   if (field === 'additional_case_signature') return formatSignatureList(value) || '—';
-  return value === null || value === undefined || String(value).trim() === '' ? '—' : String(value);
+  const s = value === null || value === undefined ? '' : String(value).trim();
+  if (s === '') return '—';
+  if (isUrl(s)) {
+    return (
+      <a href={s} target="_blank" rel="noreferrer" className="text-[#2563EB] hover:underline break-all">
+        {s}
+      </a>
+    );
+  }
+  return s;
 };
 
 const settlementLabel = (r: any) =>
@@ -195,13 +207,14 @@ export default function AdminComparePage() {
                     </thead>
                     <tbody>
                       {CASE_DETAIL_FIELDS.map((f) => {
-                        const candVal = showDetail(f.key, candidate[f.key]);
                         return (
                           <tr key={f.key} className="border-b border-gray-200 dark:border-[#374151] last:border-b-0">
                             <td className="p-[10px] text-gray-700 dark:text-gray-300 font-medium align-top whitespace-nowrap">
                               {f.label}
                             </td>
-                            <td className="p-[10px] text-gray-900 dark:text-white align-top">{candVal}</td>
+                            <td className="p-[10px] text-gray-900 dark:text-white align-top">
+                              {renderDetail(f.key, candidate[f.key])}
+                            </td>
                             {signatureDiffs.map(({ record, diffs }) => {
                               const differs = diffs.includes(f.key);
                               return (
@@ -213,7 +226,7 @@ export default function AdminComparePage() {
                                       : 'text-gray-700 dark:text-gray-300'
                                   }`}
                                 >
-                                  {showDetail(f.key, record[f.key])}
+                                  {renderDetail(f.key, record[f.key])}
                                 </td>
                               );
                             })}

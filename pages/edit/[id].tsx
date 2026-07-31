@@ -15,6 +15,7 @@ import {
     toSignatureList,
     validateCaseSignature,
 } from '../../lib/caseSignature';
+import DuplicateWarnings from '../../components/DuplicateWarnings';
 
 const EditableInventoryForm = dynamic(() => import('../../components/EditableInventoryForm'), {
     ssr: false,
@@ -274,9 +275,11 @@ export default function EditSingleRecordPage() {
                                 />
                             </section>
 
+                            <DuplicateWarnings record={formData} showCompareButtons={false} />
+
                             {/* Action Buttons */}
                             <div className="flex flex-wrap items-center gap-[15px]">
-                                <button 
+                                <button
                                     onClick={saveRecord}
                                     className="flex items-center gap-[10px] px-[15px] h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
                                 >

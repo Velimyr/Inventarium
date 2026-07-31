@@ -88,6 +88,41 @@ export async function findSettlementYearMatches(record: any): Promise<any[]> {
 }
 
 /**
+ * «Цифровий ключ» шифру: відкидаємо літери й усе, крім цифр і роздільників,
+ * будь-який набір роздільників зводимо до одного «-». Так «ANK 29/637/0/1.2/1138»
+ * і «ANK AS 29/637/0/1.2/1138» дають однаковий ключ «29-637-0-1-2-1138».
+ */
+export function signatureDigitKey(sig: string | null | undefined): string {
+  return text(sig)
+    .replace(/[^\d.\/-]/g, '')
+    .replace(/[.\/-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Наявні в реєстрі записи ТОГО САМОГО населеного пункту, чий шифр має той самий
+ * цифровий ключ, але ПОВНИЙ шифр відрізняється (тобто відмінність лише в
+ * літерах) — ймовірно та сама справа з різним написанням архівного коду.
+ */
+export async function findSimilarSignatureMatches(record: any): Promise<any[]> {
+  const candKey = signatureDigitKey(record.case_signature);
+  if (candKey === '') return [];
+  if (SETTLEMENT_FIELDS.some((f) => text(record[f]) === '')) return [];
+
+  let query = supabase.from('records').select('*').eq('approved', true);
+  for (const field of SETTLEMENT_FIELDS) query = query.eq(field, record[field]);
+  if (record.id) query = query.neq('id', record.id);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const candFull = text(record.case_signature);
+  return (data || []).filter(
+    (r) => signatureDigitKey(r.case_signature) === candKey && text(r.case_signature) !== candFull
+  );
+}
+
+/**
  * Наявні в реєстрі записи з ТИМ САМИМ case_signature, у яких відрізняється хоча б
  * одна характеристика справи (назва, дати, к-ть сторінок, додатковий шифр,
  * посилання). Повертає записи разом зі списком полів, що розходяться.

@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { fromSignatureList, validateCaseSignature } from '../lib/caseSignature';
 import { reportAddProblem as reportProblemToAdmins } from '../lib/reportProblem';
 import { findRecordWithAdditionalSignature } from '../lib/duplicateCheck';
+import DuplicateWarnings from '../components/DuplicateWarnings';
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
     ssr: false,
@@ -408,9 +409,11 @@ export default function AddInventoryPage() {
                         </p>
                     </div>
 
+                    <DuplicateWarnings record={formData} showCompareButtons={false} />
+
                     {/* Action Buttons */}
                     <div className="flex flex-wrap items-center gap-[15px]">
-                        <button 
+                        <button
                             onClick={handleSubmit}
                             className="flex items-center gap-[10px] px-[15px] h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
                         >

@@ -11,7 +11,7 @@ import { Save, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
 import { findDuplicateVerifiedRecord, normalizeKeyFields } from '../lib/adminApproveUtils';
 import { findRecordWithAdditionalSignature } from '../lib/duplicateCheck';
-import AdminDuplicateWarnings from '../components/AdminDuplicateWarnings';
+import DuplicateWarnings from '../components/DuplicateWarnings';
 import { fromSignatureList, resolveIsUkrainianArchive, validateCaseSignature } from '../lib/caseSignature';
 
 const getSettlementCodeByPath = (
@@ -363,14 +363,32 @@ export default function AdminPage() {
             <p className="text-gray-700 dark:text-gray-300 text-[16px]">Немає записів для перевірки</p>
           ) : (
             <>
-              {/* Navigation Info */}
-              <div className="mb-[20px] p-[15px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
+              {/* Navigation Info + верхня навігація */}
+              <div className="flex flex-wrap items-center justify-between gap-[10px] mb-[20px] p-[15px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
                 <p className="text-gray-900 dark:text-white text-[14px] lg:text-[16px]">
                   Запис <span className="font-bold">{index + 1}</span> з <span className="font-bold">{records.length}</span>
                 </p>
+                <div className="flex items-center gap-[10px]">
+                  <button
+                    onClick={() => goToRecord(index - 1)}
+                    disabled={index === 0}
+                    className="flex items-center gap-[8px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-gray-900 dark:text-white" strokeWidth={1.6} />
+                    <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium">Попередній</span>
+                  </button>
+                  <button
+                    onClick={() => goToRecord(index + 1)}
+                    disabled={index === records.length - 1}
+                    className="flex items-center gap-[8px] px-[15px] h-[40px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium">Наступний</span>
+                    <ChevronRight className="w-4 h-4 text-gray-900 dark:text-white" strokeWidth={1.6} />
+                  </button>
+                </div>
               </div>
 
-              <AdminDuplicateWarnings record={formData} />
+              <DuplicateWarnings record={formData} />
 
               <EditableInventoryForm data={formData} onChange={setFormData} />
 

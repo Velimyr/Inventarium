@@ -6,7 +6,7 @@ import { useUser } from '../contexts/UserContext';
 import { sendNotification } from '../components/notifications';
 import { FileText, Check, X, ChevronLeft, ChevronRight, ExternalLink, Mail } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
-import AdminDuplicateWarnings from '../components/AdminDuplicateWarnings';
+import DuplicateWarnings from '../components/DuplicateWarnings';
 import {
     SIGNATURE_FIELDS,
     buildCaseSignature,
@@ -440,7 +440,7 @@ export default function ReviewEditedRecordsPage() {
                         Перегляд редагованих записів
                     </h1>
 
-                    <AdminDuplicateWarnings record={editCandidate} />
+                    <DuplicateWarnings record={editCandidate} />
 
                     {/* Two Column Layout */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-[20px] mb-[20px]">

@@ -10,6 +10,7 @@ import {
   CASE_DETAIL_FIELDS,
   findSettlementYearMatches,
   findSignatureDetailDiffs,
+  findSimilarSignatureMatches,
 } from '../lib/duplicateCheck';
 import { formatSignatureList } from '../lib/caseSignature';
 import { ExternalLink } from 'lucide-react';
@@ -48,6 +49,7 @@ export default function AdminComparePage() {
   const [loading, setLoading] = useState(true);
   const [settlementMatches, setSettlementMatches] = useState<any[]>([]);
   const [signatureDiffs, setSignatureDiffs] = useState<{ record: any; diffs: string[] }[]>([]);
+  const [similarMatches, setSimilarMatches] = useState<any[]>([]);
 
   // Роль адміністратора
   useEffect(() => {
@@ -80,6 +82,9 @@ export default function AdminComparePage() {
         if (mode === 'signature') {
           const diffs = await findSignatureDetailDiffs(candidate);
           if (!cancelled) setSignatureDiffs(diffs);
+        } else if (mode === 'similar') {
+          const matches = await findSimilarSignatureMatches(candidate);
+          if (!cancelled) setSimilarMatches(matches);
         } else {
           const matches = await findSettlementYearMatches(candidate);
           if (!cancelled) setSettlementMatches(matches);
@@ -215,6 +220,64 @@ export default function AdminComparePage() {
                           </tr>
                         );
                       })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          ) : mode === 'similar' ? (
+            <>
+              <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[22px] md:text-[26px] lg:text-[30px] font-bold mb-[6px]">
+                Схожі шифри справи
+              </h1>
+              <p className="text-gray-700 dark:text-gray-300 text-[14px] lg:text-[16px] mb-[20px]">
+                Шифр <span className="font-mono">{candidate.case_signature || '—'}</span> має ті самі
+                цифри, що й наявні записи цього населеного пункту, але з іншими літерами — імовірно, це
+                та сама справа.
+              </p>
+
+              {loading ? (
+                <p className="text-gray-900 dark:text-white text-[16px]">Завантаження...</p>
+              ) : similarMatches.length === 0 ? (
+                <div className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
+                  <p className="text-gray-900 dark:text-white text-[16px]">Схожих шифрів не знайдено.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-gray-300 dark:border-[#374151]">
+                  <table className="min-w-full text-[13px] lg:text-[14px]">
+                    <thead>
+                      <tr className="bg-gray-100 dark:bg-[#111827]">
+                        <th className="text-left p-[10px] text-gray-900 dark:text-white font-semibold">Шифр справи</th>
+                        <th className="text-left p-[10px] text-gray-900 dark:text-white font-semibold">Назва справи</th>
+                        <th className="text-left p-[10px] text-gray-900 dark:text-white font-semibold">Рік</th>
+                        <th className="p-[10px]" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t border-gray-200 dark:border-[#374151] bg-green-50 dark:bg-[#14301F]">
+                        <td className="p-[10px] text-[#14AE5C] font-mono font-medium">{candidate.case_signature || '—'}</td>
+                        <td className="p-[10px] text-gray-900 dark:text-white">{candidate.case_title || '—'}</td>
+                        <td className="p-[10px] text-gray-900 dark:text-white">{candidate.inventory_year || '—'}</td>
+                        <td className="p-[10px] text-[#14AE5C] font-medium whitespace-nowrap">додається</td>
+                      </tr>
+                      {similarMatches.map((r) => (
+                        <tr key={r.id} className="border-t border-gray-200 dark:border-[#374151]">
+                          <td className="p-[10px] text-gray-900 dark:text-white font-mono">{r.case_signature || '—'}</td>
+                          <td className="p-[10px] text-gray-900 dark:text-white">{r.case_title || '—'}</td>
+                          <td className="p-[10px] text-gray-900 dark:text-white">{r.inventory_year || '—'}</td>
+                          <td className="p-[10px] whitespace-nowrap">
+                            <a
+                              href={`/record/${r.id}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-[4px] text-[#2563EB] hover:underline"
+                            >
+                              Відкрити
+                              <ExternalLink className="w-3.5 h-3.5" strokeWidth={2} />
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

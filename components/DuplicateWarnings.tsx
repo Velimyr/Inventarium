@@ -66,7 +66,7 @@ export default function DuplicateWarnings({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  const openCompare = (mode: 'settlement' | 'signature') => {
+  const openCompare = (mode: 'settlement' | 'signature' | 'similar') => {
     const storageKey = 'admin_compare_candidate';
     localStorage.setItem(storageKey, JSON.stringify(record));
     window.open(`/admin_compare?mode=${mode}&key=${encodeURIComponent(storageKey)}`, '_blank');
@@ -86,23 +86,19 @@ export default function DuplicateWarnings({
         <div className="flex flex-wrap items-center gap-[12px] p-[14px] rounded-lg border border-[#EC221F] bg-red-50 dark:bg-[#3A1514]">
           <AlertTriangle className="w-5 h-5 text-[#EC221F] dark:text-[#F87171] flex-shrink-0" strokeWidth={2} />
           <p className="flex-1 min-w-[240px] text-red-900 dark:text-red-100 text-[14px] lg:text-[15px]">
-            У реєстрі є <b>{similarMatches.length}</b> запис(ів) цього населеного пункту з дуже
-            схожим шифром (ті самі цифри, інші літери) —{' '}
-            {similarMatches.map((r, i) => (
-              <span key={r.id}>
-                {i > 0 && ', '}
-                <a
-                  href={`/record/${r.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-mono underline hover:no-underline"
-                >
-                  {r.case_signature}
-                </a>
-              </span>
-            ))}
-            . Можливо, це та сама справа.
+            У реєстрі є <b>{similarMatches.length}</b> запис(ів) цього населеного пункту з дуже схожим
+            шифром (ті самі цифри, інші літери). Можливо, це та сама справа.
           </p>
+          {showCompareButtons && (
+            <button
+              type="button"
+              onClick={() => openCompare('similar')}
+              className="inline-flex items-center gap-[6px] h-[36px] px-[14px] rounded bg-[#EC221F] hover:bg-[#C81E1B] text-white text-[13px] lg:text-[14px] font-medium whitespace-nowrap"
+            >
+              Переглянути схожі
+              <ExternalLink className="w-4 h-4" strokeWidth={2} />
+            </button>
+          )}
         </div>
       )}
 

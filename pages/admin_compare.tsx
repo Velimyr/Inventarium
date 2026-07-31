@@ -177,50 +177,70 @@ export default function AdminComparePage() {
                   <p className="text-gray-900 dark:text-white text-[16px]">Розбіжностей не знайдено.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-lg border border-gray-300 dark:border-[#374151]">
-                  <table className="min-w-full text-[13px] lg:text-[14px]">
-                    <thead>
-                      <tr className="bg-gray-100 dark:bg-[#111827]">
-                        <th className="text-left p-[10px] border-b border-gray-300 dark:border-[#374151] text-gray-900 dark:text-white font-semibold whitespace-nowrap">
-                          Поле
-                        </th>
-                        <th className="text-left p-[10px] border-b border-gray-300 dark:border-[#374151] text-[#14AE5C] font-semibold whitespace-nowrap">
-                          Додається
-                        </th>
-                        {signatureDiffs.map(({ record }, i) => (
-                          <th
-                            key={record.id}
-                            className="text-left p-[10px] border-b border-l border-gray-300 dark:border-[#374151] text-gray-900 dark:text-white font-semibold whitespace-nowrap"
-                          >
-                            <a
-                              href={`/record/${record.id}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-[4px] text-[#2563EB] hover:underline"
-                            >
-                              У реєстрі #{i + 1}
-                              <ExternalLink className="w-3.5 h-3.5" strokeWidth={2} />
-                            </a>
+                <>
+                  {/* Карта з позначками: наявні записи сині/червоні, кандидат зелений */}
+                  <div
+                    className="rounded-lg border border-gray-300 dark:border-[#374151] overflow-hidden mb-[20px]"
+                    style={{ height: '420px' }}
+                  >
+                    <ClientOnly>
+                      <CaseMapComponent
+                        records={signatureDiffs.map((d) => d.record)}
+                        candidateRecords={candidateForMap}
+                      />
+                    </ClientOnly>
+                  </div>
+
+                  {/* Записи — рядки (вертикальний скрол), характеристики — колонки */}
+                  <div className="overflow-auto max-h-[60vh] rounded-lg border border-gray-300 dark:border-[#374151]">
+                    <table className="min-w-full text-[13px] lg:text-[14px]">
+                      <thead className="sticky top-0 z-10">
+                        <tr>
+                          <th className="text-left p-[10px] border-b border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#111827] text-gray-900 dark:text-white font-semibold whitespace-nowrap">
+                            Населений пункт
                           </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {CASE_DETAIL_FIELDS.map((f) => {
-                        return (
-                          <tr key={f.key} className="border-b border-gray-200 dark:border-[#374151] last:border-b-0">
-                            <td className="p-[10px] text-gray-700 dark:text-gray-300 font-medium align-top whitespace-nowrap">
+                          {CASE_DETAIL_FIELDS.map((f) => (
+                            <th
+                              key={f.key}
+                              className="text-left p-[10px] border-b border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#111827] text-gray-900 dark:text-white font-semibold whitespace-nowrap"
+                            >
                               {f.label}
-                            </td>
-                            <td className="p-[10px] text-gray-900 dark:text-white align-top">
+                            </th>
+                          ))}
+                          <th className="p-[10px] border-b border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#111827]" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* Кандидат */}
+                        <tr className="border-b border-gray-200 dark:border-[#374151] bg-green-50 dark:bg-[#14301F]">
+                          <td className="p-[10px] align-top text-[#14AE5C] font-medium">
+                            {settlementLabel(candidate) || '—'}
+                          </td>
+                          {CASE_DETAIL_FIELDS.map((f) => (
+                            <td key={f.key} className="p-[10px] align-top text-gray-900 dark:text-white">
                               {renderDetail(f.key, candidate[f.key])}
                             </td>
-                            {signatureDiffs.map(({ record, diffs }) => {
+                          ))}
+                          <td className="p-[10px] align-top text-[#14AE5C] font-medium whitespace-nowrap">
+                            додається
+                          </td>
+                        </tr>
+
+                        {/* Наявні записи */}
+                        {signatureDiffs.map(({ record, diffs }) => (
+                          <tr
+                            key={record.id}
+                            className="border-b border-gray-200 dark:border-[#374151] last:border-b-0"
+                          >
+                            <td className="p-[10px] align-top text-gray-700 dark:text-gray-300">
+                              {settlementLabel(record) || '—'}
+                            </td>
+                            {CASE_DETAIL_FIELDS.map((f) => {
                               const differs = diffs.includes(f.key);
                               return (
                                 <td
-                                  key={record.id}
-                                  className={`p-[10px] align-top border-l border-gray-200 dark:border-[#374151] ${
+                                  key={f.key}
+                                  className={`p-[10px] align-top ${
                                     differs
                                       ? 'bg-amber-100 dark:bg-[#4A3413] text-amber-900 dark:text-amber-200 font-medium'
                                       : 'text-gray-700 dark:text-gray-300'
@@ -230,12 +250,23 @@ export default function AdminComparePage() {
                                 </td>
                               );
                             })}
+                            <td className="p-[10px] align-top whitespace-nowrap">
+                              <a
+                                href={`/record/${record.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-[4px] text-[#2563EB] hover:underline"
+                              >
+                                Відкрити
+                                <ExternalLink className="w-3.5 h-3.5" strokeWidth={2} />
+                              </a>
+                            </td>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </>
           ) : mode === 'similar' ? (

@@ -10,6 +10,7 @@ import {
   findSimilarSignatureMatches,
 } from '../lib/duplicateCheck';
 import { formatSignatureList } from '../lib/caseSignature';
+import { isNamedLevel } from '../components/keys/regionData';
 import { ExternalLink } from 'lucide-react';
 
 const CaseMapComponent = dynamic(() => import('../components/CaseMapComponent'), { ssr: false });
@@ -37,14 +38,17 @@ const renderDetail = (field: string, value: any) => {
   return s;
 };
 
+// Назви рівнів у довіднику вже містять слово-тип, дописувати нічого не треба;
+// «Немає» — це рівень, якого в цій країні немає, його пропускаємо
 const settlementLabel = (r: any) =>
   [
-    r.current_region ? `${r.current_region} обл.` : null,
-    r.current_district ? `${r.current_district} р-н` : null,
-    r.current_community ? `${r.current_community} гром.` : null,
+    r.current_country,
+    r.current_region,
+    r.current_district,
+    r.current_community,
     [r.current_settlement_type, r.current_settlement_name].filter(Boolean).join(' '),
   ]
-    .filter(Boolean)
+    .filter(isNamedLevel)
     .join(', ');
 
 export default function ComparePage() {

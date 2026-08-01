@@ -8,7 +8,8 @@ import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import {
   fetchRegionStructure, findCountryByRegion, listCountries, listRegions,
-  listDistricts, listCommunities, listSettlements, type NestedStructure,
+  listDistricts, listCommunities, listSettlements, levelNames, accusative, capitalize,
+  type NestedStructure,
 } from './keys/regionData';
 import {
   ARCHIVE_PART_FIELDS,
@@ -219,6 +220,8 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
     }
   };
 
+  const lv = levelNames(formData.current_country);
+
   return (
     <>
       {/* Current Administrative Division Section */}
@@ -246,7 +249,7 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
                 name="current_region"
                 value={formData.current_region}
                 onChange={handleChange}
-                placeholder="Оберіть область"
+                placeholder={`Оберіть ${accusative(lv.region)}`}
                 disabled={!regions.length}
               >
                 {regions.map((region) => (
@@ -258,7 +261,7 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
                 name="current_district"
                 value={formData.current_district}
                 onChange={handleChange}
-                placeholder="Оберіть район"
+                placeholder={`Оберіть ${accusative(lv.district)}`}
                 disabled={!districts.length}
               >
                 {districts.map((district) => (
@@ -270,7 +273,7 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
                 name="current_community"
                 value={formData.current_community}
                 onChange={handleChange}
-                placeholder="Оберіть громаду"
+                placeholder={`Оберіть ${accusative(lv.community)}`}
                 disabled={!communities.length}
               >
                 {communities.map((comm) => (
@@ -322,19 +325,19 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
                 name="current_region"
                 value={formData.current_region}
                 onChange={handleChange}
-                placeholder="Область"
+                placeholder={capitalize(lv.region)}
               />
               <FormInput
                 name="current_district"
                 value={formData.current_district}
                 onChange={handleChange}
-                placeholder="Район"
+                placeholder={capitalize(lv.district)}
               />
               <FormInput
                 name="current_community"
                 value={formData.current_community}
                 onChange={handleChange}
-                placeholder="ОТГ"
+                placeholder={capitalize(lv.community)}
               />
             </div>
 

@@ -53,6 +53,7 @@ export default function ReviewEditedRecordsPage() {
         old_community: 'Ключ (Староство)',
         old_settlement_type: 'Тип н.п. (давній)',
         old_settlement_name: 'Назва н.п. (давня)',
+        current_country: 'Країна',
         current_region: 'Сучасна область',
         current_district: 'Сучасний район',
         current_community: 'Сучасна громада',

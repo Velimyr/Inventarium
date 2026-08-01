@@ -24,6 +24,7 @@ export default function AddInventoryPage() {
     const { user, loading } = useUser();
 
     const [formData, setFormData] = useState<any>({
+        current_country: '',
         current_region: '',
         current_district: '',
         current_community: '',

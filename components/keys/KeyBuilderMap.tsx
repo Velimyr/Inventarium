@@ -10,6 +10,7 @@ import { voronoiTerritory } from './voronoi';
 import {
     fetchRegionStructure, flattenStructure, findNearestSettlement,
     listCountries, listRegions, listDistricts, listCommunities, listSettlements,
+    levelNames, accusative,
 } from './regionData';
 import type { FlatSettlement, NestedStructure } from './regionData';
 
@@ -275,6 +276,7 @@ function PointRow({
     onChange: (point: KeyPoint) => void;
     onRemove?: () => void;
 }) {
+    const lv = levelNames(point.country);
     const regions = listRegions(structure, point.country);
     const districts = listDistricts(structure, point.country, point.region);
     const communities = listCommunities(structure, point.country, point.region, point.district);
@@ -337,7 +339,7 @@ function PointRow({
                 />
                 <PointSelect
                     value={point.region}
-                    placeholder="Оберіть область"
+                    placeholder={`Оберіть ${accusative(lv.region)}`}
                     disabled={!regions.length}
                     onChange={(region) =>
                         onChange({ ...point, region, district: '', community: '', code: '', name: '', type: '' })
@@ -346,7 +348,7 @@ function PointRow({
                 />
                 <PointSelect
                     value={point.district}
-                    placeholder="Оберіть район"
+                    placeholder={`Оберіть ${accusative(lv.district)}`}
                     disabled={!districts.length}
                     onChange={(district) =>
                         onChange({ ...point, district, community: '', code: '', name: '', type: '' })
@@ -355,7 +357,7 @@ function PointRow({
                 />
                 <PointSelect
                     value={point.community}
-                    placeholder="Оберіть громаду"
+                    placeholder={`Оберіть ${accusative(lv.community)}`}
                     disabled={!communities.length}
                     onChange={(community) =>
                         onChange({ ...point, community, code: '', name: '', type: '' })

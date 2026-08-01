@@ -7,6 +7,7 @@ import Toast from '../../../components/Toast';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { ArrowLeft, Upload, FileText, CheckCircle, AlertTriangle, Loader2, X, BookOpen, Scissors } from 'lucide-react';
 import cobookConfig from '../cobook.json';
+import { isNamedLevel } from '../../../components/keys/regionData';
 import cobookErrors from '../cobook_errors.json';
 
 // ---------------------------------------------------------------------------
@@ -69,7 +70,7 @@ function parsePageRange(raw: string, totalPages: number): { pages: number[]; err
     if (!raw.trim()) {
         return { pages: [], error: '' };
     }
-    const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+    const parts = raw.split(',').map(s => s.trim()).filter(isNamedLevel);
     for (const part of parts) {
         if (/^\d+$/.test(part)) {
             const n = parseInt(part, 10);
@@ -171,7 +172,7 @@ function getErrorMessage(path: string, errorCode: string): string {
         const compositeEntry = errors.find((e: any) => {
             if (!e?.code || typeof e.code !== 'string') return false;
             if (!e.code.includes(' / ')) return false;
-            const parts = e.code.split(' / ').map((p: string) => p.trim()).filter(Boolean);
+            const parts = e.code.split(' / ').map((p: string) => p.trim()).filter(isNamedLevel);
             return parts.includes(errorCode);
         });
         if (compositeEntry && compositeEntry.message_ua) return compositeEntry.message_ua;
@@ -271,7 +272,7 @@ export default function CobookCreatePage() {
         setLoading(true);
         const { data, error } = await supabase
             .from('records')
-            .select('id, case_title, case_signature, inventory_year, current_settlement_name, current_settlement_type, current_region, current_district, current_community, cobook_link, scans_url')
+            .select('id, case_title, case_signature, inventory_year, current_settlement_name, current_settlement_type, current_country, current_region, current_district, current_community, cobook_link, scans_url')
             .eq('id', id)
             .single();
         setRecord(error || !data ? null : data);
@@ -709,12 +710,13 @@ export default function CobookCreatePage() {
                                         <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Населений пункт (сучасний адмінподіл)</p>
                                         <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">
                                             {[
+                                                record.current_country,
                                                 record.current_region,
                                                 record.current_district,
                                                 record.current_community,
                                                 record.current_settlement_type && record.current_settlement_name
                                                     ? `${record.current_settlement_type} ${record.current_settlement_name}` : null,
-                                            ].filter(Boolean).join(', ') || '—'}
+                                            ].filter(isNamedLevel).join(', ') || '—'}
                                         </p>
                                     </div>
                                 </div>

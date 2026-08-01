@@ -7,6 +7,7 @@ import Toast from './Toast';
 import { ChevronDown } from 'lucide-react';
 import {
   listCountries, listRegions, listDistricts, listCommunities, listSettlements,
+  levelNames, accusative, capitalize,
   type NestedStructure, type Settlement,
 } from './keys/regionData';
 
@@ -215,6 +216,9 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
     setSubmitting(false);
   };
 
+  const lv = levelNames(country);
+
+
   return (
     <Dialog open={isOpen} onClose={onClose}>
       <div className="fixed inset-0 bg-black bg-opacity-30 z-40 flex items-center justify-center p-4">
@@ -241,7 +245,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
             <FormSelect
               value={region}
               onChange={(e) => setRegion(e.target.value)}
-              placeholder="Оберіть область"
+              placeholder={`Оберіть ${accusative(lv.region)}`}
               disabled={!country || regions.length === 0}
             >
               {regions.map((r) => (
@@ -255,7 +259,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
             <FormSelect
               value={district}
               onChange={(e) => setDistrict(e.target.value)}
-              placeholder="Оберіть район"
+              placeholder={`Оберіть ${accusative(lv.district)}`}
               disabled={!region || districts.length === 0}
             >
               {districts.map((d) => (
@@ -269,7 +273,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
             <FormSelect
               value={community}
               onChange={(e) => setCommunity(e.target.value)}
-              placeholder="Оберіть громаду"
+              placeholder={`Оберіть ${accusative(lv.community)}`}
               disabled={!district || communities.length === 0}
             >
               {communities.map((c) => (

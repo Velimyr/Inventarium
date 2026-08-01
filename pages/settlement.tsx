@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { ChevronDown, ChevronLeft, ChevronRight, Check, X } from "lucide-react";
+import { isNamedLevel } from '../components/keys/regionData';
 
 const PAGE_SIZE = 20;
 
@@ -76,7 +77,12 @@ export default function SettlementRecordsPage() {
             {current_settlement_name}
           </h1>
           <p className="text-gray-700 dark:text-white text-sm md:text-base opacity-80 mb-8 md:mb-[49px]">
-            {current_community} громада, {current_district} район, {current_region} область
+            {/* Назви рівнів уже містять слово-тип, а «Немає» — це відсутній
+                рівень (громада в Польщі, район для м.Києва), його не показуємо */}
+            {[current_community, current_district, current_region, current_country]
+              .map((v) => (Array.isArray(v) ? v[0] : v))
+              .filter(isNamedLevel)
+              .join(', ')}
           </p>
 
           {/* Found Count */}

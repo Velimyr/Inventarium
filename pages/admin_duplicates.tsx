@@ -89,6 +89,7 @@ const scopeLabel = (value: string) => value.split('|').join(' · ');
 
 // Усі поля запису з підписами. Порядок = порядок показу в картці.
 const FIELDS: { key: string; label: string }[] = [
+  { key: 'current_country', label: 'Країна' },
   { key: 'current_region', label: 'Область' },
   { key: 'current_district', label: 'Район' },
   { key: 'current_community', label: 'Громада' },

@@ -4,6 +4,7 @@ import Header from '../../components/header';
 import { useEffect, useState, useRef } from 'react';
 import { ExternalLink, MapPin, Search, Edit3, AlertTriangle, Map, FileText, Clock, Feather, HelpCircle, Image, ArrowUpRight, BookOpen } from "lucide-react";
 import { toSignatureList } from '../../lib/caseSignature';
+import { isNamedLevel } from '../../components/keys/regionData';
 
 export default function RecordPage() {
     const router = useRouter();
@@ -33,7 +34,7 @@ export default function RecordPage() {
             id, case_title, case_signature, case_date, inventory_year, inventory_start_page,
             pages_count, additional_case_signature, notes, scans_url, latitude, longitude,
             created_at, mark_type, archive, fonds, series, record, old_province, old_district,
-            old_community, old_settlement_type, old_settlement_name, current_region,
+            old_community, old_settlement_type, old_settlement_name, current_country, current_region,
             current_district, current_community, current_settlement_type, current_settlement_name,
             cobook_link, cobook_transcript, approved
         `).eq('id', id).single();
@@ -62,16 +63,17 @@ export default function RecordPage() {
         record.old_settlement_type && record.old_settlement_name
             ? `${record.old_settlement_type} ${record.old_settlement_name}`
             : null,
-    ].filter(Boolean).join(', ');
+    ].filter(isNamedLevel).join(', ');
 
     const fullLocationCurrent = [
+        record.current_country,
         record.current_region,
         record.current_district,
         record.current_community,
         record.current_settlement_type && record.current_settlement_name
             ? `${record.current_settlement_type} ${record.current_settlement_name}`
             : null,
-    ].filter(Boolean).join(', ');
+    ].filter(isNamedLevel).join(', ');
 
     const currentSettlementDisplay = record.current_settlement_name
         ? `${record.current_settlement_name}, ${record.current_settlement_type || 'населений пункт'}`

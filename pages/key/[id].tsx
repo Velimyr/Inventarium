@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { toPair } from '../../components/keys/geometry';
 import type { KeyPoint, MapKeyRow } from '../../components/keys/geometry';
 import { BookOpen, FileText, MapPin, KeyRound, Calendar, Pencil } from 'lucide-react';
+import { isNamedLevel } from '../../components/keys/regionData';
 
 const KeyShapePreview = dynamic(() => import('../../components/keys/KeyShapePreview'), { ssr: false });
 
@@ -18,6 +19,7 @@ interface KeyDetails extends MapKeyRow {
 // Посилання на сторінку поселення — той самий формат, що й у попапах карти
 function settlementUrl(point: KeyPoint): string {
     const params = new URLSearchParams();
+    if (point.country) params.set('current_country', point.country);
     if (point.region) params.set('current_region', point.region);
     if (point.district) params.set('current_district', point.district);
     if (point.community) params.set('current_community', point.community);
@@ -52,8 +54,8 @@ function SettlementRow({ point, badge, count }: { point: KeyPoint; badge?: strin
                     </span>
                 )}
                 <div className="text-gray-600 dark:text-gray-400 text-[12px] truncate">
-                    {[point.community, point.district, point.region]
-                        .filter(Boolean)
+                    {[point.community, point.district, point.region, point.country]
+                        .filter(isNamedLevel)
                         .join(', ')}
                 </div>
             </div>
@@ -117,7 +119,7 @@ export default function KeyDetailsPage() {
         let cancelled = false;
         supabase
             .from('records')
-            .select('current_settlement_name, current_region, current_district, current_community')
+            .select('current_settlement_name, current_country, current_region, current_district, current_community')
             .eq('approved', true)
             .in('current_settlement_name', names)
             .then(({ data, error }) => {

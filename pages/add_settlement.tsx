@@ -7,7 +7,7 @@ import { ChevronDown, Plus, Send, AlertTriangle, Trash2 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import {
     fetchRegionStructure, listCountries, listRegions, listDistricts, listCommunities,
-    listSettlements, type NestedStructure, type Settlement,
+    listSettlements, levelNames, accusative, capitalize, type NestedStructure, type Settlement,
 } from '../components/keys/regionData';
 
 const MapSelector = dynamic(() => import('../components/MapSelector'), { ssr: false });
@@ -245,6 +245,9 @@ export default function AddSettlementPage() {
         }
     };
 
+    const lv = levelNames(formData.country);
+
+
     return (
         <>
             <Header />
@@ -290,7 +293,7 @@ export default function AddSettlementPage() {
                                 name="region"
                                 value={formData.region}
                                 onChange={handleChange}
-                                placeholder="Оберіть область"
+                                placeholder={`Оберіть ${accusative(lv.region)}`}
                                 disabled={!regions.length}
                             >
                                 {regions.map(r => (
@@ -302,7 +305,7 @@ export default function AddSettlementPage() {
                                 name="district"
                                 value={formData.district}
                                 onChange={handleChange}
-                                placeholder="Оберіть район"
+                                placeholder={`Оберіть ${accusative(lv.district)}`}
                                 disabled={!districts.length}
                             >
                                 {districts.map(d => <option key={d} value={d}>{d}</option>)}
@@ -312,7 +315,7 @@ export default function AddSettlementPage() {
                                 name="community"
                                 value={formData.community}
                                 onChange={handleChange}
-                                placeholder="Оберіть громаду"
+                                placeholder={`Оберіть ${accusative(lv.community)}`}
                                 disabled={!communities.length}
                             >
                                 {communities.map(c => <option key={c} value={c}>{c}</option>)}

@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import ClientOnly from '../components/clientonly';
 import { ChevronDown } from 'lucide-react';
+import { isNamedLevel } from '../components/keys/regionData';
 
 const CaseMapComponent = dynamic(() => import('../components/CaseMapComponent'), { ssr: false });
 
@@ -16,6 +17,7 @@ interface Record {
     mark_type: number | null;
     current_settlement_name: string | null;
     current_settlement_type: string | null;
+    current_country: string | null;
     current_region: string | null;
     current_district: string | null;
     current_community: string | null;
@@ -154,11 +156,12 @@ export default function CasePage() {
                                                     <div className="flex flex-col gap-1">
                                                         <div className="text-[13px] lg:text-[14px] font-bold">
                                                             {[
+                                                                record.current_country,
                                                                 record.current_region,
                                                                 record.current_district,
                                                                 record.current_community,
                                                             ]
-                                                                .filter(Boolean)
+                                                                .filter(isNamedLevel)
                                                                 .join(', ') || '—'}
                                                         </div>
                                                         {(record.old_province || record.old_district || record.old_community) && (
@@ -220,8 +223,9 @@ export default function CasePage() {
                                                     Адміністративний поділ
                                                 </div>
                                                 <div className="text-[13px] text-gray-900 dark:text-white">
-                                                    {[record.current_region, record.current_district, record.current_community]
-                                                        .filter(Boolean)
+                                                    {[record.current_country, record.current_region,
+                                                      record.current_district, record.current_community]
+                                                        .filter(isNamedLevel)
                                                         .join(', ') || '—'}
                                                 </div>
                                             </div>

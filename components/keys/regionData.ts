@@ -41,6 +41,69 @@ export type SettlementPath = {
     community: string;
 };
 
+/**
+ * Як називаються рівні в кожній країні — для підписів і плейсхолдерів.
+ * У Польщі, Словаччині, Московії та Молдові третій рівень у довіднику завжди
+ * «Немає», тож окремої назви для нього немає (селект лишається, але підпис
+ * нейтральний).
+ */
+export interface LevelNames {
+    region: string;
+    district: string;
+    community: string;
+}
+
+const DEFAULT_LEVEL_NAMES: LevelNames = {
+    region: 'регіон',
+    district: 'район',
+    community: 'громада',
+};
+
+const LEVEL_NAMES_BY_COUNTRY: Record<string, LevelNames> = {
+    'Україна': { region: 'область', district: 'район', community: 'громада' },
+    'Білорусь': { region: 'область', district: 'район', community: 'сільрада' },
+    'Московія': { region: 'область', district: 'район', community: 'громада' },
+    'Польща': { region: 'воєводство', district: 'повіт', community: 'ґміна' },
+    'Словаччина': { region: 'край', district: 'округ', community: 'громада' },
+    'Молдова': { region: 'регіон', district: 'район', community: 'громада' },
+};
+
+/** Назви рівнів для країни. Без країни — нейтральні («регіон/район/громада»). */
+export function levelNames(country?: string | null): LevelNames {
+    return (country && LEVEL_NAMES_BY_COUNTRY[country]) || DEFAULT_LEVEL_NAMES;
+}
+
+/** «область» → «Область» — для підписів, що починають рядок. */
+export function capitalize(word: string): string {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+/**
+ * Знахідний відмінок для «Оберіть …»: громада → громаду, ґміна → ґміну.
+ * Слова на приголосний, -ь та -о («район», «край», «область», «воєводство»)
+ * у знахідному збігаються з називним.
+ */
+export function accusative(word: string): string {
+    if (word.endsWith('а')) return `${word.slice(0, -1)}у`;
+    if (word.endsWith('я')) return `${word.slice(0, -1)}ю`;
+    return word;
+}
+
+/**
+ * Чи це справжня назва рівня, а не заглушка. У довіднику «Немає» стоїть там,
+ * де рівня не існує: громади в Польщі, Словаччині, Московії та Молдові, район
+ * і громада для м.Києва. У показі такий рівень треба пропускати, інакше виходить
+ * «Польща, Підкарпатське воєводство, Бещадський повіт, Немає, село Росохате».
+ */
+export function isNamedLevel(value?: string | null): boolean {
+    return Boolean(value) && value !== 'Немає';
+}
+
+/** Шлях одним рядком, без заглушок: «Польща, Підкарпатське воєводство, …». */
+export function formatAdminPath(...parts: (string | null | undefined)[]): string {
+    return parts.filter(isNamedLevel).join(', ');
+}
+
 let structurePromise: Promise<NestedStructure> | null = null;
 
 // Файл ~6 МБ — вантажимо один раз на сесію

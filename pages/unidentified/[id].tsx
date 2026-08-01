@@ -14,7 +14,7 @@ import { formatSignatureList, fromSignatureList } from '../../lib/caseSignature'
 import HelpTooltip from '../../components/HelpTooltip';
 import {
     fetchRegionStructure, findCountryByRegion, listCountries, listRegions, listDistricts,
-    listCommunities, listSettlements, type NestedStructure, type Settlement,
+    listCommunities, listSettlements, levelNames, accusative, capitalize, type NestedStructure, type Settlement,
 } from '../../components/keys/regionData';
 
 const MapSelector = dynamic(() => import('../../components/MapSelector'), { ssr: false });
@@ -499,6 +499,9 @@ export default function NotIdentifyDetails() {
         </>
     );
 
+    const lv = levelNames(formData.current_country);
+
+
     return (
         <>
             <Header />
@@ -585,7 +588,7 @@ export default function NotIdentifyDetails() {
                                             name="current_region"
                                             value={formData.current_region}
                                             onChange={handleChange}
-                                            placeholder="Оберіть область"
+                                            placeholder={`Оберіть ${accusative(lv.region)}`}
                                             disabled={!regions.length}
                                         >
                                             {regions.map(r => (
@@ -597,7 +600,7 @@ export default function NotIdentifyDetails() {
                                             name="current_district"
                                             value={formData.current_district}
                                             onChange={handleChange}
-                                            placeholder="Оберіть район"
+                                            placeholder={`Оберіть ${accusative(lv.district)}`}
                                             disabled={!districts.length}
                                         >
                                             {districts.map(d => <option key={d} value={d}>{d}</option>)}
@@ -607,7 +610,7 @@ export default function NotIdentifyDetails() {
                                             name="current_community"
                                             value={formData.current_community}
                                             onChange={handleChange}
-                                            placeholder="Оберіть громаду"
+                                            placeholder={`Оберіть ${accusative(lv.community)}`}
                                             disabled={!communities.length}
                                         >
                                             {communities.map(c => <option key={c} value={c}>{c}</option>)}

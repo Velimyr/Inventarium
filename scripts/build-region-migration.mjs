@@ -90,6 +90,29 @@ for (const { o, n } of pairs) {
 
 const missing = [...OLD].filter(([code]) => !NEW.has(code));
 
+/**
+ * Ручні відповідності: пункти, яких у новому довіднику немає під старою назвою.
+ * Частина — наслідок зведення різнописань і дублів, частина — перевидані коди,
+ * «Перевали» — коротка форма «Перевалля». Ціль задана КОДОМ: шлях і назву
+ * підтягуємо з чинного довідника, щоб рядки не застаріли при наступному експорті.
+ */
+const MANUAL = [
+    { region: 'Українські етнічні землі', district: 'Надсяння',   type: 'містечко', name: 'Липське',        to: 'ZK30000000000000057' },
+    { region: 'Українські етнічні землі', district: 'Підляшшя',   type: 'село',     name: 'Славатичі',      to: 'ZK20000900000000003' },
+    { region: 'Українські етнічні землі', district: 'Холмщина',   type: 'село',     name: 'Тишівці',        to: 'SG11000000000000089' },
+    { region: 'Українські етнічні землі', district: 'Холмщина',   type: 'село',     name: 'Любича',         to: 'SG00000000000000009' },
+    { region: 'Українські етнічні землі', district: 'Холмщина',   type: 'село',     name: 'Перевали',       to: 'ZK10000000000000015' },
+    { region: 'Українські етнічні землі', district: 'Лемківщина', type: 'село',     name: 'Вислок Великий', to: 'SG11000000000000129' },
+    { region: 'Українські етнічні землі', district: 'Підляшшя',   type: 'місто',    name: 'Більськ',        to: 'ZK200030000000000X6' },
+];
+
+const manual = [];
+for (const m of MANUAL) {
+    const target = NEW.get(m.to);
+    if (!target) { console.log(`   ! ручна відповідність: код ${m.to} (${m.name}) відсутній у довіднику — пропущено`); continue; }
+    manual.push({ ...m, path: target.path, item: target.item });
+}
+
 // --- 3. SQL -------------------------------------------------------------------
 
 const rowsA = [...regionMap.values()].map(
@@ -168,6 +191,15 @@ CREATE TEMP TABLE name_fix (
 INSERT INTO name_fix VALUES
 ${rowsC.join(',\n')};
 
+CREATE TEMP TABLE manual_map (
+    old_region text, old_district text, old_type text, old_name text,
+    country text, region text, district text, community text, name text, type text
+) ON COMMIT DROP;
+
+INSERT INTO manual_map VALUES
+${manual.map(m => `    (${q(m.region)}, ${q(m.district)}, ${q(m.type)}, ${q(m.name)}, ` +
+    `${q(m.path[0])}, ${q(m.path[1])}, ${q(m.path[2])}, ${q(m.path[3])}, ${q(m.item.name)}, ${q(m.item.type)})`).join(',\n')};
+
 -- Обмеження з sql/2026-07-23_case_signature_consistency.sql додані як NOT VALID:
 -- наявні рядки вони не перевіряли, але блокують будь-який UPDATE по них — і по
 -- наших теж. Знімаємо на час міграції й повертаємо нижче точно такими самими,
@@ -241,6 +273,20 @@ WHERE r.current_country IS NULL
   AND ${N('r.current_district')} = ${N('f.old_district')}
   AND r.current_settlement_type = f.old_type
   AND ${N('r.current_settlement_name')} = ${N('f.old_name')};
+
+-- 3b. Ручні відповідності: пункти, зведені як дублі, з перевиданим кодом або
+--     записані коротшою назвою («Перевали» → «Перевалля»). Ключ — область,
+--     район, тип і назва; громаду не звіряємо з тієї самої причини, що в 3a.
+UPDATE records r
+SET current_country = m.country, current_region = m.region,
+    current_district = m.district, current_community = m.community,
+    current_settlement_name = m.name, current_settlement_type = m.type
+FROM manual_map m
+WHERE r.current_country IS NULL
+  AND ${N('r.current_region')} = ${N('m.old_region')}
+  AND ${N('r.current_district')} = ${N('m.old_district')}
+  AND r.current_settlement_type = m.old_type
+  AND ${N('r.current_settlement_name')} = ${N('m.old_name')};
 
 -- 4. Повертаємо обмеження в тому вигляді, в якому вони були
 ALTER TABLE records

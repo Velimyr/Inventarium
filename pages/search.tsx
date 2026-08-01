@@ -2,6 +2,8 @@ import { supabase } from '../lib/supabaseClient';
 import { apostropheTolerant } from '../lib/textSearch';
 import {
   fetchRegionStructure, listCountries, listRegions, listDistricts, listCommunities,
+  isNamedLevel,
+  levelNames, capitalize,
   type NestedStructure,
 } from '../components/keys/regionData';
 import Header from '../components/header';
@@ -203,7 +205,10 @@ export default function Home() {
     filters.current_region,
     filters.current_district,
     filters.current_community,
-  ].filter(Boolean).length;
+  ].filter(isNamedLevel).length;
+
+  const lv = levelNames(filters.current_country);
+
 
   return (
     <>
@@ -293,7 +298,7 @@ export default function Home() {
                     name="current_region"
                     value={filters.current_region}
                     onChange={handleChange}
-                    placeholder="Область"
+                    placeholder={capitalize(lv.region)}
                     disabled={!regions.length}
                   >
                     {[...regions].sort().map((region) => (
@@ -305,7 +310,7 @@ export default function Home() {
                     name="current_district"
                     value={filters.current_district}
                     onChange={handleChange}
-                    placeholder="Район"
+                    placeholder={capitalize(lv.district)}
                     disabled={!districts.length}
                   >
                     {districts.sort().map((district) => (
@@ -317,7 +322,7 @@ export default function Home() {
                     name="current_community"
                     value={filters.current_community}
                     onChange={handleChange}
-                    placeholder="Громада"
+                    placeholder={capitalize(lv.community)}
                     disabled={!communities.length}
                   >
                     {communities.sort().map((comm) => (
@@ -420,15 +425,15 @@ export default function Home() {
                             ? `${record.old_settlement_type} ${record.old_settlement_name}` 
                             : null,
                           [record.old_province, record.old_district, record.old_community]
-                            .filter(Boolean)
+                            .filter(isNamedLevel)
                             .join(', ')
-                        ].filter(Boolean).join(', ')}
+                        ].filter(isNamedLevel).join(', ')}
                       >
                         {(record.old_settlement_type || record.old_settlement_name) && (
                           <div className="font-bold">
                             {(() => {
                               const settlement = [record.old_settlement_type, record.old_settlement_name]
-                                .filter(Boolean)
+                                .filter(isNamedLevel)
                                 .join(' ');
                               return settlement.length > 80 
                                 ? `${settlement.substring(0, 80)}...` 
@@ -437,12 +442,12 @@ export default function Home() {
                           </div>
                         )}
                         {[record.old_province, record.old_district, record.old_community]
-                          .filter(Boolean)
+                          .filter(isNamedLevel)
                           .length > 0 && (
                           <div>
                             {(() => {
                               const adminDiv = [record.old_province, record.old_district, record.old_community]
-                                .filter(Boolean)
+                                .filter(isNamedLevel)
                                 .join(', ');
                               return adminDiv.length > 80 
                                 ? `${adminDiv.substring(0, 80)}...` 
@@ -463,11 +468,12 @@ export default function Home() {
                             ? `${record.current_settlement_type} ${record.current_settlement_name}` 
                             : null,
                           [
+                            record.current_country,
                             record.current_region,
                             record.current_district,
                             record.current_community
                           ]
-                            .filter(Boolean)
+                            .filter(isNamedLevel)
                             .join(', ')
                         ].filter(Boolean).join(', ')}
                       >
@@ -484,20 +490,22 @@ export default function Home() {
                           </div>
                         )}
                         {[
+                          record.current_country,
                           record.current_region,
                           record.current_district,
                           record.current_community
                         ]
-                          .filter(Boolean)
+                          .filter(isNamedLevel)
                           .length > 0 && (
                           <div>
                             {(() => {
                               const adminDiv = [
+                                record.current_country,
                                 record.current_region,
                                 record.current_district,
                                 record.current_community
                               ]
-                                .filter(Boolean)
+                                .filter(isNamedLevel)
                                 .join(', ');
                               return adminDiv.length > 80 
                                 ? `${adminDiv.substring(0, 80)}...` 
@@ -594,10 +602,11 @@ export default function Home() {
                     </div>
                     <div className="text-[13px] text-gray-900 dark:text-white">
                       {[
+                        record.current_country,
                         record.current_region,
                         record.current_district,
                         record.current_community
-                      ].filter(Boolean).join(', ') || '-'}
+                      ].filter(isNamedLevel).join(', ') || '-'}
                     </div>
                     {(record.current_settlement_type || record.current_settlement_name) && (
                       <div className="text-[13px] text-gray-900 dark:text-white font-bold italic">

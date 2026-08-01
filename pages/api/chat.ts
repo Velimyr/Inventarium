@@ -55,6 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         old_community: p.old_community ?? null,
         old_settlement_type: p.old_settlement_type ?? null,
         old_settlement_name: p.old_settlement_name ?? null,
+        current_country: p.current_country ?? null,
         current_region: p.current_region ?? null,
         current_district: p.current_district ?? null,
         current_community: p.current_community ?? null,
@@ -90,7 +91,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           `id: ${r.id}`,
           `case_signature: ${r.case_signature ?? ''}`,
           r.old_province, r.old_district, r.old_community, r.old_settlement_type, r.old_settlement_name,
-          r.current_region, r.current_district, r.current_community, r.current_settlement_type, r.current_settlement_name,
+          r.current_country, r.current_region, r.current_district, r.current_community,
+          r.current_settlement_type, r.current_settlement_name,
           r.case_date, r.inventory_year, r.case_title, r.notes,
           typeof r.similarity === 'number' ? `similarity: ${r.similarity.toFixed(3)}` : null
         ].filter(f => f && String(f).trim() !== '');

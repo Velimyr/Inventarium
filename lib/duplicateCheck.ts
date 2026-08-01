@@ -2,6 +2,9 @@ import { supabase } from './supabaseClient';
 import { sameSignatureList } from './caseSignature';
 
 // Поля, що визначають «той самий населений пункт».
+// current_country не додаємо: назви областей у довіднику унікальні між країнами,
+// тож current_region уже визначає країну, а зайве поле лише ламало б звірку
+// зі старими записами, де країна ще NULL.
 const SETTLEMENT_FIELDS = [
   'current_region',
   'current_district',

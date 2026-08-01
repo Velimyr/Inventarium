@@ -5,24 +5,12 @@ import Toast from '../components/Toast';
 import emailjs from 'emailjs-com';
 import { ChevronDown, Plus, Send, AlertTriangle, Trash2 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
+import {
+    fetchRegionStructure, listCountries, listRegions, listDistricts, listCommunities,
+    listSettlements, type NestedStructure, type Settlement,
+} from '../components/keys/regionData';
 
 const MapSelector = dynamic(() => import('../components/MapSelector'), { ssr: false });
-
-interface Settlement {
-    name: string;
-    code: string;
-    type: string;
-    lat: number;
-    lon: number;
-}
-
-interface NestedStructure {
-    [region: string]: {
-        [district: string]: {
-            [community: string]: Settlement[];
-        };
-    };
-}
 
 export default function AddSettlementPage() {
     const { user, loading: userLoading } = useUser();
@@ -31,6 +19,7 @@ export default function AddSettlementPage() {
     const [addedSettlements, setAddedSettlements] = useState<typeof formData[]>([]);
 
     const [formData, setFormData] = useState({
+        country: '',
         region: '',
         district: '',
         community: '',
@@ -44,14 +33,14 @@ export default function AddSettlementPage() {
         isNonExistent: false,
     });
 
+    const [regions, setRegions] = useState<string[]>([]);
     const [districts, setDistricts] = useState<string[]>([]);
     const [communities, setCommunities] = useState<string[]>([]);
     const [settlementTypes, setSettlementTypes] = useState<string[]>([]);
 
     useEffect(() => {
-        fetch('/data/region_structure.json')
-            .then(res => res.json())
-            .then((json: NestedStructure) => setRegionStructure(json))
+        fetchRegionStructure()
+            .then(json => setRegionStructure(json))
             .catch(err => console.error('Failed to load region_structure.json', err));
     }, []);
 
@@ -63,42 +52,32 @@ export default function AddSettlementPage() {
     }, [user, userLoading]);
 
     useEffect(() => {
-        if (formData.region && regionStructure?.[formData.region]) {
-            setDistricts(Object.keys(regionStructure[formData.region]));
-        } else {
-            setDistricts([]);
-        }
-        setFormData(prev => ({ ...prev, district: '', community: '' }));
+        setRegions(listRegions(regionStructure, formData.country));
+        setDistricts([]);
         setCommunities([]);
-    }, [formData.region, regionStructure]);
+        setFormData(prev => ({ ...prev, region: '', district: '', community: '' }));
+    }, [formData.country, regionStructure]);
 
     useEffect(() => {
-        if (
-            formData.region &&
-            formData.district &&
-            regionStructure?.[formData.region]?.[formData.district]
-        ) {
-            setCommunities(Object.keys(regionStructure[formData.region][formData.district]));
-        } else {
-            setCommunities([]);
-        }
+        setDistricts(listDistricts(regionStructure, formData.country, formData.region));
+        setCommunities([]);
+        setFormData(prev => ({ ...prev, district: '', community: '' }));
+    }, [formData.region, formData.country, regionStructure]);
+
+    useEffect(() => {
+        setCommunities(listCommunities(
+            regionStructure, formData.country, formData.region, formData.district,
+        ));
         setFormData(prev => ({ ...prev, community: '' }));
-    }, [formData.district, formData.region, regionStructure]);
+    }, [formData.district, formData.region, formData.country, regionStructure]);
 
     useEffect(() => {
-        if (
-            formData.region &&
-            formData.district &&
-            formData.community &&
-            regionStructure?.[formData.region]?.[formData.district]?.[formData.community]
-        ) {
-            const communityData = regionStructure[formData.region][formData.district][formData.community];
-            setSettlementTypes(Array.from(new Set(communityData.map(s => s.type))));
-        } else {
-            setSettlementTypes([]);
-        }
+        const communityData = listSettlements(
+            regionStructure, formData.country, formData.region, formData.district, formData.community,
+        );
+        setSettlementTypes(Array.from(new Set(communityData.map(s => s.type))));
         setFormData(prev => ({ ...prev, settlementType: '' }));
-    }, [formData.community, formData.district, formData.region, regionStructure]);
+    }, [formData.community, formData.district, formData.region, formData.country, regionStructure]);
 
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
@@ -137,7 +116,9 @@ export default function AddSettlementPage() {
             return;
         }
 
-        const exists = regionStructure?.[formData.region]?.[formData.district]?.[formData.community]?.some(
+        const exists = listSettlements(
+            regionStructure, formData.country, formData.region, formData.district, formData.community,
+        ).some(
             s => s.name.toLowerCase() === formData.settlementName.toLowerCase() && s.type === formData.settlementType
         );
 
@@ -149,25 +130,29 @@ export default function AddSettlementPage() {
         const newCode = 'GNRT' + Math.floor(Math.random() * 1e8).toString().padStart(8, '0');
 
         if (!regionStructure) return;
-        const updatedStructure = { ...regionStructure };
-        if (!updatedStructure[formData.region][formData.district][formData.community]) {
-            updatedStructure[formData.region][formData.district][formData.community] = [];
-        }
-
-        updatedStructure[formData.region][formData.district][formData.community].push({
-            name: formData.settlementName,
-            code: newCode,
-            type: formData.settlementType,
-            lat: parseFloat(formData.latitude),
-            lon: parseFloat(formData.longitude),
-        });
+        const { country, region, district, community } = formData;
+        const updatedStructure: NestedStructure = { ...regionStructure };
+        updatedStructure[country] = { ...updatedStructure[country] };
+        updatedStructure[country][region] = { ...updatedStructure[country][region] };
+        updatedStructure[country][region][district] = { ...updatedStructure[country][region][district] };
+        updatedStructure[country][region][district][community] = [
+            ...(updatedStructure[country][region][district][community] ?? []),
+            {
+                name: formData.settlementName,
+                code: newCode,
+                type: formData.settlementType,
+                lat: parseFloat(formData.latitude),
+                lon: parseFloat(formData.longitude),
+            },
+        ];
 
         setRegionStructure(updatedStructure);
-        setAddedSettlements(prev => [...prev, { ...formData }]);
+        setAddedSettlements(prev => [...prev, { ...formData, settlementCode: newCode }]);
         setToast({ message: 'Населений пункт додано', type: 'success' });
 
         setFormData((prev) => ({
             ...prev,
+            country: '',
             region: '',
             district: '',
             community: '',
@@ -195,11 +180,14 @@ export default function AddSettlementPage() {
         const settlements: any[] = [];
 
         addedSettlements.forEach(s => {
-            if (!payload[s.region]) payload[s.region] = {};
-            if (!payload[s.region][s.district]) payload[s.region][s.district] = {};
-            if (!payload[s.region][s.district][s.community]) payload[s.region][s.district][s.community] = [];
+            if (!payload[s.country]) payload[s.country] = {};
+            if (!payload[s.country][s.region]) payload[s.country][s.region] = {};
+            if (!payload[s.country][s.region][s.district]) payload[s.country][s.region][s.district] = {};
+            if (!payload[s.country][s.region][s.district][s.community]) {
+                payload[s.country][s.region][s.district][s.community] = [];
+            }
 
-            payload[s.region][s.district][s.community].push({
+            payload[s.country][s.region][s.district][s.community].push({
                 name: s.settlementName,
                 code: s.settlementCode,
                 type: s.settlementType,
@@ -208,6 +196,7 @@ export default function AddSettlementPage() {
             });
 
             settlements.push({
+                country: s.country,
                 region: s.region,
                 district: s.district,
                 community: s.community,
@@ -285,14 +274,26 @@ export default function AddSettlementPage() {
                             Адміністративний поділ
                         </h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-[15px] mb-[15px]">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[15px] mb-[15px]">
+                            <FormSelect
+                                name="country"
+                                value={formData.country}
+                                onChange={handleChange}
+                                placeholder="Оберіть країну"
+                            >
+                                {listCountries(regionStructure).map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </FormSelect>
+
                             <FormSelect
                                 name="region"
                                 value={formData.region}
                                 onChange={handleChange}
                                 placeholder="Оберіть область"
+                                disabled={!regions.length}
                             >
-                                {regionStructure && Object.keys(regionStructure).map(r => (
+                                {regions.map(r => (
                                     <option key={r} value={r}>{r}</option>
                                 ))}
                             </FormSelect>

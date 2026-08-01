@@ -6,11 +6,15 @@ import SubscriptionModal from '../components/subscriptionModal';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
 import { Bell, Plus, AlertTriangle, ChevronDown } from 'lucide-react';
+import {
+    fetchRegionStructure, findSettlementByCode, formatSettlementLabel,
+    type NestedStructure,
+} from '../components/keys/regionData';
 
 export default function SubscriptionsPage() {
     const { user, loading } = useUser();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [regionStructure, setRegionStructure] = useState({});
+    const [regionStructure, setRegionStructure] = useState<NestedStructure | null>(null);
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
     const [loadingSubscriptions, setLoadingSubscriptions] = useState(false);
 
@@ -22,8 +26,7 @@ export default function SubscriptionsPage() {
     };
 
     useEffect(() => {
-        fetch('/data/region_structure.json')
-            .then(res => res.json())
+        fetchRegionStructure()
             .then(data => setRegionStructure(data))
             .catch(err => console.error('Помилка завантаження region_structure:', err));
     }, []);
@@ -43,21 +46,8 @@ export default function SubscriptionsPage() {
     }, [user]);
 
     const getSettlementNameByCode = (code: string): string => {
-        for (const [regionName, region] of Object.entries(regionStructure)) {
-            for (const [districtName, district] of Object.entries(region)) {
-                for (const [communityName, settlements] of Object.entries(district)) {
-                    if (!Array.isArray(settlements)) continue;
-
-                    for (const settlement of settlements) {
-                        if (settlement.code === code) {
-                            const prefix = settlement.type === 'місто' ? 'м.' : 'с.';
-                            return `${prefix} ${settlement.name}, ${communityName} громада, ${districtName} район, ${regionName} область`;
-                        }
-                    }
-                }
-            }
-        }
-        return code;
+        const found = findSettlementByCode(regionStructure, code);
+        return found ? formatSettlementLabel(found) : code;
     };
 
     if (loading) return null;

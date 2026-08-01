@@ -4,10 +4,12 @@ export type LatLngPair = [number, number]; // [lat, lng]
 
 // Точка ключа: координати + прив'язка до населеного пункту з довідника
 // (region_structure.json). Поки пункт не обрано — code/name/type порожні,
-// region/district/community зберігають проміжний стан випадаючих списків.
+// country/region/district/community зберігають проміжний стан випадаючих списків.
+// У ключах, поданих до появи рівня країни, country відсутній — читання це терпить.
 export interface KeyPoint {
     lat: number;
     lng: number;
+    country: string;
     region: string;
     district: string;
     community: string;

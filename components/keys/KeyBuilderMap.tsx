@@ -7,7 +7,10 @@ import GeocoderControl from '../GeocoderControl';
 import { convexHull, bufferedHull, toPair, DEFAULT_POLYGON_VARIANT } from './geometry';
 import type { KeyGeometry, KeyPoint, PolygonRings, PolygonVariant } from './geometry';
 import { voronoiTerritory } from './voronoi';
-import { fetchRegionStructure, flattenStructure, findNearestSettlement } from './regionData';
+import {
+    fetchRegionStructure, flattenStructure, findNearestSettlement,
+    listCountries, listRegions, listDistricts, listCommunities, listSettlements,
+} from './regionData';
 import type { FlatSettlement, NestedStructure } from './regionData';
 
 const centerIcon = L.icon({
@@ -47,13 +50,17 @@ function validPoint(p: KeyPoint | null): p is KeyPoint {
 }
 
 function emptyPoint(lat: number, lng: number): KeyPoint {
-    return { lat, lng, region: '', district: '', community: '', code: '', name: '', type: '' };
+    return {
+        lat, lng, country: '', region: '', district: '', community: '',
+        code: '', name: '', type: '',
+    };
 }
 
 function pointFromSettlement(s: FlatSettlement): KeyPoint {
     return {
         lat: s.lat,
         lng: s.lon,
+        country: s.country,
         region: s.region,
         district: s.district,
         community: s.community,
@@ -268,15 +275,12 @@ function PointRow({
     onChange: (point: KeyPoint) => void;
     onRemove?: () => void;
 }) {
-    const districts = point.region && structure[point.region] ? Object.keys(structure[point.region]) : [];
-    const communities =
-        point.region && point.district && structure[point.region]?.[point.district]
-            ? Object.keys(structure[point.region][point.district])
-            : [];
-    const settlements =
-        point.region && point.district && point.community
-            ? structure[point.region]?.[point.district]?.[point.community] || []
-            : [];
+    const regions = listRegions(structure, point.country);
+    const districts = listDistricts(structure, point.country, point.region);
+    const communities = listCommunities(structure, point.country, point.region, point.district);
+    const settlements = listSettlements(
+        structure, point.country, point.region, point.district, point.community,
+    );
 
     const selected = settlements.find(s => s.code === point.code);
     const selectedWithoutCoords = !!point.code && !!selected && !hasCoords(selected);
@@ -319,14 +323,26 @@ function PointRow({
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-[10px]">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-[10px]">
+                <PointSelect
+                    value={point.country}
+                    placeholder="Оберіть країну"
+                    onChange={(country) =>
+                        onChange({
+                            ...point, country, region: '', district: '', community: '',
+                            code: '', name: '', type: '',
+                        })
+                    }
+                    options={listCountries(structure).map(c => ({ value: c, label: c }))}
+                />
                 <PointSelect
                     value={point.region}
                     placeholder="Оберіть область"
+                    disabled={!regions.length}
                     onChange={(region) =>
                         onChange({ ...point, region, district: '', community: '', code: '', name: '', type: '' })
                     }
-                    options={Object.keys(structure).map(r => ({ value: r, label: r }))}
+                    options={regions.map(r => ({ value: r, label: r }))}
                 />
                 <PointSelect
                     value={point.district}

@@ -65,9 +65,9 @@ export default function RecordPage() {
     ].filter(Boolean).join(', ');
 
     const fullLocationCurrent = [
-        record.current_region ? `${record.current_region} область` : null,
-        record.current_district ? `${record.current_district} район` : null,
-        record.current_community ? `${record.current_community} громада` : null,
+        record.current_region,
+        record.current_district,
+        record.current_community,
         record.current_settlement_type && record.current_settlement_name
             ? `${record.current_settlement_type} ${record.current_settlement_name}`
             : null,

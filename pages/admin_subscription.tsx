@@ -4,6 +4,9 @@ import Header from '../components/header';
 import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
 import regionStructureRaw from '../public/data/region_structure.json';
+import {
+  findSettlementByCode, formatSettlementLabel, type NestedStructure,
+} from '../components/keys/regionData';
 import { Bell, Check, X, User, MapPin } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
 
@@ -16,27 +19,11 @@ export default function AdminSubscriptionPage() {
   const [error, setError] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  const [regionStructure, setRegionStructure] = useState<any>({});
+  const [regionStructure, setRegionStructure] = useState<NestedStructure | null>(null);
 
   const getSettlementNameByCode = (code: string): string => {
-    for (const regionName in regionStructure) {
-      const region = regionStructure[regionName];
-      for (const districtName in region) {
-        const district = region[districtName];
-        for (const communityName in district) {
-          const settlements = district[communityName];
-          if (!Array.isArray(settlements)) continue;
-
-          for (const settlement of settlements) {
-            if (settlement.code === code) {
-              const prefix = settlement.type === 'місто' ? 'м.' : 'с.';
-              return `${prefix} ${settlement.name}, ${communityName} громада, ${districtName} район, ${regionName} область`;
-            }
-          }
-        }
-      }
-    }
-    return code;
+    const found = findSettlementByCode(regionStructure, code);
+    return found ? formatSettlementLabel(found) : code;
   };
 
   useEffect(() => {
@@ -48,7 +35,7 @@ export default function AdminSubscriptionPage() {
       return;
     }
 
-    setRegionStructure(regionStructureRaw);
+    setRegionStructure(regionStructureRaw as NestedStructure);
 
     const fetchAdminAndSubscriptions = async () => {
       const hasAdminAccess = await isAdminUser(supabase, user.id);

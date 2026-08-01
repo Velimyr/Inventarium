@@ -1,19 +1,15 @@
 import { supabase } from '../lib/supabaseClient';
 import { apostropheTolerant } from '../lib/textSearch';
+import {
+  fetchRegionStructure, listCountries, listRegions, listDistricts, listCommunities,
+  type NestedStructure,
+} from '../components/keys/regionData';
 import Header from '../components/header';
 import { useEffect, useState } from 'react';
 import { X, Search, ChevronDown, ChevronLeft, ChevronRight, Check, Plus, Filter } from 'lucide-react';
 import { useRouter } from 'next/router';
 
 const PAGE_SIZE = 20;
-
-interface NestedStructure {
-  [region: string]: {
-    [district: string]: {
-      [community: string]: any[];
-    };
-  };
-}
 
 export default function Home() {
   const router = useRouter();
@@ -26,6 +22,7 @@ export default function Home() {
     inventory_year_from: '',
     inventory_year_to: '',
     case_signature: '',
+    current_country: '',
     current_region: '',
     current_district: '',
     current_community: '',
@@ -35,47 +32,42 @@ export default function Home() {
 
   // Region structure data
   const [nestedData, setNestedData] = useState<NestedStructure | null>(null);
+  const [regions, setRegions] = useState<string[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
   const [communities, setCommunities] = useState<string[]>([]);
 
   // Load region structure
   useEffect(() => {
-    fetch('/data/region_structure.json')
-      .then((res) => res.json())
-      .then((json: NestedStructure) => setNestedData(json))
+    fetchRegionStructure()
+      .then((json) => setNestedData(json))
       .catch((err) => console.error('Failed to load region_structure.json', err));
   }, []);
 
+  // Update regions when country changes
+  useEffect(() => {
+    setRegions(listRegions(nestedData, filters.current_country));
+    if (filters.current_country) {
+      setFilters(prev => ({ ...prev, current_region: '', current_district: '', current_community: '' }));
+    }
+  }, [filters.current_country, nestedData]);
+
   // Update districts when region changes
   useEffect(() => {
-    if (nestedData && filters.current_region) {
-      const regionData = nestedData[filters.current_region];
-      setDistricts(regionData ? Object.keys(regionData) : []);
-      // Reset district and community when region changes
-      setFilters(prev => ({
-        ...prev,
-        current_district: '',
-        current_community: '',
-      }));
-    } else {
-      setDistricts([]);
+    setDistricts(listDistricts(nestedData, filters.current_country, filters.current_region));
+    if (filters.current_region) {
+      setFilters(prev => ({ ...prev, current_district: '', current_community: '' }));
     }
-  }, [filters.current_region, nestedData]);
+  }, [filters.current_region, filters.current_country, nestedData]);
 
   // Update communities when district changes
   useEffect(() => {
-    if (nestedData && filters.current_region && filters.current_district) {
-      const communitiesData = nestedData[filters.current_region]?.[filters.current_district];
-      setCommunities(communitiesData ? Object.keys(communitiesData) : []);
-      // Reset community when district changes
-      setFilters(prev => ({
-        ...prev,
-        current_community: '',
-      }));
-    } else {
-      setCommunities([]);
+    setCommunities(listCommunities(
+      nestedData, filters.current_country, filters.current_region, filters.current_district,
+    ));
+    if (filters.current_district) {
+      setFilters(prev => ({ ...prev, current_community: '' }));
     }
-  }, [filters.current_district, filters.current_region, nestedData]);
+  }, [filters.current_district, filters.current_region, filters.current_country, nestedData]);
 
   // Ініціалізація пошуку з URL параметра
   useEffect(() => {
@@ -122,6 +114,9 @@ export default function Home() {
 
     // Фільтри по адмінподілу. Апостроф у назві («Кам’янець-Подільський») може
     // відрізнятися від збереженого в записі, тому шукаємо толерантно до нього.
+    if (filters.current_country) {
+      query = query.ilike('current_country', `%${apostropheTolerant(filters.current_country)}%`);
+    }
     if (filters.current_region) {
       query = query.ilike('current_region', `%${apostropheTolerant(filters.current_region)}%`);
     }
@@ -183,6 +178,7 @@ export default function Home() {
       inventory_year_from: '',
       inventory_year_to: '',
       case_signature: '',
+      current_country: '',
       current_region: '',
       current_district: '',
       current_community: '',
@@ -191,10 +187,11 @@ export default function Home() {
     setPage(0);
   };
 
-  const hasActiveFilters = 
-    filters.inventory_year_from || 
-    filters.inventory_year_to || 
+  const hasActiveFilters =
+    filters.inventory_year_from ||
+    filters.inventory_year_to ||
     filters.case_signature ||
+    filters.current_country ||
     filters.current_region ||
     filters.current_district ||
     filters.current_community;
@@ -202,6 +199,7 @@ export default function Home() {
   const activeFiltersCount = [
     filters.inventory_year_from || filters.inventory_year_to,
     filters.case_signature,
+    filters.current_country,
     filters.current_region,
     filters.current_district,
     filters.current_community,
@@ -278,15 +276,27 @@ export default function Home() {
             {/* Expanded Filters */}
             {filtersExpanded && (
               <div className="flex flex-col gap-[15px]">
-                {/* First Row: Region, District, Community */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-[15px]">
+                {/* First Row: Country, Region, District, Community */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[15px]">
+                  <FilterSelect
+                    name="current_country"
+                    value={filters.current_country}
+                    onChange={handleChange}
+                    placeholder="Країна"
+                  >
+                    {listCountries(nestedData).map((country) => (
+                      <option key={country} value={country}>{country}</option>
+                    ))}
+                  </FilterSelect>
+
                   <FilterSelect
                     name="current_region"
                     value={filters.current_region}
                     onChange={handleChange}
                     placeholder="Область"
+                    disabled={!regions.length}
                   >
-                    {nestedData && Object.keys(nestedData).sort().map((region) => (
+                    {[...regions].sort().map((region) => (
                       <option key={region} value={region}>{region}</option>
                     ))}
                   </FilterSelect>
@@ -453,9 +463,9 @@ export default function Home() {
                             ? `${record.current_settlement_type} ${record.current_settlement_name}` 
                             : null,
                           [
-                            record.current_region ? `${record.current_region} область` : null,
-                            record.current_district ? `${record.current_district} район` : null,
-                            record.current_community ? `${record.current_community} громада` : null
+                            record.current_region,
+                            record.current_district,
+                            record.current_community
                           ]
                             .filter(Boolean)
                             .join(', ')
@@ -474,18 +484,18 @@ export default function Home() {
                           </div>
                         )}
                         {[
-                          record.current_region ? `${record.current_region} область` : null,
-                          record.current_district ? `${record.current_district} район` : null,
-                          record.current_community ? `${record.current_community} громада` : null
+                          record.current_region,
+                          record.current_district,
+                          record.current_community
                         ]
                           .filter(Boolean)
                           .length > 0 && (
                           <div>
                             {(() => {
                               const adminDiv = [
-                                record.current_region ? `${record.current_region} область` : null,
-                                record.current_district ? `${record.current_district} район` : null,
-                                record.current_community ? `${record.current_community} громада` : null
+                                record.current_region,
+                                record.current_district,
+                                record.current_community
                               ]
                                 .filter(Boolean)
                                 .join(', ');
@@ -584,9 +594,9 @@ export default function Home() {
                     </div>
                     <div className="text-[13px] text-gray-900 dark:text-white">
                       {[
-                        record.current_region ? `${record.current_region} область` : null,
-                        record.current_district ? `${record.current_district} район` : null,
-                        record.current_community ? `${record.current_community} громада` : null
+                        record.current_region,
+                        record.current_district,
+                        record.current_community
                       ].filter(Boolean).join(', ') || '-'}
                     </div>
                     {(record.current_settlement_type || record.current_settlement_name) && (

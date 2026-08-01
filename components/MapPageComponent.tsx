@@ -55,6 +55,7 @@ interface Record {
     longitude: number | null;
     mark_type: number | null;
     current_settlement_name: string | null;
+    current_country?: string | null;
     current_region?: string | null;
     current_district?: string | null;
     current_community?: string | null;
@@ -442,7 +443,7 @@ export default function MapPageComponent() {
         if (!record.current_region && !record.current_district && !record.current_community) {
             const { data, error } = await supabase
                 .from('records')
-                .select('current_region, current_district, current_community, current_settlement_name')
+                .select('current_country, current_region, current_district, current_community, current_settlement_name')
                 .eq('id', record.id)
                 .maybeSingle();
             if (error) {
@@ -452,6 +453,7 @@ export default function MapPageComponent() {
         }
 
         const params = new URLSearchParams();
+        if (details.current_country) params.set('current_country', details.current_country);
         if (details.current_region) params.set('current_region', details.current_region);
         if (details.current_district) params.set('current_district', details.current_district);
         if (details.current_community) params.set('current_community', details.current_community);

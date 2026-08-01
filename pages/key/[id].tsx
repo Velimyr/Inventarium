@@ -52,7 +52,7 @@ function SettlementRow({ point, badge, count }: { point: KeyPoint; badge?: strin
                     </span>
                 )}
                 <div className="text-gray-600 dark:text-gray-400 text-[12px] truncate">
-                    {[point.community && `${point.community} громада`, point.district && `${point.district} район`, point.region && `${point.region} область`]
+                    {[point.community, point.district, point.region]
                         .filter(Boolean)
                         .join(', ')}
                 </div>

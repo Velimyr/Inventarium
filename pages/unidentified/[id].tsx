@@ -12,24 +12,12 @@ import { getAdminUserIds } from '../../lib/adminUsers';
 import { MapPin, FileText, Save, X, Check, ChevronDown } from 'lucide-react';
 import { formatSignatureList, fromSignatureList } from '../../lib/caseSignature';
 import HelpTooltip from '../../components/HelpTooltip';
+import {
+    fetchRegionStructure, findCountryByRegion, listCountries, listRegions, listDistricts,
+    listCommunities, listSettlements, type NestedStructure, type Settlement,
+} from '../../components/keys/regionData';
 
 const MapSelector = dynamic(() => import('../../components/MapSelector'), { ssr: false });
-
-interface Settlement {
-    name: string;
-    code: string;
-    type: string;
-    lat: number | null;
-    lon: number | null;
-}
-
-interface NestedStructure {
-    [region: string]: {
-        [district: string]: {
-            [community: string]: Settlement[];
-        };
-    };
-}
 
 export default function NotIdentifyDetails() {
     const { user } = useUser();
@@ -40,6 +28,7 @@ export default function NotIdentifyDetails() {
     const [points, setPoints] = useState<any[]>([]);
     const [editingPointId, setEditingPointId] = useState<string | null>(null);
     const [formData, setFormData] = useState<any>({
+        current_country: '',
         current_region: '',
         current_district: '',
         current_community: '',
@@ -59,6 +48,7 @@ export default function NotIdentifyDetails() {
     });
 
     const [nestedData, setNestedData] = useState<NestedStructure | null>(null);
+    const [regions, setRegions] = useState<string[]>([]);
     const [districts, setDistricts] = useState<string[]>([]);
     const [communities, setCommunities] = useState<string[]>([]);
     const [settlements, setSettlements] = useState<Settlement[]>([]);
@@ -105,40 +95,46 @@ export default function NotIdentifyDetails() {
         loadPoints();
     }, [id]);
 
-    // Завантаження JSON з областями/районами/громадами
+    // Завантаження довідника
     useEffect(() => {
-        fetch('/data/region_structure.json')
-            .then((res) => res.json())
-            .then((json: NestedStructure) => setNestedData(json))
+        fetchRegionStructure()
+            .then((json) => setNestedData(json))
             .catch((err) => console.error(err));
     }, []);
 
-    // Каскадні селекти
+    // Каскадні селекти. Точки, збережені до появи рівня країни, мають лише
+    // область — країну відновлюємо з довідника (назви областей унікальні).
+    // У records_notidentify_points країна не зберігається: там колонки немає.
     useEffect(() => {
-        if (!nestedData) return;
-        setDistricts(formData.current_region ? Object.keys(nestedData[formData.current_region] || {}) : []);
-    }, [formData.current_region, nestedData]);
+        if (nestedData && !formData.current_country && formData.current_region) {
+            const country = findCountryByRegion(nestedData, formData.current_region);
+            if (country) setFormData((fd: any) => ({ ...fd, current_country: country }));
+        }
+    }, [formData.current_country, formData.current_region, nestedData]);
 
     useEffect(() => {
-        if (!nestedData) return;
-        setCommunities(
-            formData.current_region && formData.current_district
-                ? Object.keys(nestedData[formData.current_region][formData.current_district] || {})
-                : []
+        setRegions(listRegions(nestedData, formData.current_country));
+    }, [formData.current_country, nestedData]);
+
+    useEffect(() => {
+        setDistricts(listDistricts(nestedData, formData.current_country, formData.current_region));
+    }, [formData.current_region, formData.current_country, nestedData]);
+
+    useEffect(() => {
+        setCommunities(listCommunities(
+            nestedData, formData.current_country, formData.current_region, formData.current_district,
+        ));
+    }, [formData.current_district, formData.current_region, formData.current_country, nestedData]);
+
+    useEffect(() => {
+        const settlementsData = listSettlements(
+            nestedData, formData.current_country, formData.current_region,
+            formData.current_district, formData.current_community,
         );
-    }, [formData.current_district, formData.current_region, nestedData]);
-
-    useEffect(() => {
-        if (!nestedData) return;
-        const settlementsData =
-            formData.current_region &&
-                formData.current_district &&
-                formData.current_community
-                ? nestedData[formData.current_region][formData.current_district][formData.current_community] || []
-                : [];
         setSettlements(settlementsData);
         setSettlementTypes(Array.from(new Set(settlementsData.map((s) => s.type))));
-    }, [formData.current_community, formData.current_district, formData.current_region, nestedData]);
+    }, [formData.current_community, formData.current_district, formData.current_region,
+        formData.current_country, nestedData]);
 
     useEffect(() => {
         if (formData.current_settlement_name && formData.current_settlement_type) {
@@ -575,12 +571,24 @@ export default function NotIdentifyDetails() {
                                     </h3>
                                     <div className="space-y-[10px]">
                                         <FormSelect
+                                            name="current_country"
+                                            value={formData.current_country}
+                                            onChange={handleChange}
+                                            placeholder="Оберіть країну"
+                                        >
+                                            {listCountries(nestedData).map(c => (
+                                                <option key={c} value={c}>{c}</option>
+                                            ))}
+                                        </FormSelect>
+
+                                        <FormSelect
                                             name="current_region"
                                             value={formData.current_region}
                                             onChange={handleChange}
                                             placeholder="Оберіть область"
+                                            disabled={!regions.length}
                                         >
-                                            {nestedData && Object.keys(nestedData).map(r => (
+                                            {regions.map(r => (
                                                 <option key={r} value={r}>{r}</option>
                                             ))}
                                         </FormSelect>
@@ -796,9 +804,9 @@ export default function NotIdentifyDetails() {
                                     <div className="divide-y divide-gray-200 dark:divide-[#374151]">
                                         {points.map((p, index) => {
                                             const fullLocationCurrent = [
-                                                p.current_region ? `${p.current_region} область` : null,
-                                                p.current_district ? `${p.current_district} район` : null,
-                                                p.current_community ? `${p.current_community} громада` : null,
+                                                p.current_region,
+                                                p.current_district,
+                                                p.current_community,
                                                 p.current_settlement_type && p.current_settlement_name
                                                     ? `${p.current_settlement_type} ${p.current_settlement_name}`
                                                     : null,
@@ -868,9 +876,9 @@ export default function NotIdentifyDetails() {
                             {points.length > 0 ? (
                                 points.map((p) => {
                                     const fullLocationCurrent = [
-                                        p.current_region ? `${p.current_region} область` : null,
-                                        p.current_district ? `${p.current_district} район` : null,
-                                        p.current_community ? `${p.current_community} громада` : null,
+                                        p.current_region,
+                                        p.current_district,
+                                        p.current_community,
                                     ].filter(Boolean).join(', ');
 
                                     const fullLocationOld = [

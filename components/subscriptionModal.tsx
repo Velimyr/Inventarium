@@ -5,26 +5,22 @@ import { useUser } from '../contexts/UserContext';
 import emailjs from 'emailjs-com';
 import Toast from './Toast';
 import { ChevronDown } from 'lucide-react';
-
-// Тип для населеного пункту
-type Settlement = {
-  code: string;
-  name: string;
-  type: string;
-};
-
-type RegionStructure = Record<string, Record<string, Record<string, Settlement[]>>>;
+import {
+  listCountries, listRegions, listDistricts, listCommunities, listSettlements,
+  type NestedStructure, type Settlement,
+} from './keys/regionData';
 
 interface AddSubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  regionStructure: RegionStructure | undefined;
+  regionStructure: NestedStructure | null | undefined;
   onSuccess?: () => void;
 }
 
 function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: AddSubscriptionModalProps) {
   const { user } = useUser();
 
+  const [country, setCountry] = useState<string>('');
   const [region, setRegion] = useState<string>('');
   const [district, setDistrict] = useState<string>('');
   const [community, setCommunity] = useState<string>('');
@@ -33,6 +29,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
+  const [regions, setRegions] = useState<string[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
   const [communities, setCommunities] = useState<string[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
@@ -42,69 +39,39 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [email, setEmail] = useState<string>(user?.email || '');
 
+  // Кожен рівень наповнює свій список і чистить усе, що під ним
+  const clearBelowDistrict = () => {
+    setSettlements([]); setTypes([]); setType(''); setNames([]); setName('');
+  };
+
+  // Оновлення областей при зміні країни
+  useEffect(() => {
+    setRegions(listRegions(regionStructure ?? null, country));
+    setRegion(''); setDistricts([]); setDistrict(''); setCommunities([]); setCommunity('');
+    clearBelowDistrict();
+  }, [country, regionStructure]);
+
   // Оновлення районів при зміні області
   useEffect(() => {
-    if (region && regionStructure && regionStructure[region]) {
-      setDistricts(Object.keys(regionStructure[region]));
-      setDistrict('');
-      setCommunity('');
-      setSettlements([]);
-      setTypes([]);
-      setNames([]);
-      setType('');
-      setName('');
-    } else {
-      setDistricts([]);
-      setCommunities([]);
-      setSettlements([]);
-      setTypes([]);
-      setNames([]);
-      setDistrict('');
-      setCommunity('');
-      setType('');
-      setName('');
-    }
-  }, [region, regionStructure]);
+    setDistricts(listDistricts(regionStructure ?? null, country, region));
+    setDistrict(''); setCommunities([]); setCommunity('');
+    clearBelowDistrict();
+  }, [region, country, regionStructure]);
 
   // Оновлення громад при зміні району
   useEffect(() => {
-    if (region && district && regionStructure && regionStructure[region]?.[district]) {
-      setCommunities(Object.keys(regionStructure[region][district]));
-      setCommunity('');
-      setSettlements([]);
-      setTypes([]);
-      setNames([]);
-      setType('');
-      setName('');
-    } else {
-      setCommunities([]);
-      setSettlements([]);
-      setTypes([]);
-      setNames([]);
-      setCommunity('');
-      setType('');
-      setName('');
-    }
-  }, [district, region, regionStructure]);
+    setCommunities(listCommunities(regionStructure ?? null, country, region, district));
+    setCommunity('');
+    clearBelowDistrict();
+  }, [district, region, country, regionStructure]);
 
   // Оновлення населених пунктів та типів при зміні громади
   useEffect(() => {
-    if (region && district && community && regionStructure && regionStructure[region]?.[district]?.[community]) {
-      const list = regionStructure[region][district][community];
-      setSettlements(list);
-      const uniqueTypes = Array.from(new Set(list.map((s) => s.type)));
-      setTypes(uniqueTypes);
-      setNames([]);
-      setType('');
-      setName('');
-    } else {
-      setSettlements([]);
-      setTypes([]);
-      setNames([]);
-      setType('');
-      setName('');
-    }
-  }, [community, region, district, regionStructure]);
+    const list = listSettlements(regionStructure ?? null, country, region, district, community);
+    setSettlements(list);
+    setTypes(Array.from(new Set(list.map((s) => s.type))));
+    setType(''); setNames([]); setName('');
+  }, [community, district, region, country, regionStructure]);
 
   // Оновлення назв населених пунктів при зміні типу
   useEffect(() => {
@@ -126,6 +93,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
   // Перевірка на заповнення обов'язкових полів + email
   const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isFormValid =
+    !!country &&
     !!region &&
     !!district &&
     !!community &&
@@ -221,6 +189,7 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
           user_email: user.email,
           user_name: user.user_metadata?.full_name || user.email,
           user_id: user.id,
+          country,
           region,
           district,
           community,
@@ -255,18 +224,31 @@ function AddSubscriptionModal({ isOpen, onClose, regionStructure, onSuccess }: A
           </Dialog.Title>
 
           <div className="space-y-[15px] mb-[20px]">
+            {/* Country Select */}
+            <FormSelect
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              placeholder="Оберіть країну"
+            >
+              {listCountries(regionStructure ?? null).map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </FormSelect>
+
             {/* Region Select */}
             <FormSelect
               value={region}
               onChange={(e) => setRegion(e.target.value)}
               placeholder="Оберіть область"
+              disabled={!country || regions.length === 0}
             >
-              {regionStructure &&
-                Object.keys(regionStructure).map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
+              {regions.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
             </FormSelect>
 
             {/* District Select */}

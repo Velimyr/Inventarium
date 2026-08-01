@@ -154,9 +154,9 @@ export default function CasePage() {
                                                     <div className="flex flex-col gap-1">
                                                         <div className="text-[13px] lg:text-[14px] font-bold">
                                                             {[
-                                                                record.current_region ? `${record.current_region} область` : null,
-                                                                record.current_district ? `${record.current_district} район` : null,
-                                                                record.current_community ? `${record.current_community} громада` : null,
+                                                                record.current_region,
+                                                                record.current_district,
+                                                                record.current_community,
                                                             ]
                                                                 .filter(Boolean)
                                                                 .join(', ') || '—'}

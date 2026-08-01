@@ -14,6 +14,7 @@ export default function SettlementRecordsPage() {
     current_community,
     current_district,
     current_region,
+    current_country,
   } = router.query;
 
   const [records, setRecords] = useState<any[]>([]);
@@ -37,6 +38,7 @@ export default function SettlementRecordsPage() {
     const from = page * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
+    // Країну додаємо лише коли вона є в посиланні: збережені раніше URL її не мають
     const { data, error, count } = await supabase
       .from('records')
       .select('*', { count: 'exact' })
@@ -46,6 +48,7 @@ export default function SettlementRecordsPage() {
         current_community,
         current_district,
         current_region,
+        ...(current_country ? { current_country } : {}),
       })
       .order('inventory_year', { ascending: false })
       .range(from, to);

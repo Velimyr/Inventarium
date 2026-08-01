@@ -7,6 +7,10 @@ import HelpTooltip from '../components/HelpTooltip';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import {
+  fetchRegionStructure, findCountryByRegion, listCountries, listRegions,
+  listDistricts, listCommunities, listSettlements, type NestedStructure,
+} from './keys/regionData';
+import {
   ARCHIVE_PART_FIELDS,
   buildCaseSignature,
   hasAllArchiveParts,
@@ -24,14 +28,6 @@ interface Settlement {
   lon: number | null;
 }
 
-interface NestedStructure {
-  [region: string]: {
-    [district: string]: {
-      [community: string]: Settlement[];
-    };
-  };
-}
-
 interface EditableInventoryFormProps {
   data: any;
   onChange: (data: any) => void;
@@ -43,6 +39,7 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
   const [formData, setFormData] = useState(data);
   const [manualEntry, setManualEntry] = useState(false);
   const [nestedData, setNestedData] = useState<NestedStructure | null>(null);
+  const [regions, setRegions] = useState<string[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
   const [communities, setCommunities] = useState<string[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
@@ -68,9 +65,8 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
   }, []);
 
   useEffect(() => {
-    fetch('/data/region_structure.json')
-      .then((res) => res.json())
-      .then((json: NestedStructure) => setNestedData(json))
+    fetchRegionStructure()
+      .then((json) => setNestedData(json))
       .catch((err) => console.error('Failed to load region_structure.json', err));
   }, []);
 
@@ -96,28 +92,44 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
     onChange(formData);
   }, [formData, onChange]);
 
+  // Записи, збережені до появи рівня країни, мають область без країни —
+  // визначаємо її з довідника, бо назви областей унікальні між країнами
   useEffect(() => {
-    if (nestedData && formData.current_region && !manualEntry) {
-      const regionData = nestedData[formData.current_region];
-      setDistricts(regionData ? Object.keys(regionData) : []);
+    if (nestedData && !manualEntry && !formData.current_country && formData.current_region) {
+      const country = findCountryByRegion(nestedData, formData.current_region);
+      if (country) setFormData((fd: any) => ({ ...fd, current_country: country }));
     }
-  }, [formData.current_region, nestedData, manualEntry]);
+  }, [formData.current_country, formData.current_region, nestedData, manualEntry]);
 
   useEffect(() => {
-    if (nestedData && formData.current_region && formData.current_district && !manualEntry) {
-      const communitiesData = nestedData[formData.current_region]?.[formData.current_district];
-      setCommunities(communitiesData ? Object.keys(communitiesData) : []);
-    }
-  }, [formData.current_district, formData.current_region, nestedData, manualEntry]);
+    if (!manualEntry) setRegions(listRegions(nestedData, formData.current_country));
+  }, [formData.current_country, nestedData, manualEntry]);
 
   useEffect(() => {
-    if (nestedData && formData.current_region && formData.current_district && formData.current_community && !manualEntry) {
-      const settlementsData = nestedData[formData.current_region]?.[formData.current_district]?.[formData.current_community];
-      setSettlements(settlementsData || []);
-      const types = Array.from(new Set((settlementsData || []).map((s) => s.type)));
-      setSettlementTypes(types);
+    if (!manualEntry) {
+      setDistricts(listDistricts(nestedData, formData.current_country, formData.current_region));
     }
-  }, [formData.current_community, formData.current_district, formData.current_region, nestedData, manualEntry]);
+  }, [formData.current_country, formData.current_region, nestedData, manualEntry]);
+
+  useEffect(() => {
+    if (!manualEntry) {
+      setCommunities(listCommunities(
+        nestedData, formData.current_country, formData.current_region, formData.current_district,
+      ));
+    }
+  }, [formData.current_country, formData.current_district, formData.current_region, nestedData, manualEntry]);
+
+  useEffect(() => {
+    if (!manualEntry) {
+      const settlementsData = listSettlements(
+        nestedData, formData.current_country, formData.current_region,
+        formData.current_district, formData.current_community,
+      );
+      setSettlements(settlementsData);
+      setSettlementTypes(Array.from(new Set(settlementsData.map((s) => s.type))));
+    }
+  }, [formData.current_country, formData.current_community, formData.current_district,
+      formData.current_region, nestedData, manualEntry]);
 
   useEffect(() => {
     if (!manualEntry && formData.current_settlement_type && formData.current_settlement_name) {
@@ -147,6 +159,7 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
         if (checked) {
           setFormData((fd: any) => ({
             ...fd,
+            current_country: '',
             current_region: '',
             current_district: '',
             current_community: '',
@@ -164,6 +177,22 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
     } else {
       const value = target.value;
       const updated = { ...formData, [name]: value };
+
+      // Зміна рівня адмінподілу скидає все, що під ним: інакше в записі
+      // лишається район від попередньої області
+      const RESETS_BELOW: Record<string, string[]> = {
+        current_country: ['current_region', 'current_district', 'current_community',
+                          'current_settlement_type', 'current_settlement_name'],
+        current_region: ['current_district', 'current_community',
+                         'current_settlement_type', 'current_settlement_name'],
+        current_district: ['current_community', 'current_settlement_type', 'current_settlement_name'],
+        current_community: ['current_settlement_type', 'current_settlement_name'],
+      };
+      if (!manualEntry && RESETS_BELOW[name]) {
+        for (const field of RESETS_BELOW[name]) updated[field] = '';
+        updated.latitude = '';
+        updated.longitude = '';
+      }
 
       // Перемикач чистить протилежну гілку. Інакше приховані архів/фонд/опис/
       // справа лишаються від попередньо збереженого запису і їдуть у базу разом
@@ -200,15 +229,27 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
 
         {!manualEntry ? (
           <>
-            {/* Row 1: Region, District, Community */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-[15px] mb-[15px]">
+            {/* Row 1: Country, Region, District, Community */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[15px] mb-[15px]">
+              <FormSelect
+                name="current_country"
+                value={formData.current_country ?? ''}
+                onChange={handleChange}
+                placeholder="Оберіть країну"
+              >
+                {listCountries(nestedData).map((country) => (
+                  <option key={country} value={country}>{country}</option>
+                ))}
+              </FormSelect>
+
               <FormSelect
                 name="current_region"
                 value={formData.current_region}
                 onChange={handleChange}
                 placeholder="Оберіть область"
+                disabled={!regions.length}
               >
-                {nestedData && Object.keys(nestedData).map((region) => (
+                {regions.map((region) => (
                   <option key={region} value={region}>{region}</option>
                 ))}
               </FormSelect>
@@ -270,7 +311,13 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
           </>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-[15px] mb-[15px]">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[15px] mb-[15px]">
+              <FormInput
+                name="current_country"
+                value={formData.current_country ?? ''}
+                onChange={handleChange}
+                placeholder="Країна"
+              />
               <FormInput
                 name="current_region"
                 value={formData.current_region}

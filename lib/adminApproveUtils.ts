@@ -1,33 +1,10 @@
 import emailjs from 'emailjs-com';
 import regionStructure from '../public/data/region_structure.json';
+import { getSettlementCodeByPath, type NestedStructure } from '../components/keys/regionData';
 import { sendNotification } from '../components/notifications';
 import { supabase } from './supabaseClient';
 import { fromSignatureList, resolveIsUkrainianArchive, validateCaseSignature } from './caseSignature';
 import { findRecordWithAdditionalSignature } from './duplicateCheck';
-
-const getSettlementCodeByPath = (
-  structure: any,
-  region: string,
-  district: string,
-  community: string,
-  type: string,
-  name: string
-): string | null => {
-  const regionNode = structure[region];
-  if (!regionNode) return null;
-
-  const districtNode = regionNode[district];
-  if (!districtNode) return null;
-
-  const communityNode = districtNode[community];
-  if (!communityNode || !Array.isArray(communityNode)) return null;
-
-  const settlement = communityNode.find(
-    (item: any) => item.name === name && item.type === type
-  );
-
-  return settlement?.code || null;
-};
 
 const parseIntegerOrNull = (value: any) => {
   if (value === '' || value === null || value === undefined) return null;
@@ -37,6 +14,11 @@ const parseIntegerOrNull = (value: any) => {
 
 // Ключові текстові поля, за якими БД визначає унікальність справи
 // (обмеження unique_inventory_verified_record на таблиці records).
+//
+// current_country свідомо НЕ входить: його немає в обмеженні БД, а назви
+// областей у довіднику унікальні між країнами, тож current_region уже
+// однозначно визначає країну. Додати його сюди означало б зробити
+// JS-перевірку суворішою за саме обмеження і ловити 23505 замість дубля.
 export const KEY_TEXT_FIELDS = [
   'current_region',
   'current_district',
@@ -56,7 +38,7 @@ export const emptyToNull = (value: any) => (value === '' || value === undefined 
 // щоб JS-перевірка й БД-обмеження працювали з однаковими значеннями.
 export function normalizeKeyFields<T extends Record<string, any>>(record: T): T {
   const out: Record<string, any> = { ...record };
-  for (const field of KEY_TEXT_FIELDS) {
+  for (const field of [...KEY_TEXT_FIELDS, 'current_country']) {
     out[field] = emptyToNull(record[field]);
   }
   return out as T;
@@ -226,17 +208,21 @@ export async function approveUnverifiedRecord({
       };
     }
 
-    const settlementCode = getSettlementCodeByPath(
-      regionStructure,
-      record.current_region,
-      record.current_district,
-      record.current_community,
-      record.current_settlement_type,
-      record.current_settlement_name
-    );
+    const settlementCode = getSettlementCodeByPath(regionStructure as NestedStructure, {
+      country: record.current_country,
+      region: record.current_region,
+      district: record.current_district,
+      community: record.current_community,
+      type: record.current_settlement_type,
+      name: record.current_settlement_name,
+    });
 
     await notifySettlementSubscribers({
-      settlement: `${record.current_region}, ${record.current_district}, ${record.current_community}, ${record.current_settlement_type} ${record.current_settlement_name}`,
+      settlement: [
+        record.current_country, record.current_region, record.current_district,
+        record.current_community,
+        `${record.current_settlement_type} ${record.current_settlement_name}`,
+      ].filter(Boolean).join(', '),
       settlementCode,
       link: `${origin}/record/${record.id}`,
       userId: adminUserId,

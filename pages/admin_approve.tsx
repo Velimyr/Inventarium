@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { useUser } from '../contexts/UserContext';
 import SubscriptionNotifier from '../components/SubscriptionNotifier';
 import regionStructure from '../public/data/region_structure.json';
+import { getSettlementCodeByPath, type NestedStructure } from '../components/keys/regionData';
 import { sendNotification } from '../components/notifications';
 import { Save, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
@@ -13,30 +14,6 @@ import { findDuplicateVerifiedRecord, normalizeKeyFields } from '../lib/adminApp
 import { findRecordWithAdditionalSignature } from '../lib/duplicateCheck';
 import DuplicateWarnings from '../components/DuplicateWarnings';
 import { fromSignatureList, resolveIsUkrainianArchive, validateCaseSignature } from '../lib/caseSignature';
-
-const getSettlementCodeByPath = (
-  structure: any,
-  region: string,
-  district: string,
-  community: string,
-  type: string,
-  name: string
-): string | null => {
-  const regionNode = structure[region];
-  if (!regionNode) return null;
-
-  const districtNode = regionNode[district];
-  if (!districtNode) return null;
-
-  const communityNode = districtNode[community];
-  if (!communityNode || !Array.isArray(communityNode)) return null;
-
-  const settlement = communityNode.find(
-    (s: any) => s.name === name && s.type === type
-  );
-
-  return settlement?.code || null;
-};
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
   ssr: false,
@@ -203,18 +180,22 @@ export default function AdminPage() {
 
       if (!insertError) {
         setNotifyAfterSave(true);
-        const settlementCode = getSettlementCodeByPath(
-          regionStructure,
-          formData.current_region,
-          formData.current_district,
-          formData.current_community,
-          formData.current_settlement_type,
-          formData.current_settlement_name
-        );
+        const settlementCode = getSettlementCodeByPath(regionStructure as NestedStructure, {
+          country: formData.current_country,
+          region: formData.current_region,
+          district: formData.current_district,
+          community: formData.current_community,
+          type: formData.current_settlement_type,
+          name: formData.current_settlement_name,
+        });
         setSavedRecordInfo({
           id: formData.id,
           settlement_code: settlementCode,
-          settlement: `${formData.current_region}, ${formData.current_district}, ${formData.current_community}, ${formData.current_settlement_type} ${formData.current_settlement_name}`
+          settlement: [
+            formData.current_country, formData.current_region, formData.current_district,
+            formData.current_community,
+            `${formData.current_settlement_type} ${formData.current_settlement_name}`,
+          ].filter(Boolean).join(', ')
         });
       }
 

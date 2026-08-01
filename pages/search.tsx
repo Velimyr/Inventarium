@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { apostropheTolerant } from '../lib/textSearch';
 import Header from '../components/header';
 import { useEffect, useState } from 'react';
 import { X, Search, ChevronDown, ChevronLeft, ChevronRight, Check, Plus, Filter } from 'lucide-react';
@@ -119,15 +120,16 @@ export default function Home() {
       .select('*', { count: 'exact' })
       .eq('approved', true);
 
-    // Фільтри по адмінподілу
+    // Фільтри по адмінподілу. Апостроф у назві («Кам’янець-Подільський») може
+    // відрізнятися від збереженого в записі, тому шукаємо толерантно до нього.
     if (filters.current_region) {
-      query = query.ilike('current_region', `%${filters.current_region}%`);
+      query = query.ilike('current_region', `%${apostropheTolerant(filters.current_region)}%`);
     }
     if (filters.current_district) {
-      query = query.ilike('current_district', `%${filters.current_district}%`);
+      query = query.ilike('current_district', `%${apostropheTolerant(filters.current_district)}%`);
     }
     if (filters.current_community) {
-      query = query.ilike('current_community', `%${filters.current_community}%`);
+      query = query.ilike('current_community', `%${apostropheTolerant(filters.current_community)}%`);
     }
 
     // Фільтри по роках
@@ -144,12 +146,13 @@ export default function Home() {
     }
 
     // Основний пошук (обов'язковий)
+    const term = apostropheTolerant(filters.search);
     query = query.or([
-      `old_settlement_name.ilike.%${filters.search}%`,
-      `current_settlement_name.ilike.%${filters.search}%`,
-      `case_title.ilike.%${filters.search}%`,
-      `notes.ilike.%${filters.search}%`,
-      `case_signature.ilike.%${filters.search}%`,
+      `old_settlement_name.ilike.%${term}%`,
+      `current_settlement_name.ilike.%${term}%`,
+      `case_title.ilike.%${term}%`,
+      `notes.ilike.%${term}%`,
+      `case_signature.ilike.%${term}%`,
     ].join(','));
 
     query = query.order('inventory_year', { ascending: false }).range(from, to);

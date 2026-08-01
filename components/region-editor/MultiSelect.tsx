@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, X } from 'lucide-react';
+import { searchKey } from '../../lib/textSearch';
 
 const VISIBLE_LIMIT = 300;   // довші списки (громад ~1500) звужуються пошуком
 
@@ -44,8 +45,8 @@ export default function MultiSelect({
     const searching = query.trim().length > 0;
 
     const shown = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        const matched = q ? options.filter(o => o.toLowerCase().includes(q)) : options;
+        const q = searchKey(query.trim());
+        const matched = q ? options.filter(o => searchKey(o).includes(q)) : options;
         return {
             matched,
             list: matched.slice(0, VISIBLE_LIMIT),

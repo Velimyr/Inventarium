@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Header from '../components/header';
 import { supabase } from '../lib/supabaseClient';
+import { apostropheTolerant } from '../lib/textSearch';
 import { Search, ChevronDown, ChevronLeft, ChevronRight, Plus, AlertCircle } from 'lucide-react';
 
 type RecordNotIdentify = {
@@ -52,7 +53,7 @@ export default function NotIdentifyPage() {
             if (record.trim()) q = q.ilike('record', `%${record.trim()}%`);
 
             if (query.trim()) {
-                const escaped = query.trim().replace(/%/g, '');
+                const escaped = apostropheTolerant(query.trim().replace(/%/g, ''));
                 q = q.or(`case_signature.ilike.%${escaped}%,case_title.ilike.%${escaped}%`);
             }
 

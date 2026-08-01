@@ -18,6 +18,7 @@ import {
 } from '../components/region-editor/structure';
 import type { FlatPoint, GroupLevel, ProblemCode } from '../components/region-editor/structure';
 import { Upload, Download, Pencil, AlertTriangle, CheckCircle2, X, Layers, MapPin, ListChecks } from 'lucide-react';
+import { searchKey } from '../lib/textSearch';
 
 const MapSelector = dynamic(() => import('../components/MapSelector'), { ssr: false });
 
@@ -119,7 +120,7 @@ export default function RegionStructureEditorPage() {
 
     const filtered = useMemo(() => {
         if (!points) return [];
-        const q = filters.q.trim().toLowerCase();
+        const q = searchKey(filters.q.trim());
 
         // Порожній набір означає «усі значення цього рівня»
         const sets = {
@@ -145,7 +146,7 @@ export default function RegionStructureEditorPage() {
                 return false;
             }
 
-            if (q && !p.name.toLowerCase().includes(q) && !p.code.toLowerCase().includes(q)) return false;
+            if (q && !searchKey(p.name).includes(q) && !p.code.toLowerCase().includes(q)) return false;
             return true;
         });
     }, [points, filters, invalidIds, codesById]);

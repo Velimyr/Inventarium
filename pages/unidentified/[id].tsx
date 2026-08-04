@@ -12,6 +12,8 @@ import { getAdminUserIds } from '../../lib/adminUsers';
 import { MapPin, FileText, Save, X, Check, ChevronDown } from 'lucide-react';
 import { formatSignatureList, fromSignatureList } from '../../lib/caseSignature';
 import HelpTooltip from '../../components/HelpTooltip';
+import InventoryTypeWarning from '../../components/InventoryTypeWarning';
+import { INVENTORY_TYPES, suggestInventoryType } from '../../lib/inventoryType';
 import {
     fetchRegionStructure, findCountryByRegion, listCountries, listRegions, listDistricts,
     listCommunities, listSettlements, levelNames, accusative, capitalize, type NestedStructure, type Settlement,
@@ -43,9 +45,13 @@ export default function NotIdentifyDetails() {
         old_settlement_type: '',
         old_settlement_name: '',
         inventory_start_page: '',
+        inventory_type: '',
         notes: '',
         email: '',
     });
+
+    // Замок автопідстановки типу документа — див. EditableInventoryForm.
+    const [typeLocked, setTypeLocked] = useState(false);
 
     const [nestedData, setNestedData] = useState<NestedStructure | null>(null);
     const [regions, setRegions] = useState<string[]>([]);
@@ -148,8 +154,29 @@ export default function NotIdentifyDetails() {
     // Обробка зміни полів
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
+        if (name === 'inventory_type') setTypeLocked(true);
         setFormData({ ...formData, [name]: value });
     };
+
+    // Дані справи (архів, фонд, шифр, назва) лежать у record, регіон — у формі
+    // точки. Тип документа виводиться з них разом.
+    const typeContext = { ...(record || {}), ...formData };
+
+    useEffect(() => {
+        if (typeLocked) return;
+        const suggested = suggestInventoryType(typeContext);
+        if (formData.inventory_type !== suggested) {
+            setFormData((fd: any) => ({ ...fd, inventory_type: suggested }));
+        }
+    }, [
+        typeLocked,
+        formData.inventory_type,
+        formData.current_region,
+        record?.archive,
+        record?.fonds,
+        record?.case_signature,
+        record?.case_title,
+    ]);
 
     // Обробка кліку на рядок таблиці для редагування
     const handleRowClick = (point: any) => {
@@ -169,9 +196,11 @@ export default function NotIdentifyDetails() {
             old_settlement_type: point.old_settlement_type || '',
             old_settlement_name: point.old_settlement_name || '',
             inventory_start_page: point.inventory_start_page || '',
+            inventory_type: point.inventory_type || '',
             notes: point.notes || record?.notes || '',
             email: point.email || user?.email || '',
         });
+        setTypeLocked(!!point.inventory_type);
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -194,9 +223,11 @@ export default function NotIdentifyDetails() {
             old_settlement_type: '',
             old_settlement_name: '',
             inventory_start_page: '',
+            inventory_type: '',
             notes: record?.notes || '',
             email: user?.email || '',
         });
+        setTypeLocked(false);
     };
 
     // Валідація форми
@@ -329,6 +360,7 @@ export default function NotIdentifyDetails() {
             old_settlement_type: formData.old_settlement_type || null,
             old_settlement_name: formData.old_settlement_name || null,
             inventory_start_page: formData.inventory_start_page || null,
+            inventory_type: formData.inventory_type || null,
             notes: formData.notes || null,
             email: formData.email || user.email,
             approved: false,
@@ -382,9 +414,11 @@ export default function NotIdentifyDetails() {
             old_settlement_type: '',
             old_settlement_name: '',
             inventory_start_page: '',
+            inventory_type: '',
             notes: record?.notes || '',
             email: user?.email || '',
         });
+        setTypeLocked(false);
     };
 
     // Завершення ідентифікації
@@ -529,6 +563,7 @@ export default function NotIdentifyDetails() {
                                 />
                                 <InfoRow label="Назва справи" value={record.case_title} />
                                 <InfoRow label="Рік складання" value={record.inventory_year} />
+                                <InfoRow label="Тип документа" value={record.inventory_type} />
                                 <InfoRow label="Примітки" value={record.notes} />
                                 <InfoRow 
                                     label="Посилання на скани" 
@@ -748,6 +783,22 @@ export default function NotIdentifyDetails() {
                                             onChange={handleChange}
                                             placeholder="Сторінка початку інвентарю"
                                         />
+
+                                        <div>
+                                            <FormSelect
+                                                name="inventory_type"
+                                                value={formData.inventory_type ?? ''}
+                                                onChange={handleChange}
+                                                placeholder="Оберіть тип документа"
+                                            >
+                                                {INVENTORY_TYPES.map((type) => (
+                                                    <option key={type} value={type}>{type}</option>
+                                                ))}
+                                            </FormSelect>
+                                            <div className="mt-[10px]">
+                                                <InventoryTypeWarning record={typeContext} />
+                                            </div>
+                                        </div>
 
                                         <FormTextarea
                                             name="notes"

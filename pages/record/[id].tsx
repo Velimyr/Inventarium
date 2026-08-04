@@ -31,7 +31,7 @@ export default function RecordPage() {
     const fetchRecord = async () => {
         setLoading(true);
         const { data, error } = await supabase.from('records').select(`
-            id, case_title, case_signature, case_date, inventory_year, inventory_start_page,
+            id, case_title, case_signature, case_date, inventory_year, inventory_start_page, inventory_type,
             pages_count, additional_case_signature, notes, scans_url, latitude, longitude,
             created_at, mark_type, archive, fonds, series, record, old_province, old_district,
             old_community, old_settlement_type, old_settlement_name, current_country, current_region,
@@ -90,6 +90,7 @@ export default function RecordPage() {
         current_division: "Адміністративний поділ, який існував на час додавання запису про інвентар до реєстру Інвентаріум",
         historical_division: "Адміністративний поділ, який існував на час, коли інвентар було складено",
         inventory_year: "Рік, коли було складено інвентар по вказаному населеному пункту",
+        inventory_type: "Тип документа: інвентар (опис маєтку), люстрація (ревізія королівських маєтків), фасія (податкова декларація) або урбар (опис повинностей підданих)",
         case_signature: "Шифр, за яким ви можете знайти справу у відповідному архіві",
         case_date: "Дати, вказані в архівній справі, в якій знаходиться даний інвентар (Дати справи можуть не відповідати рокові складання інвентарю)",
         pages_count: "Загальна кількість сторінок у справі (Це саме кількість сторінок, вказана в архівному описі. Кількість сторінок НЕ відповідає кількості сканів)",
@@ -286,23 +287,10 @@ export default function RecordPage() {
                             </div>
 
                             <div className="flex flex-col gap-[20px]">
-                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-x-[15px] lg:gap-x-[20px] gap-y-[15px] lg:gap-y-[20px]">
-                                    {/* Year */}
-                                    <div className="flex flex-col gap-[10px]">
-                                        <div className="flex items-center gap-[5px]">
-                                            <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Рік складання</p>
-                                            <div className="relative group">
-                                                <button onClick={() => toggleTooltip('inventory_year')} className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors lg:pointer-events-none">
-                                                    <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
-                                                </button>
-                                                <div className="hidden lg:group-hover:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
-                                                    <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.inventory_year}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.inventory_year || '-'}</p>
-                                    </div>
-
+                                {/* Одна сітка на обидва рядки, щоб колонки другого рядка
+                                    (дата справи, сторінки) стояли рівно під колонками першого.
+                                    Порядок: шифр, рік, тип, дод. шифр — далі характеристики справи. */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-[15px] lg:gap-x-[20px] gap-y-[15px] lg:gap-y-[20px]">
                                     {/* Case Signature */}
                                     <div className="flex flex-col gap-[10px]">
                                         <div className="flex items-center gap-[5px]">
@@ -326,6 +314,60 @@ export default function RecordPage() {
                                                     <ArrowUpRight className="w-3 h-3 text-gray-900 dark:text-gray-900 group-hover:text-white transition-colors" strokeWidth={2} />
                                                 </button>
                                             </div>
+                                        ) : (
+                                            <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">-</p>
+                                        )}
+                                    </div>
+
+                                    {/* Year */}
+                                    <div className="flex flex-col gap-[10px]">
+                                        <div className="flex items-center gap-[5px]">
+                                            <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Рік складання</p>
+                                            <div className="relative group">
+                                                <button onClick={() => toggleTooltip('inventory_year')} className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors lg:pointer-events-none">
+                                                    <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
+                                                </button>
+                                                <div className="hidden lg:group-hover:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                    <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.inventory_year}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.inventory_year || '-'}</p>
+                                    </div>
+
+                                    {/* Document Type */}
+                                    <div className="flex flex-col gap-[10px]">
+                                        <div className="flex items-center gap-[5px]">
+                                            <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Тип документа</p>
+                                            <div className="relative group">
+                                                <button onClick={() => toggleTooltip('inventory_type')} className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors lg:pointer-events-none">
+                                                    <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
+                                                </button>
+                                                <div className="hidden lg:group-hover:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                    <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.inventory_type}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.inventory_type || '-'}</p>
+                                    </div>
+
+                                    {/* Additional Reference */}
+                                    <div className="flex flex-col gap-[10px]">
+                                        <div className="flex items-center gap-[5px]">
+                                            <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Додаткова сигнатура</p>
+                                            <div className="relative group">
+                                                <button onClick={() => toggleTooltip('additional_signature')} className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors lg:pointer-events-none">
+                                                    <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
+                                                </button>
+                                                <div className="hidden lg:group-hover:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
+                                                    <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.additional_signature}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {additionalSignatures.length > 0 ? (
+                                            additionalSignatures.map((signature: string) => (
+                                                <p key={signature} className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{signature}</p>
+                                            ))
                                         ) : (
                                             <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">-</p>
                                         )}
@@ -377,28 +419,6 @@ export default function RecordPage() {
                                             </div>
                                         </div>
                                         <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{record.inventory_start_page || '-'}</p>
-                                    </div>
-
-                                    {/* Additional Reference */}
-                                    <div className="flex flex-col gap-[10px]">
-                                        <div className="flex items-center gap-[5px]">
-                                            <p className="text-gray-700 dark:text-white text-[13px] lg:text-[14px] opacity-80">Додаткова сигнатура</p>
-                                            <div className="relative group">
-                                                <button onClick={() => toggleTooltip('additional_signature')} className="p-0.5 hover:bg-gray-200 dark:hover:bg-[#374151] rounded-full transition-colors lg:pointer-events-none">
-                                                    <HelpCircle className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" strokeWidth={2} />
-                                                </button>
-                                                <div className="hidden lg:group-hover:block absolute left-0 top-full mt-2 w-[280px] p-3 bg-white dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg shadow-lg z-10">
-                                                    <p className="text-gray-900 dark:text-white text-[13px]">{tooltips.additional_signature}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {additionalSignatures.length > 0 ? (
-                                            additionalSignatures.map((signature: string) => (
-                                                <p key={signature} className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">{signature}</p>
-                                            ))
-                                        ) : (
-                                            <p className="text-gray-900 dark:text-white text-[15px] lg:text-[16px] font-medium">-</p>
-                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -473,7 +493,7 @@ export default function RecordPage() {
                         <div className="flex flex-col gap-[15px]">
                             <div className="flex items-center gap-[10px]">
                                 <BookOpen className="w-5 h-5 text-gray-900 dark:text-white flex-shrink-0" strokeWidth={2} />
-                                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">Проект транскрибування інвентаря в CoBook</h2>
+                                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">Додаткове опрацювання інвентарів</h2>
                             </div>
 
                             {hasCobookLink ? (
@@ -507,15 +527,19 @@ export default function RecordPage() {
                             ) : (
                                 <div className="flex flex-col gap-[12px]">
                                     <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80">
-                                        Проект транскрибування для цього інвентарного опису ще не створений. Ви можете створити його з файлами сканів.
+                                        Проект транскрибування в CoBook для цього інвентарного опису ще не створений. Ви можете створити його з файлами сканів.
                                     </p>
                                     <div>
+                                        {/* Ненав'язливе посилання — той самий вигляд, що й переходи
+                                            на сторінку справи, населеного пункту чи сканів */}
                                         <button
                                             onClick={() => router.push(`/cobook/create/${record.id}`)}
-                                            className="inline-flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
+                                            className="inline-flex items-center gap-[5px] group"
                                         >
-                                            <BookOpen className="w-4 h-4 text-white flex-shrink-0" strokeWidth={1.6} />
-                                            <span className="text-white text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Створити проект</span>
+                                            <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] font-medium">Транскрибувати в CoBook</span>
+                                            <span className="flex items-center justify-center w-4 h-4 rounded bg-white dark:bg-white group-hover:bg-[#2563EB] transition-colors flex-shrink-0">
+                                                <ArrowUpRight className="w-3 h-3 text-gray-900 dark:text-gray-900 group-hover:text-white transition-colors" strokeWidth={2} />
+                                            </span>
                                         </button>
                                     </div>
                                 </div>

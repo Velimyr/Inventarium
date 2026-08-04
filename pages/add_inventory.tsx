@@ -49,6 +49,7 @@ export default function AddInventoryPage() {
         pages_count: '',
         inventory_year: '',
         inventory_start_page: '',
+        inventory_type: '',
         mark_type: '',
         scans_url: '',
         notes: '',

@@ -7,6 +7,7 @@ import { sendNotification } from '../components/notifications';
 import { FileText, Check, X, ChevronLeft, ChevronRight, ExternalLink, Mail } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
 import DuplicateWarnings from '../components/DuplicateWarnings';
+import InventoryTypeWarning from '../components/InventoryTypeWarning';
 import {
     SIGNATURE_FIELDS,
     buildCaseSignature,
@@ -71,6 +72,7 @@ export default function ReviewEditedRecordsPage() {
         additional_case_signature: 'Шифри дод. справ',
         case_date: 'Дати справи',
         inventory_year: 'Рік складання інвентаря',
+        inventory_type: 'Тип документа',
         pages_count: 'К-ть сторінок',
         inventory_start_page: 'Сторінка поч. інвентаря',
         scans_url: 'Посилання на скани',
@@ -442,6 +444,10 @@ export default function ReviewEditedRecordsPage() {
                     </h1>
 
                     <DuplicateWarnings record={editCandidate} />
+
+                    <div className="mb-[20px]">
+                        <InventoryTypeWarning record={editCandidate} />
+                    </div>
 
                     {/* Two Column Layout */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-[20px] mb-[20px]">

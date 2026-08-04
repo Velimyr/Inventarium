@@ -164,6 +164,7 @@ export default function AdminNotIdentifyPage() {
         inventory_year: point.inventory_year,
         pages_count: point.pages_count,
         inventory_start_page: point.inventory_start_page,
+        inventory_type: point.inventory_type,
         scans_url: point.scans_url,
         case_title: point.case_title,
         notes: point.notes,

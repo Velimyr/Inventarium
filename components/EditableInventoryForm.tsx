@@ -4,6 +4,7 @@ import Toast from '../components/Toast';
 import SignatureListInput from '../components/SignatureListInput';
 import SignatureHelp from '../components/SignatureHelp';
 import HelpTooltip from '../components/HelpTooltip';
+import InventoryTypeWarning from '../components/InventoryTypeWarning';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import {
@@ -18,6 +19,10 @@ import {
   hasAnyArchivePart,
   isArchivePartField,
 } from '../lib/caseSignature';
+import { INVENTORY_TYPES, suggestInventoryType } from '../lib/inventoryType';
+
+const hasInventoryType = (record: any) =>
+  String(record?.inventory_type ?? '').trim() !== '';
 
 const MapSelector = dynamic(() => import('../components/MapSelector'), { ssr: false });
 
@@ -46,6 +51,11 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [settlementTypes, setSettlementTypes] = useState<string[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Поки замок відкритий, тип документа підставляється з даних запису. Замикаємо
+  // його, коли тип уже збережений (редагування — показуємо вибір користувача) або
+  // коли користувач сам змінив селект.
+  const [typeLocked, setTypeLocked] = useState(() => hasInventoryType(data));
 
   type ArchiveItem = {
     short_name: string;
@@ -80,8 +90,27 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
         inventory_start_page: data.inventory_start_page ?? '',
       };
       setFormData(cleaned);
+      setTypeLocked(hasInventoryType(data));
     }
   }, [data?.id]);
+
+  // Автопідстановка типу документа. Мовчить, щойно тип задано — вручну або
+  // збереженим значенням.
+  useEffect(() => {
+    if (typeLocked) return;
+    const suggested = suggestInventoryType(formData);
+    if (formData.inventory_type !== suggested) {
+      setFormData((fd: any) => ({ ...fd, inventory_type: suggested }));
+    }
+  }, [
+    typeLocked,
+    formData.inventory_type,
+    formData.archive,
+    formData.fonds,
+    formData.current_region,
+    formData.case_signature,
+    formData.case_title,
+  ]);
 
   useEffect(() => {
     if (data?.email && (!formData.email || formData.email === '')) {
@@ -178,6 +207,9 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
     } else {
       const value = target.value;
       const updated = { ...formData, [name]: value };
+
+      // Свій вибір типу документа автопідстановка більше не чіпає.
+      if (name === 'inventory_type') setTypeLocked(true);
 
       // Зміна рівня адмінподілу скидає все, що під ним: інакше в записі
       // лишається район від попередньої області
@@ -638,25 +670,64 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
           Інформація про інвентар
         </h2>
 
-        {/* Row 1: Year, Start Page */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-[15px] mb-[15px]">
+        {/* Row 1: Document Type, Year, Start Page.
+            items-end тримає всі три контроли на одній лінії — над селектом типу
+            є підпис із підказкою, а над двома інпутами немає. */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-[15px] mb-[15px] items-end">
           <div>
-            <FormInput
-              name="inventory_year"
-              value={formData.inventory_year}
+            <div className="flex items-center gap-[8px] mb-[8px]">
+              <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium">
+                Тип документа
+              </span>
+              <HelpTooltip label="Які бувають типи документів" width={320}>
+                <span className="block">
+                  <b>Інвентар</b> — опис маєтку з переліком підданих і повинностей.
+                </span>
+                <span className="block">
+                  <b>Люстрація</b> — ревізія королівських (державних) маєтків.
+                </span>
+                <span className="block">
+                  <b>Фасія</b> — податкова декларація маєтку (ЦДІАЛ, фонд 146).
+                </span>
+                <span className="block">
+                  <b>Урбар</b> — опис повинностей підданих (Закарпаття, угорські архіви).
+                </span>
+              </HelpTooltip>
+            </div>
+            <FormSelect
+              name="inventory_type"
+              value={formData.inventory_type ?? ''}
               onChange={handleChange}
-              placeholder="Рік складання інвентарю, наприклад 1750"
-            />
-            {duplicateWarning && (
-              <p className="text-red-600 text-[13px] mt-1">{duplicateWarning}</p>
-            )}
+              placeholder="Оберіть тип документа"
+            >
+              {INVENTORY_TYPES.map((type) => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </FormSelect>
           </div>
+
+          <FormInput
+            name="inventory_year"
+            value={formData.inventory_year}
+            onChange={handleChange}
+            placeholder="Рік складання інвентарю, наприклад 1750"
+          />
           <FormInput
             name="inventory_start_page"
             value={formData.inventory_start_page}
             onChange={handleChange}
             placeholder="Сторінка початку інвентарю"
           />
+        </div>
+
+        {/* Попередження під рядком, а не в комірках: інакше вони розсовують
+            колонки і контроли перестають бути на одній лінії. */}
+        {duplicateWarning && (
+          <p className="text-red-600 text-[13px] mb-[15px]">{duplicateWarning}</p>
+        )}
+
+        <div className="empty:hidden mb-[15px]">
+          <InventoryTypeWarning record={formData} />
         </div>
 
         {/* Scans Link - full width */}

@@ -112,6 +112,7 @@ const FIELDS: { key: string; label: string }[] = [
   { key: 'case_title', label: 'Назва справи' },
   { key: 'case_date', label: 'Дати справи' },
   { key: 'inventory_year', label: 'Рік складання інвентаря' },
+  { key: 'inventory_type', label: 'Тип документа' },
   { key: 'pages_count', label: 'К-ть сторінок' },
   { key: 'inventory_start_page', label: 'Сторінка початку інвентаря' },
   { key: 'scans_url', label: 'Посилання на скани' },

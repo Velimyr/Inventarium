@@ -11,8 +11,13 @@ import {
   hasAllArchiveParts,
   isArchivePartField,
 } from '../lib/caseSignature';
+import { INVENTORY_TYPES, suggestInventoryType } from '../lib/inventoryType';
+import InventoryTypeWarning from './InventoryTypeWarning';
 
 const MapSelector = dynamic(() => import('./MapSelector'), { ssr: false });
+
+const hasInventoryType = (record: any) =>
+  String(record?.inventory_type ?? '').trim() !== '';
 
 interface ArchiveItem {
   short_name: string;
@@ -40,6 +45,9 @@ export default function UnidentifiedInventoryForm({
   const [success, setSuccess] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  // Замок автопідстановки типу документа — див. EditableInventoryForm.
+  const [typeLocked, setTypeLocked] = useState(() => hasInventoryType(data));
+
   const [archives, setArchives] = useState<ArchiveItem[]>([]);
 
   useEffect(() => {
@@ -60,8 +68,17 @@ export default function UnidentifiedInventoryForm({
         pages_count: data.pages_count ?? '',        
       };
       setFormData(cleaned);
+      setTypeLocked(hasInventoryType(data));
     }
   }, [data?.id]);
+
+  useEffect(() => {
+    if (typeLocked) return;
+    const suggested = suggestInventoryType(formData);
+    if (formData.inventory_type !== suggested) {
+      setFormData((fd: any) => ({ ...fd, inventory_type: suggested }));
+    }
+  }, [typeLocked, formData.inventory_type, formData.archive, formData.fonds, formData.case_title]);
 
   useEffect(() => {
     if (data?.email && (!formData.email || formData.email === '')) {
@@ -89,6 +106,8 @@ export default function UnidentifiedInventoryForm({
     } else {
       const value = target.value;
       const updated = { ...formData, [name]: value };
+
+      if (name === 'inventory_type') setTypeLocked(true);
 
       // Перемикач чистить протилежну гілку — див. EditableInventoryForm.
       if (name === 'is_ukrainian_archive') {
@@ -263,17 +282,34 @@ export default function UnidentifiedInventoryForm({
           Інформація про інвентар
         </h2>
 
-        {/* Row 1: Year */}
-        <div className="mb-[15px]">
+        {/* Row 1: Document Type, Year */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[15px] mb-[15px]">
+          <FormSelect
+            name="inventory_type"
+            value={formData.inventory_type ?? ''}
+            onChange={handleChange}
+            placeholder="Оберіть тип документа"
+          >
+            {INVENTORY_TYPES.map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </FormSelect>
           <FormInput
             name="inventory_year"
             value={formData.inventory_year}
             onChange={handleChange}
             placeholder="Рік складання інвентарю, наприклад 1750"
           />
-          {duplicateWarning && (
-            <p className="text-red-600 text-[13px] mt-1">{duplicateWarning}</p>
-          )}
+        </div>
+
+        {/* Попередження під рядком, а не в комірках: інакше вони розсовують
+            колонки і контроли перестають бути на одній лінії. */}
+        {duplicateWarning && (
+          <p className="text-red-600 text-[13px] mb-[15px]">{duplicateWarning}</p>
+        )}
+
+        <div className="empty:hidden mb-[15px]">
+          <InventoryTypeWarning record={formData} />
         </div>
 
         {/* Scans Link - full width */}

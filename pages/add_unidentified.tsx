@@ -33,6 +33,7 @@ export default function AddUnidentifiedInventoryPage() {
         case_date: '',
         pages_count: '',
         inventory_year: '',
+        inventory_type: '',
         scans_url: '',
         notes: '',
         email: '',
@@ -49,6 +50,7 @@ export default function AddUnidentifiedInventoryPage() {
         case_date: 'Дати справи',
         pages_count: 'Кількість сторінок справи',
         inventory_year: 'Рік складання інвентарю',
+        inventory_type: 'Тип документа',
         scans_url: 'Посилання на скани',
         notes: 'Примітки',
     };

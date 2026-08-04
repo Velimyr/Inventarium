@@ -2686,15 +2686,20 @@ INSERT INTO manual_map VALUES
 ALTER TABLE records DROP CONSTRAINT IF EXISTS records_foreign_archive_has_no_parts;
 ALTER TABLE records DROP CONSTRAINT IF EXISTS records_signature_matches_parts;
 
--- 0. Скільки записів зачепить (виконати й запамʼятати числа)
+-- 0. Скільки записів зачепить (виконати й запамʼятати числа).
+--    Звіряємо так само, як самі UPDATE — через translate() з апострофами,
+--    інакше підрахунок занижує на записи, що відрізняються лише апострофом.
 SELECT 'по трійці' AS through, count(*) FROM records r JOIN region_map m
-    ON r.current_region = m.old_region AND r.current_district = m.old_district
-   AND r.current_community = m.old_community
+    ON translate(r.current_region, '''`ʼ´', '’’’’') = translate(m.old_region, '''`ʼ´', '’’’’')
+   AND translate(r.current_district, '''`ʼ´', '’’’’') = translate(m.old_district, '''`ʼ´', '’’’’')
+   AND translate(r.current_community, '''`ʼ´', '’’’’') = translate(m.old_community, '''`ʼ´', '’’’’')
 UNION ALL
 SELECT 'по пункту', count(*) FROM records r JOIN settlement_map m
-    ON r.current_region = m.old_region AND r.current_district = m.old_district
-   AND r.current_community = m.old_community AND r.current_settlement_type = m.old_type
-   AND r.current_settlement_name = m.old_name;
+    ON translate(r.current_region, '''`ʼ´', '’’’’') = translate(m.old_region, '''`ʼ´', '’’’’')
+   AND translate(r.current_district, '''`ʼ´', '’’’’') = translate(m.old_district, '''`ʼ´', '’’’’')
+   AND translate(r.current_community, '''`ʼ´', '’’’’') = translate(m.old_community, '''`ʼ´', '’’’’')
+   AND r.current_settlement_type = m.old_type
+   AND translate(r.current_settlement_name, '''`ʼ´', '’’’’') = translate(m.old_name, '''`ʼ´', '’’’’');
 
 -- Порівнюємо назви з точністю до апострофа: у записах трапляються ' ` ʼ ´,
 -- у довіднику всюди ’. Через це інакше не збігається, напр. «Кам`янка-Бузька».

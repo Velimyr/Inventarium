@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import Header from '../components/header';
 import Toast from '../components/Toast';
 import AdminSectionTabs, { APPROVE_SECTION_TITLE, APPROVE_TABS, withCount } from '../components/AdminSectionTabs';
@@ -7,12 +7,17 @@ import { supabase } from '../lib/supabaseClient';
 import { approveUnverifiedRecord } from '../lib/adminApproveUtils';
 import {
   CheckCheck,
+  ExternalLink,
   FileStack,
   FolderTree,
+  KeyRound,
+  MapPin,
   Shield,
   ShieldCheck,
   UserRound,
 } from 'lucide-react';
+import { displayValue, fieldLabel } from '../lib/recordFields';
+import { groupNewRecords, settlementName, type NewRecordGroup } from '../lib/newRecordGroups';
 
 type AdminUserRow = {
   id: string;
@@ -199,6 +204,328 @@ const buildSignatureStats = (records: any[]) => {
 
 const hasScans = (record: any) => !!record.scans_url?.toString().trim();
 
+type ViewKey = 'author' | 'common';
+
+const VIEWS: { key: ViewKey; label: string; hint: string }[] = [
+  {
+    key: 'author',
+    label: 'За автором',
+    hint: 'Усі записи одного автора з розбивкою за адмінподілом і шифрами',
+  },
+  {
+    key: 'common',
+    label: 'За спільною частиною',
+    hint: 'Одна справа — один опис угорі, села списком нижче',
+  },
+];
+
+const plural = (n: number, one: string, few: string, many: string) => {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+};
+
+const COLLAPSED_ROWS = 8;
+
+type CommonPartViewProps = {
+  records: any[];
+  processing: boolean;
+  lastBulkRun: BulkRunItem[];
+  canApproveWithoutConfirm: (record: any) => boolean;
+  onApprove: (list: any[]) => Promise<void>;
+};
+
+/**
+ * Подання за спільною частиною.
+ *
+ * Нові справи додають пачками: одна архівна справа описує десятки сіл, і в
+ * поданні за автором це 44 однакові картки, які відрізняються назвою села та
+ * сторінкою. Тут опис справи показується один раз, а нижче — таблиця рівно з
+ * тих полів, що різняться.
+ */
+function CommonPartView({
+  records,
+  processing,
+  lastBulkRun,
+  canApproveWithoutConfirm,
+  onApprove,
+}: CommonPartViewProps) {
+  const groups = useMemo(() => groupNewRecords(records), [records]);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(records.map((r) => r.id)));
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  // Після підтвердження список коротшає — вибір треба звести до наявних
+  // записів, інакше в наборі лишаються привиди вже оброблених. Записи, яких
+  // раніше не бачили, вважаємо обраними, як і при першому завантаженні.
+  const seenIds = useRef<Set<string>>(new Set(records.map((record) => record.id)));
+
+  useEffect(() => {
+    const fresh = records.filter((record) => !seenIds.current.has(record.id)).map((record) => record.id);
+    for (const record of records) seenIds.current.add(record.id);
+
+    setSelected((prev) => {
+      const next = new Set<string>(fresh);
+      for (const record of records) if (prev.has(record.id)) next.add(record.id);
+      return next;
+    });
+  }, [records]);
+
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const setGroup = (group: NewRecordGroup, checked: boolean) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const record of group.items) {
+        if (checked) next.add(record.id);
+        else next.delete(record.id);
+      }
+      return next;
+    });
+
+  const approveGroup = async (group: NewRecordGroup) => {
+    const chosen = group.items.filter((record) => selected.has(record.id));
+    if (chosen.length === 0 || processing) return;
+
+    const risky = chosen.filter((record) => !canApproveWithoutConfirm(record));
+    const authorsLine = Array.from(new Set(risky.map((record) => record.email))).join(', ');
+
+    const question = risky.length
+      ? `Серед обраних ${chosen.length} записів є ${risky.length} від користувачів без ролі admin/superuser/superadmin (${authorsLine}). Підтвердити всі?`
+      : `Підтвердити записів: ${chosen.length}?`;
+
+    if (!window.confirm(question)) return;
+    await onApprove(chosen);
+  };
+
+  if (records.length === 0) {
+    return (
+      <div className="p-[30px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
+        <p className="text-gray-700 dark:text-gray-300 text-[16px]">Немає записів для масового підтвердження.</p>
+      </div>
+    );
+  }
+
+  // Підтверджені записи зникають зі списку самі, тож у звіті лишає сенс лише
+  // те, що не пройшло: дублікати й помилки — вони й далі висять у черзі.
+  const problems = lastBulkRun.filter((item) => item.status !== 'approved');
+  const recordById = new Map(records.map((record) => [record.id, record]));
+
+  return (
+    <div className="flex flex-col gap-[20px]">
+      {problems.length > 0 && (
+        <section className="p-[16px] lg:p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
+          <h2 className="text-gray-900 dark:text-white text-[15px] font-semibold mb-[12px]">
+            Не пройшли останній запуск: {problems.length}
+          </h2>
+          <div className="flex flex-col gap-[8px] max-h-[280px] overflow-y-auto pr-[4px]">
+            {problems.map((item) => {
+              const record = recordById.get(item.recordId);
+              return (
+                <div
+                  key={`${item.recordId}-${item.status}`}
+                  className="flex flex-wrap items-center gap-[10px] rounded-lg border border-gray-200 dark:border-[#374151] bg-white dark:bg-[#111827] px-[12px] py-[9px]"
+                >
+                  <span
+                    className={`inline-flex items-center rounded-full px-[10px] py-[3px] text-[12px] font-semibold ${
+                      item.status === 'duplicate'
+                        ? 'bg-[#FEF3C7] text-[#92400E] dark:bg-[#78350F] dark:text-[#FDE68A]'
+                        : 'bg-[#FEE2E2] text-[#991B1B] dark:bg-[#7F1D1D] dark:text-[#FECACA]'
+                    }`}
+                  >
+                    {item.status === 'duplicate' ? 'Дублікат' : 'Помилка'}
+                  </span>
+                  <span className="text-gray-900 dark:text-white text-[13px] font-semibold">
+                    {record ? settlementName(record) || item.recordId : item.recordId}
+                  </span>
+                  <span className="text-gray-600 dark:text-gray-300 text-[12.5px]">{item.message}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {groups.map((group) => {
+        const total = group.items.length;
+        const chosen = group.items.filter((record) => selected.has(record.id)).length;
+        const isOpen = !!expanded[group.id];
+        const rows = isOpen ? group.items : group.items.slice(0, COLLAPSED_ROWS);
+        const authorsList = Array.from(new Set(group.items.map((record) => record.email).filter(Boolean)));
+        const withScans = group.items.filter(hasScans).length;
+
+        return (
+          <article
+            key={group.id}
+            className={`rounded-lg border border-gray-300 dark:border-[#374151] border-l-[3px] ${
+              group.basis === 'none' ? 'border-l-[#9CA3AF]' : 'border-l-[#2563EB]'
+            } bg-white dark:bg-[#111827] overflow-hidden`}
+          >
+            <div className="flex flex-wrap items-start gap-[14px] p-[16px] lg:p-[20px]">
+              <div className="flex-1 min-w-[280px]">
+                <p className="flex items-center gap-[6px] text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-[0.08em]">
+                  {group.basis === 'settlement' ? (
+                    <MapPin className="w-[13px] h-[13px]" strokeWidth={2} />
+                  ) : (
+                    <KeyRound className="w-[13px] h-[13px]" strokeWidth={2} />
+                  )}
+                  {group.basis === 'signature' && 'Спільне: шифр справи'}
+                  {group.basis === 'settlement' && 'Спільне: населений пункт'}
+                  {group.basis === 'none' && 'Без спільної частини'}
+                </p>
+                <p
+                  className={`text-gray-900 dark:text-white text-[17px] lg:text-[18px] font-semibold mt-[6px] break-words ${
+                    group.basis === 'signature' ? 'font-mono' : ''
+                  }`}
+                >
+                  {group.keyText}
+                </p>
+                {group.keySub && (
+                  <p className="text-gray-600 dark:text-gray-300 text-[13px] mt-[5px]">{group.keySub}</p>
+                )}
+                <p className="flex flex-wrap gap-x-[14px] gap-y-[4px] text-gray-500 dark:text-gray-400 text-[12.5px] mt-[9px]">
+                  <span>
+                    Автор: <b className="text-gray-700 dark:text-gray-300 font-semibold">{authorsList.join(', ') || '—'}</b>
+                  </span>
+                  <span>
+                    Зі сканами: <b className="text-gray-700 dark:text-gray-300 font-semibold">{withScans} з {total}</b>
+                  </span>
+                </p>
+              </div>
+
+              <span className="inline-flex items-center rounded-full px-[10px] py-[4px] bg-gray-100 dark:bg-[#1F2937] text-gray-700 dark:text-gray-300 text-[12px] font-semibold tabular-nums">
+                {total} {plural(total, 'запис', 'записи', 'записів')}
+              </span>
+            </div>
+
+            {group.shared.length > 0 && (
+              <div className="mx-[16px] lg:mx-[20px] mb-[16px] p-[14px] lg:p-[16px] rounded-lg border border-gray-200 dark:border-[#293241] bg-gray-50 dark:bg-[#1F2937]">
+                <p className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-[0.08em] mb-[10px]">
+                  Спільні поля ({group.shared.length}) — однакові в усіх {total}{' '}
+                  {plural(total, 'записі', 'записах', 'записах')}
+                </p>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-[20px] gap-y-[8px]">
+                  {group.shared.map((item) => (
+                    <div key={item.field} className="min-w-0">
+                      <dt className="text-gray-500 dark:text-gray-400 text-[11.5px]">{item.label}</dt>
+                      <dd className="m-0 text-gray-900 dark:text-white text-[13px] break-words">
+                        {item.field === 'scans_url' ? (
+                          <a
+                            href={String(item.value)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[#2563EB] dark:text-[#60A5FA] inline-flex items-center gap-[4px]"
+                          >
+                            Відкрити скани
+                            <ExternalLink className="w-[12px] h-[12px]" strokeWidth={2} />
+                          </a>
+                        ) : (
+                          displayValue(item.field, item.value)
+                        )}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-[10px] px-[16px] lg:px-[20px] py-[10px] border-y border-gray-200 dark:border-[#293241] bg-gray-50 dark:bg-[#1F2937]">
+              <span className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-[0.08em]">
+                Варіативна частина · {group.variantFields.length}{' '}
+                {plural(group.variantFields.length, 'поле', 'поля', 'полів')}
+              </span>
+              <button type="button" onClick={() => setGroup(group, true)} className="text-[#2563EB] dark:text-[#60A5FA] text-[13px] font-semibold">
+                Обрати всі
+              </button>
+              <button type="button" onClick={() => setGroup(group, false)} className="text-[#2563EB] dark:text-[#60A5FA] text-[13px] font-semibold">
+                Зняти
+              </button>
+              {total > COLLAPSED_ROWS && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded((prev) => ({ ...prev, [group.id]: !prev[group.id] }))}
+                  className="text-[#2563EB] dark:text-[#60A5FA] text-[13px] font-semibold"
+                >
+                  {isOpen ? 'Згорнути' : `Показати всі ${total}`}
+                </button>
+              )}
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-[13.5px]">
+                <thead>
+                  <tr>
+                    <th className="w-[38px] p-[9px_12px] border-b border-gray-200 dark:border-[#293241]" />
+                    {group.variantFields.map((field) => (
+                      <th
+                        key={field}
+                        className="text-left text-gray-500 dark:text-gray-400 text-[11px] font-semibold uppercase tracking-[0.06em] p-[9px_12px] border-b border-gray-200 dark:border-[#293241] whitespace-nowrap"
+                      >
+                        {fieldLabel(field)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((record) => {
+                    const checked = selected.has(record.id);
+                    return (
+                      <tr
+                        key={record.id}
+                        className={`border-b border-gray-200 dark:border-[#293241] last:border-b-0 ${checked ? '' : 'opacity-40'}`}
+                      >
+                        <td className="p-[9px_12px] align-top">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggle(record.id)}
+                            aria-label={`Обрати ${settlementName(record) || record.id}`}
+                            className="w-4 h-4 accent-[#14AE5C] cursor-pointer mt-[2px]"
+                          />
+                        </td>
+                        {group.variantFields.map((field) => (
+                          <td
+                            key={field}
+                            className="p-[9px_12px] align-top text-gray-900 dark:text-white whitespace-nowrap"
+                          >
+                            {displayValue(field, record[field])}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-[10px] px-[16px] lg:px-[20px] py-[13px] bg-gray-50 dark:bg-[#1F2937]">
+              <span className="text-gray-600 dark:text-gray-300 text-[13px] tabular-nums">
+                Обрано {chosen} з {total}
+              </span>
+              <button
+                type="button"
+                onClick={() => approveGroup(group)}
+                disabled={processing || chosen === 0}
+                className="ml-auto inline-flex items-center gap-[7px] h-[38px] px-[15px] rounded bg-[#14AE5C] hover:bg-[#0F8A4A] text-white text-[14px] font-semibold transition-colors disabled:opacity-45 disabled:cursor-not-allowed"
+              >
+                <CheckCheck className="w-[15px] h-[15px]" strokeWidth={2} />
+                {processing ? 'Підтвердження триває...' : `Підтвердити обрані (${chosen})`}
+              </button>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function AdminApproveMassPage() {
   const { user, loading: userLoading } = useUser();
 
@@ -211,6 +538,7 @@ export default function AdminApproveMassPage() {
   const [selectedAuthorKey, setSelectedAuthorKey] = useState('');
   const [processing, setProcessing] = useState(false);
   const [lastBulkRun, setLastBulkRun] = useState<BulkRunItem[]>([]);
+  const [view, setView] = useState<ViewKey>('author');
 
   useEffect(() => {
     if (userLoading) return;
@@ -280,23 +608,24 @@ export default function AdminApproveMassPage() {
     );
   };
 
-  const handleBulkApprove = async () => {
-    if (!user?.id || !selectedAuthor || selectedRecords.length === 0) return;
+  // Чи має автор запису роль, за якої масове підтвердження не перепитує.
+  // У поданні за спільною частиною група може містити записи різних авторів,
+  // тож перевірка потрібна за кожним записом окремо.
+  const canApproveWithoutConfirm = (record: any) => {
+    const author = authors.find((item) => item.normalizedEmail === normalizeEmail(record?.email));
+    return author ? author.canApproveWithoutConfirm : false;
+  };
 
-    if (!selectedAuthor.canApproveWithoutConfirm) {
-      const confirmed = window.confirm(
-        `Користувач ${selectedAuthor.email} не має ролі admin, superuser або superadmin. Ви впевнені, що хочете підтвердити всі його записи?`
-      );
-
-      if (!confirmed) return;
-    }
+  /** Підтверджує довільний список записів. Спільне для обох подань. */
+  const runBulkApprove = async (list: any[]) => {
+    if (!user?.id || list.length === 0) return;
 
     setProcessing(true);
     setLastBulkRun([]);
 
     const runResults: BulkRunItem[] = [];
 
-    for (const record of selectedRecords) {
+    for (const record of list) {
       const result = await approveUnverifiedRecord({
         record,
         adminUserId: user.id,
@@ -334,6 +663,20 @@ export default function AdminApproveMassPage() {
     });
   };
 
+  const handleBulkApprove = async () => {
+    if (!selectedAuthor || selectedRecords.length === 0) return;
+
+    if (!selectedAuthor.canApproveWithoutConfirm) {
+      const confirmed = window.confirm(
+        `Користувач ${selectedAuthor.email} не має ролі admin, superuser або superadmin. Ви впевнені, що хочете підтвердити всі його записи?`
+      );
+
+      if (!confirmed) return;
+    }
+
+    await runBulkApprove(selectedRecords);
+  };
+
   if (loading || userLoading) {
     return (
       <>
@@ -365,9 +708,44 @@ export default function AdminApproveMassPage() {
             title={APPROVE_SECTION_TITLE}
             tabs={withCount(APPROVE_TABS, '/admin_approve_mass', records.length)}
             activeHref="/admin_approve_mass"
-            description="Оберіть автора, перегляньте зведення по його записах і підтвердьте їх однією дією з тією ж логікою перевірок, що й на сторінці поштучного підтвердження."
+            description="Підтвердження пачкою з тією ж логікою перевірок, що й на сторінці поштучного підтвердження."
           />
 
+          <div className="flex flex-wrap items-center gap-[10px] p-[12px] lg:p-[14px] mb-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
+            <span className="text-gray-500 dark:text-gray-400 text-[11px] font-bold uppercase tracking-[0.08em]">
+              Подання
+            </span>
+            {VIEWS.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setView(item.key)}
+                aria-pressed={view === item.key}
+                title={item.hint}
+                className={[
+                  'h-[32px] px-[14px] rounded-full text-[13px] transition-colors',
+                  view === item.key
+                    ? 'bg-gray-900 dark:bg-[#F3F4F6] text-white dark:text-[#111827] font-semibold'
+                    : 'border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] text-gray-700 dark:text-gray-300 font-medium',
+                ].join(' ')}
+              >
+                {item.label}
+              </button>
+            ))}
+            <span className="ml-auto text-gray-500 dark:text-gray-400 text-[12.5px]">
+              {VIEWS.find((item) => item.key === view)?.hint}
+            </span>
+          </div>
+
+          {view === 'common' ? (
+            <CommonPartView
+              records={records}
+              processing={processing}
+              lastBulkRun={lastBulkRun}
+              canApproveWithoutConfirm={canApproveWithoutConfirm}
+              onApprove={runBulkApprove}
+            />
+          ) : (
           <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-[20px]">
             <aside className="space-y-[20px]">
               <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937]">
@@ -608,6 +986,7 @@ export default function AdminApproveMassPage() {
               )}
             </section>
           </div>
+          )}
         </div>
       </div>
 

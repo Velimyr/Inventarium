@@ -13,17 +13,23 @@ import type { MessageType } from './messageUtils';
 import {
   SIGNATURE_FIELDS,
   buildCaseSignature,
-  formatSignatureList,
   fromSignatureList,
   hasAllArchiveParts,
   isSignatureField,
   resolveIsUkrainianArchive,
-  sameSignatureList,
   validateCaseSignature,
   validateSignatureFormats,
 } from './caseSignature';
+import { SERVICE_FIELDS, sameFieldValue } from './recordFields';
 
-export const ADDITIONAL_SIGNATURE_FIELD = 'additional_case_signature';
+// Словник полів спільний із чергою нових справ — див. lib/recordFields.ts
+export {
+  ADDITIONAL_SIGNATURE_FIELD,
+  FIELD_LABELS,
+  displayValue,
+  fieldLabel,
+} from './recordFields';
+import { ADDITIONAL_SIGNATURE_FIELD, fieldLabel } from './recordFields';
 
 // Поля шифру підтверджуються одним чекбоксом: підтвердити, скажімо, фонд
 // окремо від case_signature означає лишити запис із шифром від однієї
@@ -31,73 +37,14 @@ export const ADDITIONAL_SIGNATURE_FIELD = 'additional_case_signature';
 export const SIGNATURE_BLOCK_KEY = '__signature_block';
 
 // Службові поля records_edit — не показуємо і не переносимо в records.
-export const EXCLUDED_FIELDS = [
-  'id', 'approved', 'email', 'created_by', 'created_at',
-  'comment', 'json_full_data', 'cobook_link',
-];
-
-export const FIELD_LABELS: Record<string, string> = {
-  old_province: 'Воєводство (Губернія)',
-  old_district: 'Повіт (Район)',
-  old_community: 'Ключ (Староство)',
-  old_settlement_type: 'Тип н.п. (давній)',
-  old_settlement_name: 'Назва н.п. (давня)',
-  current_country: 'Країна',
-  current_region: 'Сучасна область',
-  current_district: 'Сучасний район',
-  current_community: 'Сучасна громада',
-  current_settlement_type: 'Тип н.п. (сучасний)',
-  current_settlement_name: 'Назва н.п. (сучасна)',
-  latitude: 'Широта',
-  longitude: 'Довгота',
-  mark_type: 'Тип позначки',
-  is_ukrainian_archive: 'Справа в українському архіві',
-  case_signature: 'Шифр справи',
-  archive: 'Архів',
-  fonds: 'Фонд',
-  series: 'Опис',
-  record: 'Справа',
-  additional_case_signature: 'Шифри дод. справ',
-  case_date: 'Дати справи',
-  inventory_year: 'Рік складання інвентаря',
-  inventory_type: 'Тип документа',
-  pages_count: 'К-ть сторінок',
-  inventory_start_page: 'Сторінка поч. інвентаря',
-  scans_url: 'Посилання на скани',
-  case_title: 'Назва справи',
-  notes: 'Примітки',
-};
-
-export const fieldLabel = (field: string) => FIELD_LABELS[field] || field;
-
-// Значення поля в таблиці. Дод. сигнатури — масив, і його треба зібрати в рядок:
-// React вивів би елементи масиву впритул один до одного.
-export const displayValue = (field: string, value: any) => {
-  if (field === ADDITIONAL_SIGNATURE_FIELD) return formatSignatureList(value) || '—';
-  return value === null || value === undefined || value === '' ? '—' : String(value);
-};
-
-const isBlank = (value: any) => value === null || value === undefined || value === '';
+export const EXCLUDED_FIELDS = SERVICE_FIELDS;
 
 /**
- * Чи змінилося поле.
- *
- * Порівняння не може бути простим `!==`:
- *   - дод. сигнатура — масив, у якого `!==` завжди істинний, тож порівнюємо вміст;
- *   - порожнє поле приходить то як null, то як '' (залежно від форми й колонки),
- *     і null проти '' — це не редагування;
- *   - числові колонки (широта, рік) повертаються числом, а з форми приходять
- *     рядком, тож «50.1194691» проти 50.1194691 — теж не редагування.
- *
- * Без цього кожен запис виглядав би зміненим у півдесятку полів, а масова
- * сторінка групувала б редагування за неіснуючими правками.
+ * Чи змінилося поле — заперечення рівності значень (див. sameFieldValue).
+ * Виділене ім'я лишається, бо в контексті редагувань читається точніше.
  */
-export const fieldChanged = (field: string, edited: any, original: any) => {
-  if (field === ADDITIONAL_SIGNATURE_FIELD) return !sameSignatureList(edited, original);
-  if (isBlank(edited) && isBlank(original)) return false;
-  if (isBlank(edited) || isBlank(original)) return true;
-  return String(edited).trim() !== String(original).trim();
-};
+export const fieldChanged = (field: string, edited: any, original: any) =>
+  !sameFieldValue(field, edited, original);
 
 export type EditChange = {
   field: string;

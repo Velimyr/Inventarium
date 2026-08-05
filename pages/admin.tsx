@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { useUser } from '../contexts/UserContext';
 import { isAdminUser } from '../lib/adminUsers';
-import { BarChart3, FileText, Bell, Edit, Search, Send, ArrowRight, CheckCheck, KeyRound, Copy, Settings } from 'lucide-react';
+import { BarChart3, FileText, Bell, Edit, Search, Send, ArrowRight, KeyRound, Copy, Settings } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { user, loading: userLoading } = useUser();
@@ -139,54 +140,16 @@ export default function AdminDashboard() {
               </button>
             </section>
 
-            {/* Необроблені інвентарі */}
-            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
-              <div>
-                <div className="flex items-center gap-[10px] mb-[15px]">
-                  <FileText className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
-                  <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
-                    К-ть необроблених інвентарів
-                  </h2>
-                </div>
-                <p className="text-gray-900 dark:text-white text-[32px] lg:text-[40px] font-bold">
-                  {unverifiedCount ?? '—'}
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  window.location.href = '/admin_approve';
-                }}
-                className="flex items-center justify-center gap-[8px] w-full h-[40px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded transition-colors mt-[15px]"
-                type="button"
-              >
-                <span className="text-[14px] lg:text-[16px] font-medium">Почати обробку інвентарів</span>
-                <ArrowRight className="w-5 h-5" strokeWidth={2} />
-              </button>
-            </section>
-
-            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
-              <div>
-                <div className="flex items-center gap-[10px] mb-[15px]">
-                  <CheckCheck className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
-                  <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
-                    Масове підтвердження
-                  </h2>
-                </div>
-                <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80">
-                  Підтвердити необроблені інвентарі пакетно за автором
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  window.location.href = '/admin_approve_mass';
-                }}
-                className="flex items-center justify-center gap-[8px] w-full h-[40px] bg-[#14AE5C] hover:bg-[#0F8A4A] text-white rounded transition-colors mt-[15px]"
-                type="button"
-              >
-                <span className="text-[14px] lg:text-[16px] font-medium">Відкрити масове підтвердження</span>
-                <ArrowRight className="w-5 h-5" strokeWidth={2} />
-              </button>
-            </section>
+            {/* Підтвердження нових інвентарів — два режими обробки однієї черги */}
+            <QueueSection
+              icon={<FileText className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />}
+              title="Підтвердження нових інвентарів"
+              count={unverifiedCount}
+              hint="Необроблені інвентарі з records_unverified"
+              singleHref="/admin_approve"
+              massHref="/admin_approve_mass"
+              massLabel="Масове підтвердження"
+            />
 
             {/* Непідтверджені підписки */}
             <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
@@ -213,30 +176,16 @@ export default function AdminDashboard() {
               </button>
             </section>
 
-            {/* Редаговані інвентарі */}
-            <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
-              <div>
-                <div className="flex items-center gap-[10px] mb-[15px]">
-                  <Edit className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
-                  <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
-                    К-ть редагованих інвентарів
-                  </h2>
-                </div>
-                <p className="text-gray-900 dark:text-white text-[32px] lg:text-[40px] font-bold">
-                  {editCount ?? '—'}
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  window.location.href = '/admin_editapprove';
-                }}
-                className="flex items-center justify-center gap-[8px] w-full h-[40px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded transition-colors mt-[15px]"
-                type="button"
-              >
-                <span className="text-[14px] lg:text-[16px] font-medium">Почати обробку інвентарів</span>
-                <ArrowRight className="w-5 h-5" strokeWidth={2} />
-              </button>
-            </section>
+            {/* Редагування інвентарів — два режими обробки однієї черги */}
+            <QueueSection
+              icon={<Edit className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />}
+              title="Редагування інвентарів"
+              count={editCount}
+              hint="Запропоновані зміни з records_edit"
+              singleHref="/admin_editapprove"
+              massHref="/admin_editapprove_mass"
+              massLabel="Масове редагування"
+            />
 
             {/* Ідентифіковані інвентарі */}
             <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
@@ -367,5 +316,54 @@ export default function AdminDashboard() {
         </div>
       </div>
     </>
+  );
+}
+
+type QueueSectionProps = {
+  icon: ReactNode;
+  title: string;
+  count: number | null;
+  hint: string;
+  singleHref: string;
+  massHref: string;
+  massLabel: string;
+};
+
+/**
+ * Черга з двома режимами обробки. Поштучний і масовий режими — це та сама
+ * черга, а не два різні розділи, тому в дашборді вони живуть в одній картці.
+ */
+function QueueSection({ icon, title, count, hint, singleHref, massHref, massLabel }: QueueSectionProps) {
+  return (
+    <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] flex flex-col justify-between min-h-[200px]">
+      <div>
+        <div className="flex items-center gap-[10px] mb-[15px]">
+          {icon}
+          <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">{title}</h2>
+        </div>
+        <p className="text-gray-900 dark:text-white text-[32px] lg:text-[40px] font-bold leading-none">
+          {count ?? '—'}
+        </p>
+        <p className="text-gray-700 dark:text-white text-[14px] opacity-80 mt-[8px]">{hint}</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-[10px] mt-[15px]">
+        <Link
+          href={singleHref}
+          className="flex items-center justify-center gap-[8px] h-[40px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded transition-colors"
+        >
+          <span className="text-[14px] lg:text-[16px] font-medium">Поштучно</span>
+          <ArrowRight className="w-5 h-5" strokeWidth={2} />
+        </Link>
+        <Link
+          href={massHref}
+          title={massLabel}
+          className="flex items-center justify-center gap-[8px] h-[40px] bg-[#14AE5C] hover:bg-[#0F8A4A] text-white rounded transition-colors"
+        >
+          <span className="text-[14px] lg:text-[16px] font-medium">Масово</span>
+          <ArrowRight className="w-5 h-5" strokeWidth={2} />
+        </Link>
+      </div>
+    </section>
   );
 }

@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import Header from '../components/header';
 import Toast from '../components/Toast';
+import AdminSectionTabs, { APPROVE_SECTION_TITLE, APPROVE_TABS, withCount } from '../components/AdminSectionTabs';
 import { useUser } from '../contexts/UserContext';
 import { supabase } from '../lib/supabaseClient';
 import { approveUnverifiedRecord } from '../lib/adminApproveUtils';
@@ -360,15 +361,12 @@ export default function AdminApproveMassPage() {
       <Header />
       <div className="min-h-screen bg-white dark:bg-[#111827]">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
-          <div className="flex flex-col gap-[10px] mb-[20px]">
-            <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold">
-              Масове підтвердження інвентарів
-            </h1>
-            <p className="text-gray-700 dark:text-gray-300 text-[14px] lg:text-[16px] max-w-[900px]">
-              Оберіть автора, перегляньте зведення по його записах і підтвердьте їх однією дією з тією ж логікою перевірок,
-              що й на сторінці одиночного підтвердження.
-            </p>
-          </div>
+          <AdminSectionTabs
+            title={APPROVE_SECTION_TITLE}
+            tabs={withCount(APPROVE_TABS, '/admin_approve_mass', records.length)}
+            activeHref="/admin_approve_mass"
+            description="Оберіть автора, перегляньте зведення по його записах і підтвердьте їх однією дією з тією ж логікою перевірок, що й на сторінці поштучного підтвердження."
+          />
 
           <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-[20px]">
             <aside className="space-y-[20px]">

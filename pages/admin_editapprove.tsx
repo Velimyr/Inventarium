@@ -2,40 +2,22 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import Toast from '../components/Toast';
+import AdminSectionTabs, { EDIT_SECTION_TITLE, EDIT_TABS, withCount } from '../components/AdminSectionTabs';
 import { useUser } from '../contexts/UserContext';
 import { sendNotification } from '../components/notifications';
 import { FileText, Check, X, ChevronLeft, ChevronRight, ExternalLink, Mail } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
 import DuplicateWarnings from '../components/DuplicateWarnings';
 import InventoryTypeWarning from '../components/InventoryTypeWarning';
+import { SIGNATURE_FIELDS, isSignatureField } from '../lib/caseSignature';
 import {
-    SIGNATURE_FIELDS,
-    buildCaseSignature,
-    formatSignatureList,
-    fromSignatureList,
-    hasAllArchiveParts,
-    isSignatureField,
-    resolveIsUkrainianArchive,
-    sameSignatureList,
-    validateCaseSignature,
-    validateSignatureFormats,
-} from '../lib/caseSignature';
-
-const ADDITIONAL_SIGNATURE_FIELD = 'additional_case_signature';
-
-// Значення поля в таблиці. Дод. сигнатури — масив, і його треба зібрати в рядок:
-// React вивів би елементи масиву впритул один до одного.
-const displayValue = (field: string, value: any) => {
-    if (field === ADDITIONAL_SIGNATURE_FIELD) return formatSignatureList(value) || '—';
-    return value === null || value === undefined || value === '' ? '—' : String(value);
-};
-
-// Чи змінилося поле. Для масиву `!==` завжди істинний — порівнюємо вміст,
-// інакше дод. сигнатура потрапляла б у список змін у кожному записі.
-const fieldChanged = (field: string, edited: any, original: any) => {
-    if (field === ADDITIONAL_SIGNATURE_FIELD) return !sameSignatureList(edited, original);
-    return edited !== original;
-};
+    EXCLUDED_FIELDS,
+    FIELD_LABELS,
+    SIGNATURE_BLOCK_KEY,
+    buildEditUpdate,
+    displayValue,
+    fieldChanged,
+} from '../lib/editApprove';
 
 export default function ReviewEditedRecordsPage() {
     const { user, loading: userLoading } = useUser();
@@ -48,45 +30,9 @@ export default function ReviewEditedRecordsPage() {
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [confirmFields, setConfirmFields] = useState<Record<string, Record<string, boolean>>>({});
 
-    const fieldLabels: Record<string, string> = {
-        old_province: 'Воєводство (Губернія)',
-        old_district: 'Повіт (Район)',
-        old_community: 'Ключ (Староство)',
-        old_settlement_type: 'Тип н.п. (давній)',
-        old_settlement_name: 'Назва н.п. (давня)',
-        current_country: 'Країна',
-        current_region: 'Сучасна область',
-        current_district: 'Сучасний район',
-        current_community: 'Сучасна громада',
-        current_settlement_type: 'Тип н.п. (сучасний)',
-        current_settlement_name: 'Назва н.п. (сучасна)',
-        latitude: 'Широта',
-        longitude: 'Довгота',
-        mark_type: 'Тип позначки',
-        is_ukrainian_archive: 'Справа в українському архіві',
-        case_signature: 'Шифр справи',
-        archive: 'Архів',
-        fonds: 'Фонд',
-        series: 'Опис',
-        record: 'Справа',
-        additional_case_signature: 'Шифри дод. справ',
-        case_date: 'Дати справи',
-        inventory_year: 'Рік складання інвентаря',
-        inventory_type: 'Тип документа',
-        pages_count: 'К-ть сторінок',
-        inventory_start_page: 'Сторінка поч. інвентаря',
-        scans_url: 'Посилання на скани',
-        case_title: 'Назва справи',
-        notes: 'Примітки',
-    };
-
-    // Fields excluded from display and updates
-    const EXCLUDED_FIELDS = ['id', 'approved', 'email', 'created_by', 'created_at', 'comment', 'json_full_data', 'cobook_link'];
-
-    // Поля шифру підтверджуються одним чекбоксом: підтвердити, скажімо, фонд
-    // окремо від case_signature означає лишити запис із шифром від однієї
-    // справи і координатами від іншої.
-    const SIGNATURE_BLOCK_KEY = '__signature_block';
+    // Підписи, службові поля й правила запису шифру спільні з масовою
+    // сторінкою — див. lib/editApprove.ts
+    const fieldLabels = FIELD_LABELS;
 
     useEffect(() => {
         if (userLoading) return;
@@ -194,49 +140,15 @@ export default function ReviewEditedRecordsPage() {
         if (!fieldsToUpdate) return;
 
         const recordOriginal = recordsOriginal[recordEdit.id] || {};
-        const value = (field: string) => {
-            if (field === ADDITIONAL_SIGNATURE_FIELD) return fromSignatureList(recordEdit[field]);
-            return recordEdit[field] === '' ? null : recordEdit[field];
-        };
 
-        const updateData: Record<string, any> = { id: recordEdit.id };
-        Object.entries(fieldsToUpdate).forEach(([field, checked]) => {
-            // поля шифру обробляємо нижче, одним блоком
-            if (field === SIGNATURE_BLOCK_KEY || isSignatureField(field)) return;
-            if (checked && !EXCLUDED_FIELDS.includes(field)) {
-                updateData[field] = value(field);
-            }
-        });
+        const { updateData, error: buildError } = buildEditUpdate(
+            recordEdit,
+            recordOriginal,
+            (field) => !!fieldsToUpdate[field]
+        );
 
-        // Блок шифру: або всі п'ять полів разом, або жодного
-        const signatureChanged = SIGNATURE_FIELDS.some((field) => recordEdit[field] !== recordOriginal[field]);
-        if (signatureChanged && fieldsToUpdate[SIGNATURE_BLOCK_KEY]) {
-            for (const field of SIGNATURE_FIELDS) updateData[field] = value(field);
-            updateData.is_ukrainian_archive = resolveIsUkrainianArchive(recordEdit);
-
-            // Шифр збираємо зі складових, а не довіряємо тому, що прийшло у формі
-            if (updateData.is_ukrainian_archive === 'Так' && hasAllArchiveParts(updateData)) {
-                updateData.case_signature = buildCaseSignature(updateData);
-            }
-
-            const signatureError = validateCaseSignature(updateData);
-            if (signatureError) {
-                setToast({ message: `❌ ${signatureError}`, type: 'error' });
-                return;
-            }
-        }
-
-        if (Object.keys(updateData).length <= 1) {
-            setToast({ message: 'ℹ️ Оберіть хоча б одне поле для підтвердження', type: 'error' });
-            return;
-        }
-
-        // Формат шифру/додаткових сигнатур серед підтверджених полів. Блок шифру
-        // вже пройшов validateCaseSignature вище; тут ловимо випадок, коли
-        // змінилась лише additional_case_signature (вона не в SIGNATURE_FIELDS).
-        const formatError = validateSignatureFormats(updateData);
-        if (formatError) {
-            setToast({ message: `❌ ${formatError}`, type: 'error' });
+        if (buildError || !updateData) {
+            setToast({ message: `❌ ${buildError}`, type: 'error' });
             return;
         }
 
@@ -393,8 +305,15 @@ export default function ReviewEditedRecordsPage() {
         return (
             <>
                 <Header />
-                <div className="min-h-screen bg-white dark:bg-[#111827] flex items-center justify-center">
-                    <p className="text-gray-900 dark:text-white text-[16px]">Немає змін для перевірки</p>
+                <div className="min-h-screen bg-white dark:bg-[#111827]">
+                    <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
+                        <AdminSectionTabs
+                            title={EDIT_SECTION_TITLE}
+                            tabs={withCount(EDIT_TABS, '/admin_editapprove', 0)}
+                            activeHref="/admin_editapprove"
+                        />
+                        <p className="text-gray-700 dark:text-gray-300 text-[16px]">Немає змін для перевірки</p>
+                    </div>
                 </div>
             </>
         );
@@ -438,10 +357,11 @@ export default function ReviewEditedRecordsPage() {
             <Header />
             <div className="min-h-screen bg-white dark:bg-[#111827]">
                 <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
-                    {/* Page Title */}
-                    <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px] lg:mb-[30px]">
-                        Перегляд редагованих записів
-                    </h1>
+                    <AdminSectionTabs
+                        title={EDIT_SECTION_TITLE}
+                        tabs={withCount(EDIT_TABS, '/admin_editapprove', recordsEdit.length)}
+                        activeHref="/admin_editapprove"
+                    />
 
                     <DuplicateWarnings record={editCandidate} />
 

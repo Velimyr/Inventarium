@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import Toast from '../components/Toast';
+import AdminSectionTabs, { APPROVE_SECTION_TITLE, APPROVE_TABS, withCount } from '../components/AdminSectionTabs';
 import dynamic from 'next/dynamic';
 import { useUser } from '../contexts/UserContext';
 import SubscriptionNotifier from '../components/SubscriptionNotifier';
@@ -336,9 +337,12 @@ export default function AdminPage() {
       <Header />
       <div className="min-h-screen bg-white dark:bg-[#111827]">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[50px] py-[20px] lg:py-[30px]">
-          <h1 className="text-gray-900 dark:text-[#F3F4F6] text-[24px] md:text-[28px] lg:text-[32px] font-bold mb-[20px]">
-            🛠 Перевірте інвентар і внесіть зміни, якщо вони потрібні
-          </h1>
+          <AdminSectionTabs
+            title={APPROVE_SECTION_TITLE}
+            tabs={withCount(APPROVE_TABS, '/admin_approve', records.length)}
+            activeHref="/admin_approve"
+            description="Перевірте інвентар і внесіть зміни, якщо вони потрібні."
+          />
 
           {records.length === 0 ? (
             <p className="text-gray-700 dark:text-gray-300 text-[16px]">Немає записів для перевірки</p>

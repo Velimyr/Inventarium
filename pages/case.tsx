@@ -1,12 +1,14 @@
 // pages/case.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import ClientOnly from '../components/clientonly';
+import YearLinks from '../components/YearLinks';
 import { ChevronDown } from 'lucide-react';
 import { isNamedLevel } from '../components/keys/regionData';
+import { groupSameExceptYear, rowKey } from '../lib/yearRows';
 
 const CaseMapComponent = dynamic(() => import('../components/CaseMapComponent'), { ssr: false });
 
@@ -36,12 +38,32 @@ interface Record {
     record: string | null;
 }
 
+// Усі рядки цієї сторінки належать одній справі, тож відрізняє їх населений
+// пункт — сучасний і давній разом з адмінподілом. Рік до ключа не входить:
+// саме за ним рядки й зводяться.
+const settlementKey = (record: Record) =>
+    rowKey([
+        record.current_settlement_type,
+        record.current_settlement_name,
+        record.old_settlement_type,
+        record.old_settlement_name,
+        record.current_country,
+        record.current_region,
+        record.current_district,
+        record.current_community,
+        record.old_province,
+        record.old_district,
+        record.old_community,
+    ]);
+
 export default function CasePage() {
     const router = useRouter();
     const { case_signature } = router.query;
     const [records, setRecords] = useState<Record[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [caseInfo, setCaseInfo] = useState<any>(null);
+
+    const rows = useMemo(() => groupSameExceptYear(records, settlementKey), [records]);
 
     useEffect(() => {
         if (!case_signature) return;
@@ -121,6 +143,12 @@ export default function CasePage() {
                         <>
                             <p className="text-gray-900 dark:text-[#F3F4F6] text-[16px] lg:text-[18px] mb-[15px]">
                                 Знайдено {records.length} {records.length === 1 ? 'запис' : records.length < 5 ? 'записи' : 'записів'}
+                                {rows.length < records.length && (
+                                    <span className="text-gray-600 dark:text-gray-400 text-[14px]">
+                                        {' '}— у {rows.length} {rows.length === 1 ? 'рядку' : 'рядках'}: інвентарі того самого
+                                        населеного пункту зведені, роки поруч
+                                    </span>
+                                )}
                             </p>
 
                             {/* Desktop Table */}
@@ -136,13 +164,19 @@ export default function CasePage() {
 
                                     {/* Table Body */}
                                     <div className="divide-y divide-gray-200 dark:divide-[#374151]">
-                                        {records.map((record, index) => (
+                                        {rows.map((row, index) => {
+                                            const record = row.items[0];
+                                            // Зведений рядок веде одразу в кілька записів, тож клік
+                                            // по ньому цілком неоднозначний — посиланнями стають роки
+                                            const single = row.items.length === 1;
+
+                                            return (
                                             <div
-                                                key={record.id}
-                                                className={`grid grid-cols-[2fr_2fr_3fr_1fr] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors ${
-                                                    index % 2 === 0 ? '' : 'bg-gray-50 dark:bg-[#1F2937]'
-                                                }`}
-                                                onClick={() => router.push(`/record/${record.id}`)}
+                                                key={row.key}
+                                                className={`grid grid-cols-[2fr_2fr_3fr_1fr] hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors ${
+                                                    single ? 'cursor-pointer' : ''
+                                                } ${index % 2 === 0 ? '' : 'bg-gray-50 dark:bg-[#1F2937]'}`}
+                                                onClick={single ? () => router.push(`/record/${record.id}`) : undefined}
                                             >
                                                 <TableCell>
                                                     {record.current_settlement_type} {record.current_settlement_name || '—'}
@@ -173,20 +207,29 @@ export default function CasePage() {
                                                         )}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell>{record.inventory_year || '—'}</TableCell>
+                                                <TableCell>
+                                                    <YearLinks items={row.items} className="justify-center" />
+                                                </TableCell>
                                             </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
 
                             {/* Mobile Cards */}
                             <div className="block lg:hidden space-y-4">
-                                {records.map((record) => (
+                                {rows.map((row) => {
+                                    const record = row.items[0];
+                                    const single = row.items.length === 1;
+
+                                    return (
                                     <div
-                                        key={record.id}
-                                        className="p-4 border border-gray-300 dark:border-[#374151] rounded-lg bg-gray-50 dark:bg-[#1F2937] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors"
-                                        onClick={() => router.push(`/record/${record.id}`)}
+                                        key={row.key}
+                                        className={`p-4 border border-gray-300 dark:border-[#374151] rounded-lg bg-gray-50 dark:bg-[#1F2937] hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors ${
+                                            single ? 'cursor-pointer' : ''
+                                        }`}
+                                        onClick={single ? () => router.push(`/record/${record.id}`) : undefined}
                                     >
                                         <div className="space-y-3">
                                             <div>
@@ -200,10 +243,10 @@ export default function CasePage() {
 
                                             <div>
                                                 <div className="text-[12px] font-medium text-gray-700 dark:text-gray-400 mb-1">
-                                                    Рік інвентаря
+                                                    {row.items.length > 1 ? 'Роки інвентарів' : 'Рік інвентаря'}
                                                 </div>
                                                 <div className="text-[13px] text-gray-900 dark:text-white">
-                                                    {record.inventory_year || '—'}
+                                                    <YearLinks items={row.items} />
                                                 </div>
                                             </div>
 
@@ -244,7 +287,8 @@ export default function CasePage() {
                                             )}
                                         </div>
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </>
                     )}

@@ -1,11 +1,26 @@
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
+import YearLinks from '../components/YearLinks';
 import { ChevronDown, ChevronLeft, ChevronRight, Check, X } from "lucide-react";
 import { isNamedLevel } from '../components/keys/regionData';
+import { groupSameExceptYear, rowKey } from '../lib/yearRows';
 
+// Сторінка рахується в РЯДКАХ таблиці, а не в записах: інакше група, розірвана
+// між сторінками, не змогла б злитись. Записи населеного пункту тягнемо одним
+// запитом — їх мало (медіана 2, максимум по базі 60), тож ділити нема чого.
 const PAGE_SIZE = 20;
+
+// Стеля на випадок, якщо колись з'явиться населений пункт із сотнями інвентарів:
+// мовчки показати частину гірше, ніж сказати про це (див. підпис нижче).
+const MAX_RECORDS = 1000;
+
+// Усі рядки цієї сторінки належать одному населеному пункту, тож відрізняє їх
+// справа. У ключ входить рівно те, що показує таблиця: шифр, назва справи і
+// наявність сканів (саме наявність, бо колонка показує статус, а не адресу).
+const caseKey = (record: any) =>
+  rowKey([record.case_signature, record.case_title, record.scans_url ? 'scans' : 'no-scans']);
 
 export default function SettlementRecordsPage() {
   const router = useRouter();
@@ -30,14 +45,13 @@ export default function SettlementRecordsPage() {
       current_district &&
       current_region
     ) {
+      setPage(0);
       fetchRecords();
     }
-  }, [current_settlement_name, current_community, current_district, current_region, page]);
+  }, [current_settlement_name, current_community, current_district, current_region]);
 
   const fetchRecords = async () => {
     setLoading(true);
-    const from = page * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
 
     // Країну додаємо лише коли вона є в посиланні: збережені раніше URL її не мають
     const { data, error, count } = await supabase
@@ -52,7 +66,7 @@ export default function SettlementRecordsPage() {
         ...(current_country ? { current_country } : {}),
       })
       .order('inventory_year', { ascending: false })
-      .range(from, to);
+      .limit(MAX_RECORDS);
 
     if (error) {
       console.error('Помилка:', error);
@@ -65,7 +79,19 @@ export default function SettlementRecordsPage() {
     setLoading(false);
   };
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  // Спершу зводимо всі записи населеного пункту, і лише потім ріжемо на
+  // сторінки — тому жодна група не може розірватись між сторінками.
+  const allRows = useMemo(() => groupSameExceptYear(records, caseKey), [records]);
+  const totalPages = Math.ceil(allRows.length / PAGE_SIZE);
+  const rows = useMemo(
+    () => allRows.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
+    [allRows, page]
+  );
+
+  // Записів побільшало, поки гортали — не лишаємось на сторінці, якої вже немає
+  useEffect(() => {
+    if (page > 0 && page >= totalPages) setPage(Math.max(totalPages - 1, 0));
+  }, [page, totalPages]);
 
   return (
     <>
@@ -89,6 +115,17 @@ export default function SettlementRecordsPage() {
           {!loading && (
             <div className="text-gray-900 dark:text-[#F3F4F6] text-base md:text-lg mb-4 md:mb-[15px]">
               Знайдено {totalCount} {totalCount === 1 ? 'інвентар' : totalCount < 5 ? 'інвентарі' : 'інвентарів'}
+              {allRows.length < records.length && (
+                <span className="text-gray-600 dark:text-gray-400 text-sm">
+                  {' '}— у {allRows.length} {allRows.length === 1 ? 'рядку' : 'рядках'}: інвентарі однієї справи
+                  зведені, роки поруч
+                </span>
+              )}
+              {totalCount > records.length && (
+                <span className="text-[#92400E] dark:text-[#FCD34D] text-sm">
+                  {' '}— показано перші {records.length}
+                </span>
+              )}
             </div>
           )}
 
@@ -125,13 +162,19 @@ export default function SettlementRecordsPage() {
 
                   {/* Table Body */}
                   <div className="divide-y divide-gray-200 dark:divide-[#374151]">
-                    {records.map((record, index) => (
+                    {rows.map((row, index) => {
+                      const record = row.items[0];
+                      // Зведений рядок веде одразу в кілька записів, тож клік по
+                      // ньому цілком неоднозначний — посиланнями стають роки
+                      const single = row.items.length === 1;
+
+                      return (
                       <div
-                        key={record.id}
-                        className={`flex min-w-full cursor-pointer hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors ${
-                          index % 2 === 0 ? '' : 'bg-gray-50 dark:bg-[#1F2937]'
-                        }`}
-                        onClick={() => window.location.href = `/record/${record.id}`}
+                        key={row.key}
+                        className={`flex min-w-full hover:bg-gray-100 dark:hover:bg-[#1F2937] transition-colors ${
+                          single ? 'cursor-pointer' : ''
+                        } ${index % 2 === 0 ? '' : 'bg-gray-50 dark:bg-[#1F2937]'}`}
+                        onClick={single ? () => { window.location.href = `/record/${record.id}`; } : undefined}
                       >
                         <div className="w-[180px] border-r border-gray-200 dark:border-[#374151] flex items-center justify-center p-3">
                           <span className="text-gray-900 dark:text-white text-sm text-center">
@@ -140,7 +183,7 @@ export default function SettlementRecordsPage() {
                         </div>
                         <div className="w-[100px] border-r border-gray-200 dark:border-[#374151] flex items-center justify-center p-3">
                           <span className="text-gray-900 dark:text-white text-sm text-center">
-                            {record.inventory_year || '-'}
+                            <YearLinks items={row.items} className="justify-center" />
                           </span>
                         </div>
                         <div className="flex-1 border-r border-gray-200 dark:border-[#374151] flex items-center justify-center p-3">
@@ -162,18 +205,25 @@ export default function SettlementRecordsPage() {
                           )}
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
 
               {/* Data Cards - Mobile/Tablet */}
               <div className="lg:hidden space-y-4 mb-6">
-                {records.map((record) => (
+                {rows.map((row) => {
+                  const record = row.items[0];
+                  const single = row.items.length === 1;
+
+                  return (
                   <div
-                    key={record.id}
-                    className="bg-gray-50 dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors"
-                    onClick={() => window.location.href = `/record/${record.id}`}
+                    key={row.key}
+                    className={`bg-gray-50 dark:bg-[#1F2937] border border-gray-300 dark:border-[#374151] rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-[#374151] transition-colors ${
+                      single ? 'cursor-pointer' : ''
+                    }`}
+                    onClick={single ? () => { window.location.href = `/record/${record.id}`; } : undefined}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
@@ -182,8 +232,12 @@ export default function SettlementRecordsPage() {
                         </h3>
                         <div className="space-y-1 text-sm">
                           <div className="flex gap-2">
-                            <span className="text-gray-600 dark:text-gray-400">Рік:</span>
-                            <span className="text-gray-900 dark:text-white">{record.inventory_year || '-'}</span>
+                            <span className="text-gray-600 dark:text-gray-400">
+                              {row.items.length > 1 ? 'Роки:' : 'Рік:'}
+                            </span>
+                            <span className="text-gray-900 dark:text-white">
+                              <YearLinks items={row.items} />
+                            </span>
                           </div>
                           <div className="flex gap-2">
                             <span className="text-gray-600 dark:text-gray-400">Сигнатура:</span>
@@ -206,7 +260,8 @@ export default function SettlementRecordsPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Pagination */}

@@ -501,25 +501,30 @@ export default function RecordPage() {
                                     <p className="text-gray-700 dark:text-white text-[14px] lg:text-[16px] opacity-80">
                                         Для цього інвентарного опису вже існує проект транскрибування в CoBook.
                                     </p>
-                                    <div className="flex flex-wrap gap-[10px]">
+                                    {/* Ненав'язливі посилання — той самий вигляд, що й у варіанті нижче */}
+                                    <div className="flex flex-wrap gap-[15px]">
                                         <a
                                             href={`https://cobook.today/${record.cobook_link}`}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="inline-flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
+                                            className="inline-flex items-center gap-[5px] group"
                                         >
-                                            <ExternalLink className="w-4 h-4 text-white flex-shrink-0" strokeWidth={1.6} />
-                                            <span className="text-white text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Переглянути проект</span>
+                                            <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] font-medium">Переглянути проект</span>
+                                            <span className="flex items-center justify-center w-4 h-4 rounded bg-white dark:bg-white group-hover:bg-[#2563EB] transition-colors flex-shrink-0">
+                                                <ArrowUpRight className="w-3 h-3 text-gray-900 dark:text-gray-900 group-hover:text-white transition-colors" strokeWidth={2} />
+                                            </span>
                                         </a>
                                         {record.cobook_transcript && (
                                             <a
                                                 href={record.cobook_transcript}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="inline-flex items-center gap-[8px] lg:gap-[10px] px-[12px] lg:px-[15px] h-[36px] lg:h-[40px] rounded bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors"
+                                                className="inline-flex items-center gap-[5px] group"
                                             >
-                                                <FileText className="w-4 h-4 text-white flex-shrink-0" strokeWidth={1.6} />
-                                                <span className="text-white text-[14px] lg:text-[16px] font-medium whitespace-nowrap">Транскрипція інвентаря</span>
+                                                <span className="text-gray-900 dark:text-white text-[14px] lg:text-[16px] font-medium">Транскрипція інвентаря</span>
+                                                <span className="flex items-center justify-center w-4 h-4 rounded bg-white dark:bg-white group-hover:bg-[#2563EB] transition-colors flex-shrink-0">
+                                                    <ArrowUpRight className="w-3 h-3 text-gray-900 dark:text-gray-900 group-hover:text-white transition-colors" strokeWidth={2} />
+                                                </span>
                                             </a>
                                         )}
                                     </div>

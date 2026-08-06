@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { sendNotification } from '../../components/notifications';
 import { getAdminUserIds } from '../../lib/adminUsers';
 import { MapPin, FileText, Save, X, Check, ChevronDown } from 'lucide-react';
-import { formatSignatureList, fromSignatureList } from '../../lib/caseSignature';
+import { formatSignatureList, normalizeSignatureFields } from '../../lib/caseSignature';
 import HelpTooltip from '../../components/HelpTooltip';
 import InventoryTypeWarning from '../../components/InventoryTypeWarning';
 import { INVENTORY_TYPES, suggestInventoryType } from '../../lib/inventoryType';
@@ -333,7 +333,7 @@ export default function NotIdentifyDetails() {
             }
         }
 
-        const payload = {
+        const payload = normalizeSignatureFields({
             case_signature: record.case_signature || null,
             archive: record.archive || null,
             fonds: record.fonds || null,
@@ -342,7 +342,7 @@ export default function NotIdentifyDetails() {
             case_title: record.case_title || null,
             case_date: record.case_date || null,
             pages_count: record.pages_count || null,
-            additional_case_signature: fromSignatureList(record.additional_case_signature),
+            additional_case_signature: record.additional_case_signature,
             inventory_year: record.inventory_year ? parseInt(record.inventory_year, 10) : null,
             scans_url: record.scans_url || null,
             is_ukrainian_archive: record.is_ukrainian_archive || null,
@@ -364,7 +364,7 @@ export default function NotIdentifyDetails() {
             notes: formData.notes || null,
             email: formData.email || user.email,
             approved: false,
-        };
+        });
 
         if (editingPointId) {
             const { error } = await supabase

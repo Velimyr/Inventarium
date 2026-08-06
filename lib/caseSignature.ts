@@ -27,6 +27,38 @@ export const isSignatureField = (field: string) =>
 
 const text = (value: any) => (value === null || value === undefined ? '' : String(value).trim());
 
+/**
+ * Шифр без зайвих пробілів: краї обрізані, внутрішні повтори згорнуті в один.
+ *
+ * Пробіл у шифрі не несе змісту, але для бази «AGAD  ML 1/10/0/6/19» і
+ * «AGAD ML 1/10/0/6/19» — різні справи. Через це справа розпадалася на кілька
+ * сторінок /case, а перевірка дублікатів не бачила двійника (наявні дані
+ * почистила sql/2026-08-06_case_signature_whitespace.sql).
+ *
+ * Проганяти через normalizeSignatureFields ОБОВ'ЯЗКОВО на кожному шляху, що
+ * пише шифр у базу: гарантії з боку БД немає, тримає її тільки код. Наразі це
+ * add_inventory, edit/[id], adminApproveUtils (звідти й admin_approve),
+ * editApprove, admin_unidentified, unidentified/[id], admin_duplicates і
+ * CaseInconsistencies.
+ */
+export function normalizeSignature(value: any): string {
+  return text(value).replace(/\s+/g, ' ');
+}
+
+/** Той самий запис із нормалізованими шифром і додатковими шифрами. */
+export function normalizeSignatureFields<T extends Record<string, any>>(record: T): T {
+  const out: Record<string, any> = { ...record };
+
+  if ('case_signature' in out) {
+    out.case_signature = normalizeSignature(out.case_signature) || null;
+  }
+  if ('additional_case_signature' in out) {
+    out.additional_case_signature = fromSignatureList(out.additional_case_signature);
+  }
+
+  return out as T;
+}
+
 // ---------------------------------------------------------------------------
 // Додаткові сигнатури — та сама справа в інших архівах.
 //
@@ -43,7 +75,7 @@ const SIGNATURE_LIST_SEPARATORS = /[;\r\n]+/;
 export function toSignatureList(value: any): string[] {
   if (value === null || value === undefined) return [];
   const parts = Array.isArray(value) ? value : String(value).split(SIGNATURE_LIST_SEPARATORS);
-  return parts.map(text).filter((item) => item !== '');
+  return parts.map(normalizeSignature).filter((item) => item !== '');
 }
 
 /** Те, що пишемо в базу: масив або null, якщо не заповнено жодної сигнатури. */

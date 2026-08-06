@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { sendNotification } from '../../components/notifications';
 import { getAdminUserIds } from '../../lib/adminUsers';
 import {
-    fromSignatureList,
+    normalizeSignatureFields,
     resolveIsUkrainianArchive,
     sameSignatureList,
     toSignatureList,
@@ -244,14 +244,16 @@ export default function EditSingleRecordPage() {
 
         // form-стан → рядок для records_edit (як у одиночному збереженні)
         const toEditRow = (formLike: any, rowId: string) => {
+            // Шифри чистимо від зайвих пробілів: інакше порівняння «що змінилось»
+            // на сторінці підтвердження показувало б правку там, де змінився
+            // лише пробіл.
+            const normalized = normalizeSignatureFields(formLike);
             const s: any = {};
-            for (const key in formLike) {
-                let value = formLike[key];
-                if (key === 'additional_case_signature') value = fromSignatureList(value);
-                else if (value === '') value = null;
-                s[key] = value;
+            for (const key in normalized) {
+                const value = normalized[key];
+                s[key] = value === '' ? null : value;
             }
-            return { ...s, id: rowId, json_full_data: formLike };
+            return { ...s, id: rowId, json_full_data: normalized };
         };
 
         try {

@@ -16,6 +16,7 @@ import {
   fromSignatureList,
   hasAllArchiveParts,
   isSignatureField,
+  normalizeSignature,
   resolveIsUkrainianArchive,
   validateCaseSignature,
   validateSignatureFormats,
@@ -104,6 +105,11 @@ export function buildEditUpdate(
     if (updateData.is_ukrainian_archive === 'Так' && hasAllArchiveParts(updateData)) {
       updateData.case_signature = buildCaseSignature(updateData);
     }
+
+    // Шифр іноземного архіву вводять руками, тож у ньому трапляються зайві
+    // пробіли. Згортаємо їх до валідації, щоб перевірка працювала з тим самим
+    // значенням, що ляже в базу.
+    updateData.case_signature = normalizeSignature(updateData.case_signature) || null;
 
     const signatureError = validateCaseSignature(updateData);
     if (signatureError) return { updateData: null, error: signatureError };

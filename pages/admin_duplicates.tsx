@@ -5,7 +5,7 @@ import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
 import { isAdminUser } from '../lib/adminUsers';
 import CaseInconsistencies from '../components/CaseInconsistencies';
-import { formatSignatureList, fromSignatureList } from '../lib/caseSignature';
+import { formatSignatureList, fromSignatureList, normalizeSignatureFields } from '../lib/caseSignature';
 import {
   Copy,
   ExternalLink,
@@ -576,13 +576,17 @@ export default function AdminDuplicatesPage() {
       }
     }
 
+    // Шифри чистимо від зайвих пробілів — те саме правило, що й на решті
+    // шляхів запису (див. normalizeSignature у lib/caseSignature.ts)
+    const mergedClean = normalizeSignatureFields(merged);
+
     const payload = {
       id: keepId,
-      ...merged,
-      is_ukrainian_archive: merged.archive ? 'Так' : 'Ні',
+      ...mergedClean,
+      is_ukrainian_archive: mergedClean.archive ? 'Так' : 'Ні',
       email: user?.email ?? keepRecord.email ?? null,
       comment: mergeComment.trim(),
-      json_full_data: { ...merged, id: keepId },
+      json_full_data: { ...mergedClean, id: keepId },
     };
 
     const { error: upsertError } = await supabase

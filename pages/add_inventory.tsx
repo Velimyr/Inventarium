@@ -9,7 +9,7 @@ import { sendNotification } from '../components/notifications';
 import { getAdminUserIds } from '../lib/adminUsers';
 import { Save, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import { fromSignatureList, validateCaseSignature } from '../lib/caseSignature';
+import { normalizeSignatureFields, validateCaseSignature } from '../lib/caseSignature';
 import { reportAddProblem as reportProblemToAdmins } from '../lib/reportProblem';
 import { findRecordWithAdditionalSignature } from '../lib/duplicateCheck';
 import DuplicateWarnings from '../components/DuplicateWarnings';
@@ -323,8 +323,7 @@ export default function AddInventoryPage() {
         }
 
         const toInsert = {
-            ...formData,
-            additional_case_signature: fromSignatureList(formData.additional_case_signature),
+            ...normalizeSignatureFields(formData),
             latitude: formData.latitude ? parseFloat(formData.latitude) : null,
             longitude: formData.longitude ? parseFloat(formData.longitude) : null,
             mark_type: formData.mark_type ? parseInt(formData.mark_type) : null,

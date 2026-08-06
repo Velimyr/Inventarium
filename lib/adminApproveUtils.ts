@@ -3,7 +3,12 @@ import regionStructure from '../public/data/region_structure.json';
 import { getSettlementCodeByPath, type NestedStructure } from '../components/keys/regionData';
 import { sendNotification } from '../components/notifications';
 import { supabase } from './supabaseClient';
-import { fromSignatureList, resolveIsUkrainianArchive, validateCaseSignature } from './caseSignature';
+import {
+  fromSignatureList,
+  normalizeSignatureFields,
+  resolveIsUkrainianArchive,
+  validateCaseSignature,
+} from './caseSignature';
 import { findRecordWithAdditionalSignature } from './duplicateCheck';
 
 const parseIntegerOrNull = (value: any) => {
@@ -36,10 +41,14 @@ export const emptyToNull = (value: any) => (value === '' || value === undefined 
 
 // Нормалізує ключові текстові поля запису ('' → null) перед вставкою в records,
 // щоб JS-перевірка й БД-обмеження працювали з однаковими значеннями.
+//
+// Шифр додатково чиститься від зайвих пробілів: без цього пошук дубліката
+// шукав би «AGAD  ML 1/10/0/6/19» серед уже згорнутих значень і не знаходив би
+// двійника — вставка падала б на unique_inventory_verified_record.
 export function normalizeKeyFields<T extends Record<string, any>>(record: T): T {
-  const out: Record<string, any> = { ...record };
+  const out: Record<string, any> = normalizeSignatureFields(record);
   for (const field of [...KEY_TEXT_FIELDS, 'current_country']) {
-    out[field] = emptyToNull(record[field]);
+    out[field] = emptyToNull(out[field]);
   }
   return out as T;
 }

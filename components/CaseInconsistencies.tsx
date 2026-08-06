@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { ExternalLink, RefreshCw, ClipboardCopy, Play, Check, ArrowRightLeft, RotateCcw } from 'lucide-react';
-import { formatSignatureList, toSignatureList } from '../lib/caseSignature';
+import { formatSignatureList, normalizeSignatureFields, toSignatureList } from '../lib/caseSignature';
 
 // Поля справи, які мають бути однакові в усіх записів з тим самим шифром
 export const CASE_FIELDS: { key: string; label: string }[] = [
@@ -428,7 +428,12 @@ export default function CaseInconsistencies({
     approvedOnly: boolean
   ) => {
     setExecuting(true);
-    let query = supabase.from('records').update(update).eq('case_signature', signature);
+    // Шифри в оновленні чистимо від зайвих пробілів — те саме правило, що й на
+    // решті шляхів запису (див. normalizeSignature у lib/caseSignature.ts)
+    let query = supabase
+      .from('records')
+      .update(normalizeSignatureFields(update))
+      .eq('case_signature', signature);
     if (approvedOnly) query = query.eq('approved', true);
     const { error } = await query;
     setExecuting(false);

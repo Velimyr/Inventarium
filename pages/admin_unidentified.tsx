@@ -5,7 +5,7 @@ import Toast from '../components/Toast';
 import { useUser } from '../contexts/UserContext';
 import { Search, Check, RotateCcw, ChevronDown, ChevronRight, ExternalLink, MapPin, Mail } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
-import { formatSignatureList, fromSignatureList } from '../lib/caseSignature';
+import { formatSignatureList, normalizeSignatureFields } from '../lib/caseSignature';
 
 export default function AdminNotIdentifyPage() {
   const { user, loading: userLoading } = useUser();
@@ -140,7 +140,7 @@ export default function AdminNotIdentifyPage() {
         return;
       }
 
-      const recordsToInsert = points.map(point => ({
+      const recordsToInsert = points.map(point => normalizeSignatureFields({
         old_province: point.old_province,
         old_district: point.old_district,
         old_community: point.old_community,
@@ -159,7 +159,7 @@ export default function AdminNotIdentifyPage() {
         fonds: point.fonds,
         series: point.series,
         record: point.record,
-        additional_case_signature: fromSignatureList(point.additional_case_signature),
+        additional_case_signature: point.additional_case_signature,
         case_date: point.case_date,
         inventory_year: point.inventory_year,
         pages_count: point.pages_count,

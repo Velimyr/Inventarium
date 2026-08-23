@@ -26,6 +26,7 @@ import { SERVICE_FIELDS, sameFieldValue } from './recordFields';
 // Словник полів спільний із чергою нових справ — див. lib/recordFields.ts
 export {
   ADDITIONAL_SIGNATURE_FIELD,
+  UKRAINIAN_ARCHIVE_FIELD,
   FIELD_LABELS,
   displayValue,
   fieldLabel,

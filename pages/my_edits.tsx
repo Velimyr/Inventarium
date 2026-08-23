@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useUser } from '../contexts/UserContext';
 import { Save, ChevronLeft, ChevronRight, Pencil, ExternalLink, ArrowRight } from 'lucide-react';
 import { validateCaseSignature } from '../lib/caseSignature';
-import { computeChanges, displayValue } from '../lib/editApprove';
+import { UKRAINIAN_ARCHIVE_FIELD, computeChanges, displayValue } from '../lib/editApprove';
 import {
     buildEditRow,
     fetchMyEdits,
@@ -49,8 +49,17 @@ export default function MyEditsPage() {
 
     // Перелік змін рахуємо від поточного стану форми, а не від збереженого
     // рядка: так автор одразу бачить, що піде адміну після збереження.
+    //
+    // Прапорець «український архів» зі списку прибираємо: користувач його не
+    // редагує напряму — він виводиться зі складових шифру, і на записах, де
+    // колонки ще не було, потрапляв би сюди як зміна, якої автор не робив.
     const changes = useMemo(
-        () => (current ? computeChanges(formData, current.original) : []),
+        () =>
+            current
+                ? computeChanges(formData, current.original).filter(
+                      (change) => change.field !== UKRAINIAN_ARCHIVE_FIELD
+                  )
+                : [],
         [formData, current]
     );
 

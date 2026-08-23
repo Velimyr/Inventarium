@@ -48,6 +48,18 @@ export const EXCLUDED_FIELDS = SERVICE_FIELDS;
 export const fieldChanged = (field: string, edited: any, original: any) =>
   !sameFieldValue(field, edited, original);
 
+/**
+ * Чи змінює редагування блок шифру.
+ *
+ * Порівнювати через `!==` тут не можна: `records.fonds` приходить числом, а з
+ * форми — рядком, а порожній прапорець «український архів» у старих записах
+ * лежить як null проти «Ні» в редагуванні. Обидва випадки давали «шифр
+ * змінено» на кожному редагуванні — і адмін щоразу переписував увесь блок
+ * шифру разом із його валідацією, навіть коли автор його не чіпав.
+ */
+export const signatureBlockChanged = (edit: any, original: any) =>
+  SIGNATURE_FIELDS.some((field) => fieldChanged(field, edit?.[field], original?.[field]));
+
 export type EditChange = {
   field: string;
   label: string;
@@ -97,8 +109,7 @@ export function buildEditUpdate(
   }
 
   // Блок шифру: або всі п'ять полів разом, або жодного
-  const signatureChanged = SIGNATURE_FIELDS.some((field) => edit[field] !== original?.[field]);
-  if (signatureChanged && isConfirmed(SIGNATURE_BLOCK_KEY)) {
+  if (signatureBlockChanged(edit, original) && isConfirmed(SIGNATURE_BLOCK_KEY)) {
     for (const field of SIGNATURE_FIELDS) updateData[field] = value(field);
     updateData.is_ukrainian_archive = resolveIsUkrainianArchive(edit);
 

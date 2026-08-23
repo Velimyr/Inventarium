@@ -5,19 +5,197 @@ import Toast from '../components/Toast';
 import AdminSectionTabs, { EDIT_SECTION_TITLE, EDIT_TABS, withCount } from '../components/AdminSectionTabs';
 import { useUser } from '../contexts/UserContext';
 import { sendNotification } from '../components/notifications';
-import { FileText, Check, X, ChevronLeft, ChevronRight, ExternalLink, Mail } from 'lucide-react';
+import { FileText, Check, X, ChevronLeft, ChevronRight, ExternalLink, Mail, RotateCcw } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
 import DuplicateWarnings from '../components/DuplicateWarnings';
 import InventoryTypeWarning from '../components/InventoryTypeWarning';
+import SignatureListInput from '../components/SignatureListInput';
 import { SIGNATURE_FIELDS, isSignatureField } from '../lib/caseSignature';
+import { INVENTORY_TYPES } from '../lib/inventoryType';
 import {
-    EXCLUDED_FIELDS,
-    FIELD_LABELS,
+    ADDITIONAL_SIGNATURE_FIELD,
     SIGNATURE_BLOCK_KEY,
+    UKRAINIAN_ARCHIVE_FIELD,
     buildEditUpdate,
+    computeChanges,
     displayValue,
     fieldChanged,
+    fieldLabel,
+    signatureBlockChanged,
 } from '../lib/editApprove';
+
+// Поля, які не влазять в один рядок: показуємо їх textarea.
+const LONG_TEXT_FIELDS = ['case_title', 'notes', 'scans_url'];
+
+const inputClass =
+    'w-full px-[8px] py-[6px] rounded border border-gray-300 dark:border-[#374151] bg-white dark:bg-[#111827] text-gray-900 dark:text-[#F3F4F6] text-[13px] outline-none focus:border-[#2563EB] transition-colors disabled:opacity-60 disabled:cursor-not-allowed';
+
+/**
+ * Поле «Стало» — редаговане: адмін може виправити значення автора, а не лише
+ * прийняти чи відхилити його. Тип віджета підбираємо за полем, щоб адмін не
+ * вводив руками те, що всюди інде обирається зі списку.
+ */
+function ValueEditor({
+    field,
+    value,
+    disabled,
+    onChange,
+}: {
+    field: string;
+    value: any;
+    disabled?: boolean;
+    onChange: (next: any) => void;
+}) {
+    if (field === ADDITIONAL_SIGNATURE_FIELD) {
+        return (
+            <SignatureListInput
+                value={value}
+                onChange={onChange}
+                placeholder="Шифр додаткової справи"
+                addLabel="Додати шифр"
+            />
+        );
+    }
+
+    if (field === UKRAINIAN_ARCHIVE_FIELD) {
+        return (
+            <select className={inputClass} value={value ?? ''} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+                <option value="Так">Так</option>
+                <option value="Ні">Ні</option>
+            </select>
+        );
+    }
+
+    if (field === 'inventory_type') {
+        return (
+            <select className={inputClass} value={value ?? ''} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+                <option value="">—</option>
+                {INVENTORY_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                        {type}
+                    </option>
+                ))}
+            </select>
+        );
+    }
+
+    if (field === 'mark_type') {
+        return (
+            <select className={inputClass} value={value ?? ''} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+                <option value="1">Місце</option>
+                <option value="0">Регіон</option>
+            </select>
+        );
+    }
+
+    if (LONG_TEXT_FIELDS.includes(field)) {
+        return (
+            <textarea
+                className={`${inputClass} resize-y`}
+                rows={3}
+                value={value ?? ''}
+                disabled={disabled}
+                onChange={(e) => onChange(e.target.value)}
+            />
+        );
+    }
+
+    return (
+        <input
+            type="text"
+            className={inputClass}
+            value={value ?? ''}
+            disabled={disabled}
+            onChange={(e) => onChange(e.target.value)}
+        />
+    );
+}
+
+/**
+ * Рядок порівняння: поле, чинне значення, редаговане нове й галочка.
+ *
+ * «Було» і «Стало» стоять поруч у одному рядку — раніше це були дві окремі
+ * таблиці в двох окремих скролах, і зіставляти значення доводилось на око.
+ */
+function ComparisonRow({
+    field,
+    label,
+    oldValue,
+    proposedValue,
+    currentValue,
+    readOnly,
+    onChange,
+    onReset,
+    checkbox,
+    checkboxRowSpan = 1,
+}: {
+    field: string;
+    label: string;
+    oldValue: any;
+    proposedValue: any;
+    currentValue: any;
+    readOnly?: boolean;
+    onChange: (next: any) => void;
+    onReset: () => void;
+    checkbox: React.ReactNode;
+    checkboxRowSpan?: number;
+}) {
+    const proposesChange = fieldChanged(field, proposedValue, oldValue);
+    const corrected = fieldChanged(field, currentValue, proposedValue);
+    // Позначку «нічого не змінює» має сенс писати лише там, де автор щось
+    // пропонував: у блоці шифру решта полів показана просто для контексту.
+    const neutral = proposesChange && !fieldChanged(field, currentValue, oldValue);
+
+    return (
+        <tr className="border-b border-gray-200 dark:border-[#374151] align-top">
+            <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px] font-medium">
+                {label}
+                {proposesChange && (
+                    <span className="ml-[6px] text-[#2563EB]" title="Автор змінив це поле">
+                        ●
+                    </span>
+                )}
+            </td>
+            <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-700 dark:text-gray-300 text-[13px] break-words">
+                {displayValue(field, oldValue)}
+            </td>
+            <td className="border border-gray-300 dark:border-[#374151] p-[10px]">
+                <ValueEditor field={field} value={currentValue} disabled={readOnly} onChange={onChange} />
+
+                {corrected && (
+                    <div className="flex flex-wrap items-center gap-[6px] mt-[6px]">
+                        <span className="text-gray-500 dark:text-gray-400 text-[12px] break-words">
+                            Автор пропонував: {displayValue(field, proposedValue)}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={onReset}
+                            title="Повернути значення автора"
+                            className="inline-flex items-center gap-[4px] px-[6px] h-[22px] rounded border border-gray-300 dark:border-[#374151] bg-gray-100 dark:bg-[#111827] hover:bg-gray-200 dark:hover:bg-[#374151] transition-colors"
+                        >
+                            <RotateCcw className="w-3 h-3 text-gray-700 dark:text-[#F3F4F6]" strokeWidth={1.6} />
+                            <span className="text-gray-700 dark:text-[#F3F4F6] text-[11px]">повернути</span>
+                        </button>
+                    </div>
+                )}
+
+                {neutral && (
+                    <p className="text-gray-500 dark:text-gray-400 text-[12px] mt-[6px]">
+                        Збігається з чинним значенням — запис не зміниться.
+                    </p>
+                )}
+            </td>
+            {checkboxRowSpan > 0 && (
+                <td
+                    rowSpan={checkboxRowSpan}
+                    className="border border-gray-300 dark:border-[#374151] p-[10px] text-center align-middle"
+                >
+                    {checkbox}
+                </td>
+            )}
+        </tr>
+    );
+}
 
 export default function ReviewEditedRecordsPage() {
     const { user, loading: userLoading } = useUser();
@@ -29,10 +207,8 @@ export default function ReviewEditedRecordsPage() {
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [confirmFields, setConfirmFields] = useState<Record<string, Record<string, boolean>>>({});
-
-    // Підписи, службові поля й правила запису шифру спільні з масовою
-    // сторінкою — див. lib/editApprove.ts
-    const fieldLabels = FIELD_LABELS;
+    // Виправлення адміна поверх пропозиції автора: { [id редагування]: { [поле]: значення } }
+    const [drafts, setDrafts] = useState<Record<string, Record<string, any>>>({});
 
     useEffect(() => {
         if (userLoading) return;
@@ -98,15 +274,19 @@ export default function ReviewEditedRecordsPage() {
             });
             setRecordsOriginal(originalsMap);
 
+            // Підтверджуємо лише те, що адмін бачить у таблиці змін.
+            //
+            // Раніше сюди потрапляли ВСІ колонки редагування, і підтвердження
+            // трьох видимих правок мовчки переписувало ще два десятки полів
+            // значеннями, якими вони були на момент подання пропозиції — тобто
+            // відкочувало все, що встигло змінитись у записі відтоді.
             const initialConfirmFields: Record<string, Record<string, boolean>> = {};
             filteredEdits.forEach((rec) => {
-                initialConfirmFields[rec.id] = { [SIGNATURE_BLOCK_KEY]: true };
-                Object.entries(rec).forEach(([field, val]) => {
-                    if (field === 'id') return;
-                    if (val !== undefined) {
-                        initialConfirmFields[rec.id][field] = true;
-                    }
-                });
+                const fields: Record<string, boolean> = { [SIGNATURE_BLOCK_KEY]: true };
+                for (const change of computeChanges(rec, originalsMap[rec.id] || {})) {
+                    fields[change.field] = true;
+                }
+                initialConfirmFields[rec.id] = fields;
             });
             setConfirmFields(initialConfirmFields);
 
@@ -132,6 +312,27 @@ export default function ReviewEditedRecordsPage() {
         }
     };
 
+    /** Пропозиція автора з накладеними виправленнями адміна. */
+    const withDrafts = (rec: any) => ({ ...rec, ...(drafts[rec.id] || {}) });
+
+    const setDraftValue = (recordId: string, field: string, next: any) => {
+        setDrafts((prev) => ({ ...prev, [recordId]: { ...prev[recordId], [field]: next } }));
+    };
+
+    /** Повернути полю те значення, яке запропонував автор. */
+    const resetDraftField = (recordId: string, field: string) => {
+        setDrafts((prev) => {
+            const { [field]: _dropped, ...rest } = prev[recordId] || {};
+            return { ...prev, [recordId]: rest };
+        });
+    };
+
+    /** Поля, які адмін виправив відносно пропозиції автора. */
+    const correctedFields = (rec: any) =>
+        Object.keys(drafts[rec.id] || {}).filter((field) =>
+            fieldChanged(field, drafts[rec.id][field], rec[field])
+        );
+
     const saveRecord = async () => {
         const recordEdit = recordsEdit[index];
         if (!recordEdit) return;
@@ -140,9 +341,10 @@ export default function ReviewEditedRecordsPage() {
         if (!fieldsToUpdate) return;
 
         const recordOriginal = recordsOriginal[recordEdit.id] || {};
+        const corrected = correctedFields(recordEdit);
 
         const { updateData, error: buildError } = buildEditUpdate(
-            recordEdit,
+            withDrafts(recordEdit),
             recordOriginal,
             (field) => !!fieldsToUpdate[field]
         );
@@ -186,8 +388,14 @@ export default function ReviewEditedRecordsPage() {
 
             if (editorProfile) {
                 const recordUrl = `${window.location.origin}/record/${recordEdit.id}`;
+                // Автор має знати, що в базу лягло не рівно те, що він подав
+                const correctionNote =
+                    corrected.length > 0
+                        ? `\n\nАдміністратор уточнив значення: ${corrected.map(fieldLabel).join(', ')}.`
+                        : '';
                 const messageText =
-                    `Ваше редагування інвентарю успішно підтверджено адміністратором.\n\n` +
+                    `Ваше редагування інвентарю успішно підтверджено адміністратором.` +
+                    `${correctionNote}\n\n` +
                     `[Переглянути інвентар можна тут](${recordUrl})`;
 
                 await sendNotification({
@@ -198,11 +406,21 @@ export default function ReviewEditedRecordsPage() {
                 });
             }
 
-            setToast({ message: '✅ Запис успішно підтверджено', type: 'success' });
+            setToast({
+                message:
+                    corrected.length > 0
+                        ? `✅ Запис підтверджено з виправленнями (${corrected.length})`
+                        : '✅ Запис успішно підтверджено',
+                type: 'success',
+            });
 
             const newRecordsEdit = recordsEdit.filter((r) => r.id !== recordEdit.id);
             setRecordsEdit(newRecordsEdit);
             setIndex((idx) => (idx >= newRecordsEdit.length ? newRecordsEdit.length - 1 : idx));
+            setDrafts((prev) => {
+                const { [recordEdit.id]: _done, ...rest } = prev;
+                return rest;
+            });
 
         } catch (err) {
             console.error(err);
@@ -262,6 +480,10 @@ export default function ReviewEditedRecordsPage() {
             const newRecordsEdit = recordsEdit.filter((r) => r.id !== recordEdit.id);
             setRecordsEdit(newRecordsEdit);
             setIndex((idx) => (idx >= newRecordsEdit.length ? newRecordsEdit.length - 1 : idx));
+            setDrafts((prev) => {
+                const { [recordEdit.id]: _dropped, ...rest } = prev;
+                return rest;
+            });
         } catch (err) {
             console.error(err);
             setToast({ message: '❌ Невідома помилка', type: 'error' });
@@ -321,36 +543,44 @@ export default function ReviewEditedRecordsPage() {
 
     const recordEdit = recordsEdit[index];
     const recordOriginal = recordsOriginal[recordEdit.id] || {};
+    // Поточний стан пропозиції: те, що подав автор, плюс виправлення адміна
+    const effectiveEdit = withDrafts(recordEdit);
+    const adminCorrected = correctedFields(recordEdit);
 
-    const editFields = Object.entries(recordEdit)
-        .filter(([key, value]) => {
-            if (EXCLUDED_FIELDS.includes(key)) return false;
-            return fieldChanged(key, value, recordOriginal[key]);
-        });
+    // Набір рядків рахуємо від ПРОПОЗИЦІЇ, а не від поточного стану: інакше
+    // рядок зникав би просто тому, що адмін довів значення до оригінального —
+    // і повернути його вже не було б звідки.
+    const proposedChanges = computeChanges(recordEdit, recordOriginal);
 
     // Поля шифру виносимо в окремий блок з одним чекбоксом і показуємо всі п'ять,
     // навіть незмінені — вони застосуються разом
-    const otherEditFields = editFields.filter(([key]) => !isSignatureField(key));
-    const signatureChanged = SIGNATURE_FIELDS.some((field) => recordEdit[field] !== recordOriginal[field]);
-    const signatureBlockFields: string[] = signatureChanged ? [...SIGNATURE_FIELDS] : [];
+    const otherChanges = proposedChanges.filter((change) => !isSignatureField(change.field));
+    const signatureBlockFields: string[] = signatureBlockChanged(recordEdit, recordOriginal)
+        ? [...SIGNATURE_FIELDS]
+        : [];
 
-    const originalFields = [...otherEditFields.map(([field]) => field), ...signatureBlockFields]
-        .filter((key) => key !== 'email')
-        .map((field) => [field, recordOriginal[field]]);
+    // Шифр українського архіву збирається зі складових (див. buildEditUpdate),
+    // тож правити його руками немає сенсу — поле лишається лише для читання.
+    const signatureAutoBuilt = effectiveEdit[UKRAINIAN_ARCHIVE_FIELD] === 'Так';
 
     // Кандидат для перевірок збігів — підсумковий стан запису після редагування.
     // json_full_data містить повний стан форми; інакше накладаємо на оригінал
     // лише НЕпорожні змінені поля (null у records_edit — це незмінене поле,
     // ним не можна затирати значення оригіналу).
-    const editCandidate = recordEdit.json_full_data
-        ? { ...recordEdit.json_full_data, id: recordEdit.id }
-        : (() => {
-            const merged: any = { ...recordOriginal };
-            for (const [k, v] of Object.entries(recordEdit)) {
-                if (v !== null && v !== undefined) merged[k] = v;
-            }
-            return merged;
-        })();
+    // Виправлення адміна лягають згори, щоб попередження про збіги й тип
+    // документа стосувалися того, що він справді збирається зберегти.
+    const editCandidate = {
+        ...(recordEdit.json_full_data
+            ? { ...recordEdit.json_full_data, id: recordEdit.id }
+            : (() => {
+                const merged: any = { ...recordOriginal };
+                for (const [k, v] of Object.entries(recordEdit)) {
+                    if (v !== null && v !== undefined) merged[k] = v;
+                }
+                return merged;
+            })()),
+        ...(drafts[recordEdit.id] || {}),
+    };
 
     return (
         <>
@@ -369,126 +599,127 @@ export default function ReviewEditedRecordsPage() {
                         <InventoryTypeWarning record={editCandidate} />
                     </div>
 
-                    {/* Two Column Layout */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-[20px] mb-[20px]">
-                        {/* Left Column - Original */}
-                        <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] max-h-[70vh] overflow-auto">
-                            <div className="flex items-center gap-[10px] mb-[15px]">
+                    {/* Порівняння змін */}
+                    <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] mb-[20px]">
+                        <div className="flex flex-wrap items-center justify-between gap-[10px] mb-[15px]">
+                            <div className="flex items-center gap-[10px]">
                                 <FileText className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
                                 <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
-                                    Оригінальний запис
+                                    Порівняння змін
                                 </h2>
+                                {adminCorrected.length > 0 && (
+                                    <span className="px-[8px] py-[2px] rounded-full bg-[#2563EB]/10 text-[#2563EB] text-[12px] font-medium">
+                                        виправлено адміном: {adminCorrected.length}
+                                    </span>
+                                )}
                             </div>
 
-                            <div className="overflow-x-auto mb-[15px]">
+                            <div className="flex flex-wrap items-center gap-[15px]">
+                                <div className="flex items-center gap-[8px] text-[14px]">
+                                    <Mail className="w-4 h-4 text-gray-700 dark:text-white" strokeWidth={2} />
+                                    <span className="text-gray-700 dark:text-white font-semibold">Автор:</span>
+                                    {recordEdit?.email ? (
+                                        <a
+                                            href={`mailto:${recordEdit.email}`}
+                                            className="text-[#2563EB] hover:text-[#1D4ED8] underline"
+                                        >
+                                            {recordEdit.email}
+                                        </a>
+                                    ) : (
+                                        <span className="text-gray-500">—</span>
+                                    )}
+                                </div>
+                                <a
+                                    href={`/record/${recordEdit.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-[8px] text-[#2563EB] hover:text-[#1D4ED8] text-[14px] underline"
+                                >
+                                    <ExternalLink className="w-4 h-4" strokeWidth={2} />
+                                    Чинний запис
+                                </a>
+                            </div>
+                        </div>
+
+                        <p className="text-gray-700 dark:text-white text-[13px] opacity-80 mb-[15px]">
+                            Колонку «Стало» можна виправити — у запис піде саме те, що зараз у полі.
+                            Знімайте галочку з рядків, які підтверджувати не треба.
+                        </p>
+
+                        {otherChanges.length === 0 && signatureBlockFields.length === 0 ? (
+                            <p className="text-gray-700 dark:text-gray-300 text-[14px]">
+                                Це редагування нічого не змінює у чинному записі.
+                            </p>
+                        ) : (
+                            <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
                                 <table className="w-full border-collapse border border-gray-300 dark:border-[#374151]">
-                                    <thead>
+                                    <thead className="sticky top-0">
                                         <tr className="bg-gray-100 dark:bg-[#111827]">
-                                            <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[14px] font-semibold">
+                                            <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[14px] font-semibold w-[18%]">
                                                 Поле
                                             </th>
-                                            <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[14px] font-semibold">
-                                                Значення
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {originalFields.map(([field, val]) => (
-                                            <tr key={field} className="border-b border-gray-200 dark:border-[#374151]">
-                                                <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px] font-medium">
-                                                    {fieldLabels[field] || field}
-                                                </td>
-                                                <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
-                                                    {displayValue(field as string, val)}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <a
-                                href={`/record/${recordEdit.id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-[8px] text-[#2563EB] hover:text-[#1D4ED8] text-[14px] underline"
-                            >
-                                <ExternalLink className="w-4 h-4" strokeWidth={2} />
-                                Відкрити запис у новому вікні
-                            </a>
-                        </section>
-
-                        {/* Right Column - Changes */}
-                        <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] max-h-[70vh] overflow-auto">
-                            <div className="flex items-center gap-[10px] mb-[15px]">
-                                <FileText className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />
-                                <h2 className="text-gray-900 dark:text-[#F3F4F6] text-[18px] lg:text-[20px] font-semibold">
-                                    Запис із змінами
-                                </h2>
-                            </div>
-
-                            <div className="overflow-x-auto mb-[15px]">
-                                <table className="w-full border-collapse border border-gray-300 dark:border-[#374151]">
-                                    <thead>
-                                        <tr className="bg-gray-100 dark:bg-[#111827]">
-                                            <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[14px] font-semibold">
-                                                Поле
+                                            <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[14px] font-semibold w-[32%]">
+                                                Було
                                             </th>
                                             <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-left text-gray-900 dark:text-white text-[14px] font-semibold">
-                                                Значення
+                                                Стало
                                             </th>
-                                            <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-center text-gray-900 dark:text-white text-[14px] font-semibold">
+                                            <th className="border border-gray-300 dark:border-[#374151] p-[10px] text-center text-gray-900 dark:text-white text-[14px] font-semibold w-[110px]">
                                                 Підтвердити
                                             </th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {otherEditFields.map(([field, val]) => (
-                                            <tr key={field} className="border-b border-gray-200 dark:border-[#374151]">
-                                                <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px] font-medium">
-                                                    {fieldLabels[field] || field}
-                                                </td>
-                                                <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
-                                                    {displayValue(field as string, val)}
-                                                </td>
-                                                <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-center">
+                                        {otherChanges.map((change) => (
+                                            <ComparisonRow
+                                                key={change.field}
+                                                field={change.field}
+                                                label={change.label}
+                                                oldValue={change.oldValue}
+                                                proposedValue={change.newValue}
+                                                currentValue={effectiveEdit[change.field]}
+                                                onChange={(next) => setDraftValue(recordEdit.id, change.field, next)}
+                                                onReset={() => resetDraftField(recordEdit.id, change.field)}
+                                                checkbox={
                                                     <input
                                                         type="checkbox"
-                                                        checked={confirmFields[recordEdit.id]?.[field] ?? true}
-                                                        onChange={() => handleCheckboxChange(recordEdit.id, field)}
+                                                        checked={confirmFields[recordEdit.id]?.[change.field] ?? true}
+                                                        onChange={() => handleCheckboxChange(recordEdit.id, change.field)}
                                                         className="w-4 h-4 rounded border-gray-300 dark:border-[#374151] text-[#2563EB] focus:ring-[#2563EB] cursor-pointer"
-                                                        aria-label={`Підтвердити поле ${field}`}
+                                                        aria-label={`Підтвердити поле ${change.field}`}
                                                     />
-                                                </td>
-                                            </tr>
+                                                }
+                                            />
                                         ))}
 
                                         {signatureBlockFields.length > 0 && (
                                             <>
                                                 <tr className="bg-gray-100 dark:bg-[#111827]">
                                                     <td
-                                                        colSpan={3}
+                                                        colSpan={4}
                                                         className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px] font-semibold"
                                                     >
                                                         Шифр справи — підтверджується цілком
+                                                        {signatureAutoBuilt && (
+                                                            <span className="ml-[8px] font-normal opacity-80">
+                                                                (шифр збирається з архіву, фонду, опису й справи)
+                                                            </span>
+                                                        )}
                                                     </td>
                                                 </tr>
                                                 {signatureBlockFields.map((field, i) => (
-                                                    <tr key={field} className="border-b border-gray-200 dark:border-[#374151]">
-                                                        <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px] font-medium">
-                                                            {fieldLabels[field] || field}
-                                                            {recordEdit[field] !== recordOriginal[field] && (
-                                                                <span className="ml-[6px] text-[#2563EB]">●</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="border border-gray-300 dark:border-[#374151] p-[10px] text-gray-900 dark:text-white text-[13px]">
-                                                            {recordEdit[field]?.toString() || '—'}
-                                                        </td>
-                                                        {i === 0 && (
-                                                            <td
-                                                                rowSpan={signatureBlockFields.length}
-                                                                className="border border-gray-300 dark:border-[#374151] p-[10px] text-center align-middle"
-                                                            >
+                                                    <ComparisonRow
+                                                        key={field}
+                                                        field={field}
+                                                        label={fieldLabel(field)}
+                                                        oldValue={recordOriginal[field]}
+                                                        proposedValue={recordEdit[field]}
+                                                        currentValue={effectiveEdit[field]}
+                                                        readOnly={signatureAutoBuilt && field === 'case_signature'}
+                                                        onChange={(next) => setDraftValue(recordEdit.id, field, next)}
+                                                        onReset={() => resetDraftField(recordEdit.id, field)}
+                                                        checkbox={
+                                                            i === 0 ? (
                                                                 <input
                                                                     type="checkbox"
                                                                     checked={confirmFields[recordEdit.id]?.[SIGNATURE_BLOCK_KEY] ?? true}
@@ -496,32 +727,18 @@ export default function ReviewEditedRecordsPage() {
                                                                     className="w-4 h-4 rounded border-gray-300 dark:border-[#374151] text-[#2563EB] focus:ring-[#2563EB] cursor-pointer"
                                                                     aria-label="Підтвердити шифр справи цілком"
                                                                 />
-                                                            </td>
-                                                        )}
-                                                    </tr>
+                                                            ) : null
+                                                        }
+                                                        checkboxRowSpan={i === 0 ? signatureBlockFields.length : 0}
+                                                    />
                                                 ))}
                                             </>
                                         )}
                                     </tbody>
                                 </table>
                             </div>
-
-                            <div className="flex items-center gap-[8px] text-[14px]">
-                                <Mail className="w-4 h-4 text-gray-700 dark:text-white" strokeWidth={2} />
-                                <span className="text-gray-700 dark:text-white font-semibold">Email редактора:</span>
-                                {recordEdit?.email ? (
-                                    <a
-                                        href={`mailto:${recordEdit.email}`}
-                                        className="text-[#2563EB] hover:text-[#1D4ED8] underline"
-                                    >
-                                        {recordEdit.email}
-                                    </a>
-                                ) : (
-                                    <span className="text-gray-500">—</span>
-                                )}
-                            </div>
-                        </section>
-                    </div>
+                        )}
+                    </section>
 
                     {/* Comment Section */}
                     <section className="p-[20px] rounded-lg border border-gray-300 dark:border-[#374151] bg-gray-50 dark:bg-[#1F2937] mb-[20px]">

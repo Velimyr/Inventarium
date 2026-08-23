@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/header';
 import { useUser } from '../contexts/UserContext';
-import { Edit, Archive, Bell, Plus, HelpCircle, Award } from 'lucide-react';
+import { Edit, Archive, Bell, Plus, HelpCircle, Award, Pencil } from 'lucide-react';
 import { isAdminUser } from '../lib/adminUsers';
 
 function getOneMonthAgoISO() {
@@ -35,6 +35,7 @@ export default function StatsPage() {
   const [approvedCount, setApprovedCount] = useState<number | null>(null);
   const [userApprovedCount, setUserApprovedCount] = useState<number | null>(null);
   const [userUnverifiedCount, setUserUnverifiedCount] = useState<number | null>(null);
+  const [userEditsCount, setUserEditsCount] = useState<number | null>(null);
   const [userSubscriptionsCount, setUserSubscriptionsCount] = useState<number | null>(null);
   const [userMonthlyCount, setUserMonthlyCount] = useState<number | null>(null);
   const [totalMonthlyCount, setTotalMonthlyCount] = useState<number | null>(null);
@@ -78,6 +79,13 @@ export default function StatsPage() {
           .select('*', { count: 'exact', head: true })
           .eq('created_by', user.id);
 
+        // User's edit proposals still waiting for an admin. Автор пропозиції
+        // зберігається в email — див. lib/recordEdits.ts
+        const { count: userEdits } = await supabase
+          .from('records_edit')
+          .select('*', { count: 'exact', head: true })
+          .eq('email', user.email);
+
         // User's subscriptions
         const { count: userSubscriptions } = await supabase
           .from('settlement_subscription')
@@ -115,6 +123,7 @@ export default function StatsPage() {
         setApprovedCount(totalApproved ?? 0);
         setUserApprovedCount(userApproved ?? 0);
         setUserUnverifiedCount(userUnverified ?? 0);
+        setUserEditsCount(userEdits ?? 0);
         setUserSubscriptionsCount(userSubscriptions ?? 0);
         setUserMonthlyCount(userMonthly ?? 0);
         setTotalMonthlyCount(totalMonthly ?? 0);
@@ -172,6 +181,25 @@ export default function StatsPage() {
     }
 
     return `У вас ${count} непідтверджених інвентарів`;
+  };
+
+  const getEditsText = (count: number) => {
+    if (count === 0) {
+      return 'У вас немає редагувань, що очікують підтвердження';
+    }
+
+    const lastDigit = count % 10;
+    const lastTwoDigits = count % 100;
+
+    if (lastDigit === 1 && lastTwoDigits !== 11) {
+      return `У вас ${count} непідтверджене редагування`;
+    }
+
+    if ([2, 3, 4].includes(lastDigit) && ![12, 13, 14].includes(lastTwoDigits)) {
+      return `У вас ${count} непідтверджені редагування`;
+    }
+
+    return `У вас ${count} непідтверджених редагувань`;
   };
 
   const getSubscriptionsText = (count: number) => {
@@ -294,13 +322,19 @@ export default function StatsPage() {
             Швидкі дії
           </h2>
 
-          {/* Quick Actions Grid - Row 1 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[20px] mb-[20px]">
+          {/* Quick Actions Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[20px]">
             <ActionCard
               href="/edit_drafts"
               icon={<Edit className="w-6 h-6 text-[#2563EB]" strokeWidth={2} />}
               title="Редагувати чернетки"
               description={getUnverifiedText(userUnverifiedCount || 0)}
+            />
+            <ActionCard
+              href="/my_edits"
+              icon={<Pencil className="w-6 h-6 text-[#2563EB]" strokeWidth={2} />}
+              title="Мої редагування"
+              description={getEditsText(userEditsCount || 0)}
             />
             <ActionCard
               href="/subscriptions"
@@ -314,10 +348,6 @@ export default function StatsPage() {
               title="Переглянути повідомлення"
               description={getMessagesText(unreadMessagesCount || 0)}
             />
-          </div>
-
-          {/* Quick Actions Grid - Row 2 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[20px]">
             <ActionCard
               href="/add_inventory"
               icon={<Plus className="w-6 h-6 text-[#2563EB]" strokeWidth={2} />}

@@ -9,13 +9,8 @@ import { Save, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { sendNotification } from '../../components/notifications';
 import { getAdminUserIds } from '../../lib/adminUsers';
-import {
-    normalizeSignatureFields,
-    resolveIsUkrainianArchive,
-    sameSignatureList,
-    toSignatureList,
-    validateCaseSignature,
-} from '../../lib/caseSignature';
+import { sameSignatureList, validateCaseSignature } from '../../lib/caseSignature';
+import { buildEditRow, findRecordDuplicate, toEditForm } from '../../lib/recordEdits';
 import DuplicateWarnings from '../../components/DuplicateWarnings';
 
 const EditableInventoryForm = dynamic(() => import('../../components/EditableInventoryForm'), {
@@ -92,20 +87,8 @@ export default function EditSingleRecordPage() {
             // НЕ підтягувати email зі старого запису:
             const { email: _emailFromRecord, ...rest } = data;
 
-            // ** Рядок "Так" або "Ні" для селекту **
-            // Беремо збережене значення; для старих записів, де колонки ще не було,
-            // виводимо його з даних (див. resolveIsUkrainianArchive)
-            const isUkrainianArchive = resolveIsUkrainianArchive(rest);
-
-            const baseData = {
-                ...rest,
-                is_ukrainian_archive: isUkrainianArchive,
-                // Записи, збережені до міграції поля в text[], лишилися рядком
-                additional_case_signature: toSignatureList(rest.additional_case_signature),
-            };
-
             // Якщо користувач залогінений і має валідний email — підставити його у форму (це НЕ з DB запису)
-            const initialForm = { ...baseData };
+            const initialForm = toEditForm(rest);
             if (isValidEmail(user?.email)) {
                 initialForm.email = user!.email!.trim();
             }
@@ -152,47 +135,24 @@ export default function EditSingleRecordPage() {
             return;
         }
 
-        // Перевірка унікальності — тільки якщо змінились ключові поля
-        const keyFields = [
-            'current_region',
-            'current_district',
-            'current_community',
-            'current_settlement_type',
-            'current_settlement_name',
-            'case_signature',
-            'inventory_year',
-        ];
+        // Перевірка унікальності — чи немає в реєстрі іншого запису з тими самими
+        // ключовими полями (див. RECORD_KEY_FIELDS у lib/recordEdits.ts)
+        const { duplicate, error: dupError } = await findRecordDuplicate(supabase, formData, id as string);
 
-        const matchQuery: any = {};
-        for (const field of keyFields) {
-            let value = formData[field];
-            if (value === "") value = null;
-            if (value !== null && value !== undefined) {
-                matchQuery[field] = value;
-            }
+        if (dupError) {
+            console.error(dupError);
+            setToast({ message: '❌ Помилка при перевірці унікальності', type: 'error' });
+            return;
         }
-        if (Object.keys(matchQuery).length > 0) {
-            const { data: duplicate, error: dupError } = await supabase
-                .from('records')
-                .select('id')
-                .match(matchQuery)
-                .neq('id', id)
-                .maybeSingle();
 
-            if (dupError) {
-                console.error(dupError);
-                setToast({ message: '❌ Помилка при перевірці унікальності', type: 'error' });
-                return;
-            }
-
-            if (duplicate) {
-                setToast({
-                    message: '❗ Такий запис уже існує в реєстрі Інвентаріум',
-                    type: 'error',
-                });
-                return;
-            }
+        if (duplicate) {
+            setToast({
+                message: '❗ Такий запис уже існує в реєстрі Інвентаріум',
+                type: 'error',
+            });
+            return;
         }
+
         // Які поля рівня справи змінились?
         const changed = SHARED_CASE_FIELDS.filter((f) =>
             f === 'additional_case_signature'
@@ -242,37 +202,22 @@ export default function EditSingleRecordPage() {
         if (!id) return;
         setSaving(true);
 
-        // form-стан → рядок для records_edit (як у одиночному збереженні)
-        const toEditRow = (formLike: any, rowId: string) => {
-            // Шифри чистимо від зайвих пробілів: інакше порівняння «що змінилось»
-            // на сторінці підтвердження показувало б правку там, де змінився
-            // лише пробіл.
-            const normalized = normalizeSignatureFields(formLike);
-            const s: any = {};
-            for (const key in normalized) {
-                const value = normalized[key];
-                s[key] = value === '' ? null : value;
-            }
-            return { ...s, id: rowId, json_full_data: normalized };
-        };
-
         try {
             const emailToSave = formData.email;
             const commentText = comment.trim();
 
-            const rows: any[] = [toEditRow(formData, id as string)];
+            // form-стан → рядок для records_edit (спільне з /my_edits)
+            const rows: any[] = [buildEditRow(formData, id as string)];
 
             for (const sib of siblings) {
                 // Повний стан сусіда + наші зміни рівня справи згори
                 const sibForm: any = {
-                    ...sib,
-                    is_ukrainian_archive: resolveIsUkrainianArchive(sib),
-                    additional_case_signature: toSignatureList(sib.additional_case_signature),
+                    ...toEditForm(sib),
                     email: emailToSave,
                     comment: commentText,
                 };
                 for (const f of propagate) sibForm[f] = formData[f];
-                rows.push(toEditRow(sibForm, sib.id));
+                rows.push(buildEditRow(sibForm, sib.id));
             }
 
             // Поточний запис — оновлюємо (це власна пропозиція користувача)

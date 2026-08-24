@@ -14,10 +14,18 @@ import {
   MapPin,
   Shield,
   ShieldCheck,
+  TriangleAlert,
   UserRound,
 } from 'lucide-react';
 import { displayValue, fieldLabel } from '../lib/recordFields';
 import { groupNewRecords, settlementName, type NewRecordGroup } from '../lib/newRecordGroups';
+import {
+  WARNING_HINTS,
+  WARNING_LABELS,
+  computeWarnings,
+  summarizeWarnings,
+  type WarningsByRecord,
+} from '../lib/recordWarnings';
 
 type AdminUserRow = {
   id: string;
@@ -231,6 +239,7 @@ const COLLAPSED_ROWS = 8;
 
 type CommonPartViewProps = {
   records: any[];
+  warnings: WarningsByRecord;
   processing: boolean;
   lastBulkRun: BulkRunItem[];
   canApproveWithoutConfirm: (record: any) => boolean;
@@ -247,6 +256,7 @@ type CommonPartViewProps = {
  */
 function CommonPartView({
   records,
+  warnings,
   processing,
   lastBulkRun,
   canApproveWithoutConfirm,
@@ -360,12 +370,17 @@ function CommonPartView({
         const rows = isOpen ? group.items : group.items.slice(0, COLLAPSED_ROWS);
         const authorsList = Array.from(new Set(group.items.map((record) => record.email).filter(Boolean)));
         const withScans = group.items.filter(hasScans).length;
+        const flagged = summarizeWarnings(group.items, warnings);
 
         return (
           <article
             key={group.id}
             className={`rounded-lg border border-gray-300 dark:border-[#374151] border-l-[3px] ${
-              group.basis === 'none' ? 'border-l-[#9CA3AF]' : 'border-l-[#2563EB]'
+              flagged.count > 0
+                ? 'border-l-[#D97706]'
+                : group.basis === 'none'
+                ? 'border-l-[#9CA3AF]'
+                : 'border-l-[#2563EB]'
             } bg-white dark:bg-[#111827] overflow-hidden`}
           >
             <div className="flex flex-wrap items-start gap-[14px] p-[16px] lg:p-[20px]">
@@ -400,10 +415,39 @@ function CommonPartView({
                 </p>
               </div>
 
-              <span className="inline-flex items-center rounded-full px-[10px] py-[4px] bg-gray-100 dark:bg-[#1F2937] text-gray-700 dark:text-gray-300 text-[12px] font-semibold tabular-nums">
-                {total} {plural(total, 'запис', 'записи', 'записів')}
-              </span>
+              <div className="flex flex-col items-end gap-[6px]">
+                <span className="inline-flex items-center rounded-full px-[10px] py-[4px] bg-gray-100 dark:bg-[#1F2937] text-gray-700 dark:text-gray-300 text-[12px] font-semibold tabular-nums">
+                  {total} {plural(total, 'запис', 'записи', 'записів')}
+                </span>
+                {flagged.count > 0 && (
+                  <span
+                    title={flagged.kinds.map((kind) => WARNING_HINTS[kind]).join('\n')}
+                    className="inline-flex items-center gap-[6px] rounded-full px-[10px] py-[4px] bg-[#FEF3C7] dark:bg-[#78350F] text-[#92400E] dark:text-[#FDE68A] text-[12px] font-semibold tabular-nums"
+                  >
+                    <TriangleAlert className="w-[13px] h-[13px]" strokeWidth={2} />
+                    {flagged.count} з {total} із попередженнями
+                  </span>
+                )}
+              </div>
             </div>
+
+            {flagged.count > 0 && (
+              <div className="mx-[16px] lg:mx-[20px] mb-[16px] p-[12px] lg:p-[14px] rounded-lg border border-[#FCD34D] dark:border-[#78350F] bg-[#FFFBEB] dark:bg-[#2A1F07]">
+                <p className="flex flex-wrap items-center gap-x-[8px] gap-y-[6px] text-[#92400E] dark:text-[#FDE68A] text-[12.5px]">
+                  <TriangleAlert className="w-[14px] h-[14px] flex-shrink-0" strokeWidth={2} />
+                  <span className="font-semibold">Перед підтвердженням перевірте:</span>
+                  {flagged.kinds.map((kind) => (
+                    <span
+                      key={kind}
+                      title={WARNING_HINTS[kind]}
+                      className="inline-flex items-center rounded px-[7px] py-[2px] bg-[#FDE68A] dark:bg-[#78350F] text-[#78350F] dark:text-[#FDE68A] font-medium"
+                    >
+                      {WARNING_LABELS[kind]}
+                    </span>
+                  ))}
+                </p>
+              </div>
+            )}
 
             {group.shared.length > 0 && (
               <div className="mx-[16px] lg:mx-[20px] mb-[16px] p-[14px] lg:p-[16px] rounded-lg border border-gray-200 dark:border-[#293241] bg-gray-50 dark:bg-[#1F2937]">
@@ -463,6 +507,7 @@ function CommonPartView({
                 <thead>
                   <tr>
                     <th className="w-[38px] p-[9px_12px] border-b border-gray-200 dark:border-[#293241]" />
+                    <th className="w-[26px] p-[9px_0] border-b border-gray-200 dark:border-[#293241]" />
                     {group.variantFields.map((field) => (
                       <th
                         key={field}
@@ -476,6 +521,7 @@ function CommonPartView({
                 <tbody>
                   {rows.map((record) => {
                     const checked = selected.has(record.id);
+                    const kinds = warnings.get(record.id) || [];
                     return (
                       <tr
                         key={record.id}
@@ -489,6 +535,17 @@ function CommonPartView({
                             aria-label={`Обрати ${settlementName(record) || record.id}`}
                             className="w-4 h-4 accent-[#14AE5C] cursor-pointer mt-[2px]"
                           />
+                        </td>
+                        <td className="p-[9px_0] align-top">
+                          {kinds.length > 0 && (
+                            <TriangleAlert
+                              className="w-[15px] h-[15px] text-[#D97706] dark:text-[#FBBF24] mt-[2px]"
+                              strokeWidth={2}
+                              aria-label={`Попередження: ${kinds.map((kind) => WARNING_LABELS[kind]).join(', ')}`}
+                            >
+                              <title>{kinds.map((kind) => WARNING_HINTS[kind]).join('\n')}</title>
+                            </TriangleAlert>
+                          )}
                         </td>
                         {group.variantFields.map((field) => (
                           <td
@@ -533,6 +590,7 @@ export default function AdminApproveMassPage() {
   const [error, setError] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [records, setRecords] = useState<any[]>([]);
+  const [warnings, setWarnings] = useState<WarningsByRecord>(() => new Map());
   const [adminUsers, setAdminUsers] = useState<AdminUserRow[]>([]);
   const [authors, setAuthors] = useState<AuthorGroup[]>([]);
   const [selectedAuthorKey, setSelectedAuthorKey] = useState('');
@@ -589,6 +647,27 @@ export default function AdminApproveMassPage() {
 
     loadData();
   }, [user, userLoading]);
+
+  // Попередження рахуємо окремим проходом після завантаження черги: перевірки
+  // б'ють у базу, і тримати через них порожній екран не варто. Доки не готово —
+  // мапа порожня, і картки просто не мають позначок.
+  useEffect(() => {
+    if (records.length === 0) {
+      setWarnings(new Map());
+      return;
+    }
+
+    let cancelled = false;
+    computeWarnings(supabase, records)
+      .then((result) => {
+        if (!cancelled) setWarnings(result);
+      })
+      .catch((err) => console.error('Не вдалося порахувати попередження:', err));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [records]);
 
   const selectedAuthor = authors.find((author) => author.key === selectedAuthorKey) || null;
   const selectedRecords = selectedAuthor?.records || [];
@@ -740,6 +819,7 @@ export default function AdminApproveMassPage() {
           {view === 'common' ? (
             <CommonPartView
               records={records}
+              warnings={warnings}
               processing={processing}
               lastBulkRun={lastBulkRun}
               canApproveWithoutConfirm={canApproveWithoutConfirm}

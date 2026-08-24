@@ -107,12 +107,15 @@ export default function MyEditsPage() {
             return;
         }
 
-        const emailFromForm = typeof formData.email === 'string' ? formData.email.trim() : null;
-        const emailFromUser = typeof user?.email === 'string' ? user.email.trim() : null;
-        const emailToSave = emailFromForm || emailFromUser || null;
+        // Email — ключ авторства пропозиції: за ним її знаходить і цей список,
+        // і адмінка, коли шле сповіщення про підтвердження. Беремо адресу
+        // акаунта, а не поле форми: політика records_edit_update_own звіряє
+        // саме її, тож зміна email тут завершилася б відмовою бази. Усі
+        // пропозиції в цьому списку й так подані з цієї адреси.
+        const emailToSave = typeof user?.email === 'string' ? user.email.trim() : null;
 
         if (!isValidEmail(emailToSave)) {
-            setToast({ message: '❌ Потрібен валідний email (введіть коректну адресу)', type: 'error' });
+            setToast({ message: '❌ У вашому акаунті немає валідного email', type: 'error' });
             return;
         }
 
@@ -151,7 +154,29 @@ export default function MyEditsPage() {
 
             if (error) throw error;
 
+            // «Оновлено 0 рядків» саме по собі причини не називає: рядок міг
+            // зникнути з черги, а міг лишитись на місці, і тоді запис відхилила
+            // база (напр. немає політики UPDATE). Ці два випадки вимагають від
+            // користувача різного, тож розрізняємо їх, а не вгадуємо.
             if (!updated || updated.length === 0) {
+                const { data: stillQueued } = await supabase
+                    .from('records_edit')
+                    .select('id')
+                    .eq('id', current.id)
+                    .maybeSingle();
+
+                if (stillQueued) {
+                    console.error(
+                        'records_edit: UPDATE не зачепив жодного рядка, хоча рядок на місці',
+                        { id: current.id }
+                    );
+                    setToast({
+                        message: '❌ Не вдалося зберегти: база відхилила зміну. Повідомте адміністратора',
+                        type: 'error',
+                    });
+                    return;
+                }
+
                 setToast({
                     message: '❗ Цю пропозицію вже опрацював адміністратор — змін не збережено',
                     type: 'error',
@@ -162,23 +187,16 @@ export default function MyEditsPage() {
                 return;
             }
 
-            // Перечитуємо чергу: після збереження треба показати новий діапазон
-            // змін, а рядок міг зникнути з неї, якщо змінили email автора.
+            // Перечитуємо чергу: після збереження список «що змінює пропозиція»
+            // має рахуватися від збереженого стану, а не від того, з чим
+            // сторінка відкрилася.
             const reloaded = await fetchMyEdits(supabase, emailToSave);
             setItems(reloaded);
 
             const sameIndex = reloaded.findIndex((item) => item.id === current.id);
             openItem(reloaded, sameIndex === -1 ? Math.min(index, reloaded.length - 1) : sameIndex);
 
-            setToast(
-                sameIndex === -1
-                    ? {
-                          message:
-                              '✅ Збережено. Пропозиція більше не показується тут: у ній вказано інший email автора',
-                          type: 'success',
-                      }
-                    : { message: '✅ Зміни збережено, їх перевірить адміністратор', type: 'success' }
-            );
+            setToast({ message: '✅ Зміни збережено, їх перевірить адміністратор', type: 'success' });
         } catch (error) {
             console.error(error);
             setToast({ message: '❌ Помилка при збереженні', type: 'error' });

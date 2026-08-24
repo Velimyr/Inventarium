@@ -5,7 +5,7 @@ import { sameSignatureList } from './caseSignature';
 // current_country не додаємо: назви областей у довіднику унікальні між країнами,
 // тож current_region уже визначає країну, а зайве поле лише ламало б звірку
 // зі старими записами, де країна ще NULL.
-const SETTLEMENT_FIELDS = [
+export const SETTLEMENT_FIELDS = [
   'current_region',
   'current_district',
   'current_community',
@@ -25,7 +25,7 @@ export const CASE_DETAIL_FIELDS = [
 const text = (v: any) => (v === null || v === undefined ? '' : String(v).trim());
 
 // Чи однакове значення поля у кандидата й наявного запису.
-function sameDetail(field: string, a: any, b: any): boolean {
+export function sameDetail(field: string, a: any, b: any): boolean {
   if (field === 'additional_case_signature') return sameSignatureList(a, b);
   return text(a) === text(b);
 }

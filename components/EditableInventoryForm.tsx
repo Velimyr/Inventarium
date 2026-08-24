@@ -521,12 +521,30 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
         </h2>
 
         {/* Ukrainian Archive Selector */}
+        {/* Підпис обов'язковий: селект стартує зі значенням «Так», тож
+            плейсхолдер із питанням не показується — без підпису у формі
+            просто стоїть «Так», і незрозуміло, до чого воно. */}
         <div className="mb-[15px]">
+          <div className="flex items-center gap-[8px] mb-[8px]">
+            <span className="text-gray-900 dark:text-[#F3F4F6] text-[14px] lg:text-[16px] font-medium">
+              Справа знаходиться в українському архіві?
+            </span>
+            <HelpTooltip label="Навіщо це питання" width={320}>
+              <span className="block">
+                <b>Так</b> — шифр складається з архіву, фонду, опису й справи, які ви обираєте
+                нижче, а сам шифр Інвентаріум збирає автоматично.
+              </span>
+              <span className="block">
+                <b>Ні</b> — справа в закордонному архіві: шифр вводиться повністю вручну, у тому
+                вигляді, як його подає сам архів.
+              </span>
+            </HelpTooltip>
+          </div>
           <FormSelect
             name="is_ukrainian_archive"
             value={formData.is_ukrainian_archive}
             onChange={handleChange}
-            placeholder="Справа знаходиться в українському архіві?"
+            placeholder="Оберіть відповідь"
           >
             <option value="Так">Так</option>
             <option value="Ні">Ні</option>

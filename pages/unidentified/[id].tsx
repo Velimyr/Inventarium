@@ -14,6 +14,7 @@ import { formatSignatureList, normalizeSignatureFields } from '../../lib/caseSig
 import HelpTooltip from '../../components/HelpTooltip';
 import InventoryTypeWarning from '../../components/InventoryTypeWarning';
 import { INVENTORY_TYPES, suggestInventoryType } from '../../lib/inventoryType';
+import { fieldLabel } from '../../lib/recordFields';
 import {
     fetchRegionStructure, findCountryByRegion, listCountries, listRegions, listDistricts,
     listCommunities, listSettlements, levelNames, accusative, capitalize, type NestedStructure, type Settlement,
@@ -255,7 +256,7 @@ export default function NotIdentifyDetails() {
 
         for (const field of requiredFields) {
             if (!formData[field]) {
-                const label = fieldLabels[field] || field;
+                const label = fieldLabels[field] || fieldLabel(field);
                 return `Поле "${label}" обов'язкове.`;
             }
         }
@@ -471,7 +472,7 @@ export default function NotIdentifyDetails() {
                 const value = point[field];
 
                 if (value === null || value === undefined || value === '') {
-                    const label = fieldLabels[field] || field;
+                    const label = fieldLabels[field] || fieldLabel(field);
                     const locationInfo = point.current_settlement_name
                         ? ` (${point.current_settlement_name})`
                         : ` (точка №${pointNumber})`;

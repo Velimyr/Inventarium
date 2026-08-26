@@ -13,6 +13,7 @@ import { normalizeSignatureFields, validateCaseSignature } from '../lib/caseSign
 import { reportAddProblem as reportProblemToAdmins } from '../lib/reportProblem';
 import { findRecordWithAdditionalSignature } from '../lib/duplicateCheck';
 import DuplicateWarnings from '../components/DuplicateWarnings';
+import { fieldLabel } from '../lib/recordFields';
 
 const EditableInventoryForm = dynamic(() => import('../components/EditableInventoryForm'), {
     ssr: false,
@@ -176,7 +177,7 @@ export default function AddInventoryPage() {
 
         for (const field of requiredFields) {
             if (!formData[field]) {
-                const label = fieldLabels[field] || field;
+                const label = fieldLabels[field] || fieldLabel(field);
                 return `Поле "${label}" обов'язкове.`;
             }
         }
@@ -192,7 +193,7 @@ export default function AddInventoryPage() {
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email)) {
-            return 'Поле "email" має містити дійсну електронну адресу.';
+            return 'Поле "Email" має містити дійсну електронну адресу.';
         }
 
         if (formData.scans_url) {

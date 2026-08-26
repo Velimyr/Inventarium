@@ -145,7 +145,7 @@ export default function AdminDashboard() {
               icon={<FileText className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />}
               title="Підтвердження нових інвентарів"
               count={unverifiedCount}
-              hint="Необроблені інвентарі з records_unverified"
+              hint="Інвентарі, додані користувачами й ще не перевірені"
               singleHref="/admin_approve"
               massHref="/admin_approve_mass"
               massLabel="Масове підтвердження"
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
               icon={<Edit className="w-5 h-5 text-gray-900 dark:text-[#F3F4F6]" strokeWidth={2} />}
               title="Редагування інвентарів"
               count={editCount}
-              hint="Запропоновані зміни з records_edit"
+              hint="Правки до наявних інвентарів, які чекають підтвердження"
               singleHref="/admin_editapprove"
               massHref="/admin_editapprove_mass"
               massLabel="Масове редагування"

@@ -202,8 +202,19 @@ export const settlementPath = (record: any) =>
   [record?.current_region, record?.current_district, record?.current_community].filter(Boolean).join(' · ');
 
 /** Відбиток змін: однаковий у записів, які міняють ті самі поля на ті самі значення. */
+/**
+ * Відбиток набору правок — за ним збираються записи зіЗБІГОМ правок.
+ *
+ * Запис БЕЗ змін отримує унікальний ключ, а не спільний порожній: «нічого не
+ * змінюють» — це не спільна правка, і зводити за нею в одну групу не можна.
+ * Інакше всі порожні пропозиції з усієї черги злипались в одну картку, де
+ * змішувались різні автори, дати й коментарі. Такі записи падають нижче — до
+ * групування за шифром чи населеним пунктом, де спільне справді є.
+ */
 const changesKey = (item: EditItem) =>
-  JSON.stringify(item.changes.map((change) => [change.field, change.newValue]));
+  item.changes.length === 0
+    ? `no-changes:${item.id}`
+    : JSON.stringify(item.changes.map((change) => [change.field, change.newValue]));
 
 const placeKey = (item: EditItem) =>
   `${settlementName(item.original)}|${settlementPath(item.original)}`;
@@ -259,18 +270,9 @@ export function groupEdits(items: EditItem[]): EditGroup[] {
   //    розчинити у більшій групі, де перетин зіб'ють поодинокі відхилення.
   take(changesKey, (list) => {
     const first = list[0];
-    const samePlace = list.every((item) => placeKey(item) === placeKey(first));
     const sameSignature = list.every(
       (item) => item.original?.case_signature === first.original?.case_signature
     );
-
-    if (first.changes.length === 0) {
-      return {
-        basis: samePlace ? 'settlement' : 'none',
-        keyText: samePlace ? settlementName(first.original) : 'Редагування без змін',
-        keySub: samePlace ? settlementPath(first.original) : 'Жодне поле не відрізняється від чинного запису',
-      };
-    }
 
     return {
       basis: sameSignature ? 'signature' : 'change',

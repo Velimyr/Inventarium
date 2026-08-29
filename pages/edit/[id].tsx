@@ -53,7 +53,9 @@ export default function EditSingleRecordPage() {
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [comment, setComment] = useState<string>("");
     // Поп-ап пропозиції поширити зміни на інші н.п. тієї самої справи
-    const [siblingPrompt, setSiblingPrompt] = useState<{ siblings: any[]; propagate: string[]; skipped: number } | null>(null);
+    const [siblingPrompt, setSiblingPrompt] = useState<
+        { siblings: any[]; propagate: string[]; skipped: number; alreadySame: number } | null
+    >(null);
     const [saving, setSaving] = useState(false);
 
     // Зберігаємо останній завантажений ID, щоб не перезавантажувати при перемиканні вкладок
@@ -174,19 +176,34 @@ export default function EditSingleRecordPage() {
             if (sibErr) {
                 console.error(sibErr);
             } else if (siblings && siblings.length > 0) {
+                // Сусіди, у яких ці поля вже мають те саме значення, пропозиції не
+                // потребують. Без цієї перевірки правка, що лише доповнює частину
+                // записів справи, створювала порожні пропозиції для решти: адмін
+                // діставав пачку «нічого не змінює», яку лишалось тільки відхилити.
+                const needsChange = (sib: any) =>
+                    propagate.some((f) =>
+                        f === 'additional_case_signature'
+                            ? !sameSignatureList(formData[f], sib[f])
+                            : normCmp(formData[f]) !== normCmp(sib[f])
+                    );
+
+                const differing = siblings.filter(needsChange);
+                const alreadySame = siblings.length - differing.length;
+
                 // Сусідів, у яких уже є неопрацьована пропозиція редагування, не чіпаємо
                 const { data: pending } = await supabase
                     .from('records_edit')
                     .select('id')
-                    .in('id', siblings.map((s) => s.id));
+                    .in('id', differing.map((s) => s.id));
                 const pendingIds = new Set((pending || []).map((p) => p.id));
-                const available = siblings.filter((s) => !pendingIds.has(s.id));
+                const available = differing.filter((s) => !pendingIds.has(s.id));
 
                 if (available.length > 0) {
                     setSiblingPrompt({
                         siblings: available,
                         propagate,
-                        skipped: siblings.length - available.length,
+                        skipped: differing.length - available.length,
+                        alreadySame,
                     });
                     return; // чекаємо на вибір у поп-апі
                 }
@@ -305,9 +322,16 @@ export default function EditSingleRecordPage() {
                                     <span className="font-mono">{originalData.case_signature}</span>).
                                 </p>
                                 <p className="text-gray-700 dark:text-gray-300 text-[14px] lg:text-[15px] mb-[14px]">
-                                    Ця справа є ще в <b>{siblingPrompt.siblings.length}</b> населених пунктах.
-                                    Створити для кожного пропозицію редагування з тими самими змінами?
+                                    Ці зміни ще не внесені в <b>{siblingPrompt.siblings.length}</b> записах цієї
+                                    справи. Створити для кожного пропозицію редагування?
                                 </p>
+
+                                {siblingPrompt.alreadySame > 0 && (
+                                    <p className="text-gray-500 dark:text-gray-400 text-[13px] mb-[10px]">
+                                        Ще в {siblingPrompt.alreadySame} записах ці поля вже мають таке саме
+                                        значення — їх не чіпаємо.
+                                    </p>
+                                )}
 
                                 {siblingPrompt.skipped > 0 && (
                                     <p className="text-gray-500 dark:text-gray-400 text-[13px] mb-[10px]">

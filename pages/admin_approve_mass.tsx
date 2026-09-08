@@ -22,10 +22,13 @@ import { groupNewRecords, settlementName, type NewRecordGroup } from '../lib/new
 import {
   WARNING_HINTS,
   WARNING_LABELS,
+  collectWarningDiffs,
   computeWarnings,
   summarizeWarnings,
+  type WarningDiffRow,
   type WarningsByRecord,
 } from '../lib/recordWarnings';
+import { WarningDiffList, WarningMarker } from '../components/WarningDetails';
 
 type AdminUserRow = {
   id: string;
@@ -263,6 +266,15 @@ function CommonPartView({
   onApprove,
 }: CommonPartViewProps) {
   const groups = useMemo(() => groupNewRecords(records), [records]);
+
+  // Розбіжності для плашки групи: рахуються з уже готових попереджень, але
+  // зводять однакові випадки докупи, тож робити це на кожен рендер таблиці
+  // (а вона перемальовується на кожну галочку) не варто.
+  const diffRows = useMemo(() => {
+    const map = new Map<string, WarningDiffRow[]>();
+    for (const group of groups) map.set(group.id, collectWarningDiffs(group.items, warnings));
+    return map;
+  }, [groups, warnings]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(records.map((r) => r.id)));
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -446,6 +458,7 @@ function CommonPartView({
                     </span>
                   ))}
                 </p>
+                <WarningDiffList rows={diffRows.get(group.id) || []} />
               </div>
             )}
 
@@ -521,7 +534,7 @@ function CommonPartView({
                 <tbody>
                   {rows.map((record) => {
                     const checked = selected.has(record.id);
-                    const kinds = warnings.get(record.id) || [];
+                    const warning = warnings.get(record.id);
                     return (
                       <tr
                         key={record.id}
@@ -537,15 +550,7 @@ function CommonPartView({
                           />
                         </td>
                         <td className="p-[9px_0] align-top">
-                          {kinds.length > 0 && (
-                            <TriangleAlert
-                              className="w-[15px] h-[15px] text-[#D97706] dark:text-[#FBBF24] mt-[2px]"
-                              strokeWidth={2}
-                              aria-label={`Попередження: ${kinds.map((kind) => WARNING_LABELS[kind]).join(', ')}`}
-                            >
-                              <title>{kinds.map((kind) => WARNING_HINTS[kind]).join('\n')}</title>
-                            </TriangleAlert>
-                          )}
+                          {warning && <WarningMarker warning={warning} />}
                         </td>
                         {group.variantFields.map((field) => (
                           <td

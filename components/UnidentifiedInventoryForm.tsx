@@ -78,7 +78,14 @@ export default function UnidentifiedInventoryForm({
     if (formData.inventory_type !== suggested) {
       setFormData((fd: any) => ({ ...fd, inventory_type: suggested }));
     }
-  }, [typeLocked, formData.inventory_type, formData.archive, formData.fonds, formData.case_title]);
+  }, [
+    typeLocked,
+    formData.inventory_type,
+    formData.archive,
+    formData.fonds,
+    formData.case_signature,
+    formData.case_title,
+  ]);
 
   useEffect(() => {
     if (data?.email && (!formData.email || formData.email === '')) {

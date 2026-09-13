@@ -710,6 +710,9 @@ export default function EditableInventoryForm({ data, onChange, onSubmit, duplic
                 <span className="block">
                   <b>Урбар</b> — опис повинностей підданих (Закарпаття, угорські архіви).
                 </span>
+                <span className="block">
+                  <b>Дефтер</b> — османський податковий реєстр (болгарські, османські архіви).
+                </span>
               </HelpTooltip>
             </div>
             <FormSelect

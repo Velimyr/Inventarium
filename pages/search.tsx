@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
-import { apostropheTolerant } from '../lib/textSearch';
+import { buildRecordSearchQuery, MIN_SEARCH_LENGTH } from '../lib/recordSearch';
 import {
   fetchRegionStructure, listCountries, listRegions, listDistricts, listCommunities,
   isNamedLevel,
@@ -88,7 +88,7 @@ export default function Home() {
   useEffect(() => {
     if (!isInitialized) return;
     
-    const shouldSearch = filters.search && filters.search.trim().length >= 3;
+    const shouldSearch = filters.search && filters.search.trim().length >= MIN_SEARCH_LENGTH;
     if (shouldSearch) {
       loadRecords();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -98,7 +98,7 @@ export default function Home() {
   }, [page, filters, isInitialized]);
 
   const loadRecords = async () => {
-    if (!filters.search || filters.search.trim().length < 3) {
+    if (!filters.search || filters.search.trim().length < MIN_SEARCH_LENGTH) {
       setRecords([]);
       setTotalCount(0);
       setLoading(false);
@@ -109,52 +109,12 @@ export default function Home() {
     const from = page * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
-    let query = supabase
-      .from('records')
-      .select('*', { count: 'exact' })
-      .eq('approved', true);
-
-    // Фільтри по адмінподілу. Апостроф у назві («Кам’янець-Подільський») може
-    // відрізнятися від збереженого в записі, тому шукаємо толерантно до нього.
-    if (filters.current_country) {
-      query = query.ilike('current_country', `%${apostropheTolerant(filters.current_country)}%`);
-    }
-    if (filters.current_region) {
-      query = query.ilike('current_region', `%${apostropheTolerant(filters.current_region)}%`);
-    }
-    if (filters.current_district) {
-      query = query.ilike('current_district', `%${apostropheTolerant(filters.current_district)}%`);
-    }
-    if (filters.current_community) {
-      query = query.ilike('current_community', `%${apostropheTolerant(filters.current_community)}%`);
-    }
-
-    // Фільтри по роках
-    if (filters.inventory_year_from) {
-      query = query.gte('inventory_year', Number(filters.inventory_year_from));
-    }
-    if (filters.inventory_year_to) {
-      query = query.lte('inventory_year', Number(filters.inventory_year_to));
-    }
-
-    // Фільтр по сигнатурі справи
-    if (filters.case_signature) {
-      query = query.ilike('case_signature', `%${filters.case_signature}%`);
-    }
-
-    // Основний пошук (обов'язковий)
-    const term = apostropheTolerant(filters.search);
-    query = query.or([
-      `old_settlement_name.ilike.%${term}%`,
-      `current_settlement_name.ilike.%${term}%`,
-      `case_title.ilike.%${term}%`,
-      `notes.ilike.%${term}%`,
-      `case_signature.ilike.%${term}%`,
-    ].join(','));
-
-    query = query.order('inventory_year', { ascending: false }).range(from, to);
-
-    const { data, error, count } = await query;
+    // Той самий запит, що й у MCP-сервера (lib/recordSearch.ts)
+    const { data, error, count } = await buildRecordSearchQuery(supabase, filters, {
+      columns: '*',
+      from,
+      to,
+    });
 
     if (error) {
       console.error('Помилка при завантаженні:', error);

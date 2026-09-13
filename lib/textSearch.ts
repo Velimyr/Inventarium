@@ -21,6 +21,16 @@ export function apostropheTolerant(value: string): string {
     return value.replace(APOSTROPHES, '_');
 }
 
+// Кома, дужки й лапки — синтаксис фільтра or() у PostgREST. Потрапивши в
+// значення, вони розривають умову, і запит падає з помилкою замість
+// результатів. Їх теж замінюємо на «_»: символ у колонці однаково збігається.
+const OR_SYNTAX = /[,()"\\]/g;
+
+/** apostropheTolerant для ilike, вкладеного в or(...). */
+export function orIlikeTerm(value: string): string {
+    return apostropheTolerant(value).replace(OR_SYNTAX, '_');
+}
+
 /** normalizeApostrophes + toLowerCase — для includes() у фільтрах списків. */
 export function searchKey(value: string): string {
     return normalizeApostrophes(value).toLowerCase();

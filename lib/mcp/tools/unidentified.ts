@@ -1,11 +1,20 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { toSignatureList } from '../../caseSignature';
 import { orIlikeTerm } from '../../textSearch';
 import { PUBLIC_UNIDENTIFIED_COLUMNS } from '../publicColumns';
 import { unidentifiedUrl } from '../links';
-import { compact, errorResult, isPastLastPage, jsonResult, must, pastLastPageResult, run } from '../format';
+import { L } from '../labels';
+import {
+  compact,
+  errorResult,
+  formatCaseFields,
+  isPastLastPage,
+  jsonResult,
+  must,
+  pastLastPageResult,
+  run,
+} from '../format';
 import { beyondDepthMessage, cleanText, reachablePagination, reachableRange } from '../filters';
 
 // Ті самі статуси, що показує публічна сторінка /unidentified: «done» — уже
@@ -60,25 +69,18 @@ export function registerUnidentifiedTools(server: McpServer, supabase: SupabaseC
 
         return jsonResult({
           ...reachablePagination(result.count ?? 0, args.page, args.limit),
-          results: rows.map((row: any) =>
+          [L.results]: rows.map((row: any) =>
             compact({
-              id: row.id,
-              url: unidentifiedUrl(row.id),
+              [L.id]: row.id,
+              [L.url]: unidentifiedUrl(row.id),
               // Підписи — як на сторінці /unidentified
-              status: row.status === 'review' ? 'Обробляється адміністратором' : 'Очікує ідентифікації',
-              case_signature: row.case_signature,
-              additional_signatures: toSignatureList(row.additional_case_signature),
-              archive: row.archive,
-              fonds: row.fonds,
-              series: row.series,
-              record: row.record,
-              case_title: row.case_title,
-              case_dates: row.case_date,
-              inventory_year: row.inventory_year,
-              inventory_type: row.inventory_type,
-              pages_count: row.pages_count,
-              scans_url: row.scans_url,
-              notes: row.notes,
+              [L.status]: row.status === 'review' ? 'Обробляється адміністратором' : 'Очікує ідентифікації',
+              ...formatCaseFields(row),
+              // Сторінка /case показує лише записи реєстру — для неідентифікованої справи вона порожня
+              [L.caseUrl]: null,
+              [L.inventoryYear]: row.inventory_year,
+              [L.inventoryType]: row.inventory_type,
+              [L.notes]: row.notes,
             })
           ),
         });

@@ -6,6 +6,11 @@ const nextConfig = {
   outputFileTracingIncludes: {
     '/api/mcp': ['./public/data/*.json', './public/data/historical/areas-*.geojson'],
   },
+  // rewrites тут навмисне немає: будь-яке правило змушує кожну статичну сторінку
+  // чекати клієнтського replace, перш ніж router.isReady стане true (див.
+  // next/dist/client/index.js), — а на isReady тримається, наприклад, /search.
+  // Тому метадані OAuth для MCP віддаються з /api/oauth-protected-resource, а
+  // адресу клієнт бере із заголовка WWW-Authenticate (lib/mcp/auth.ts).
 };
 
 module.exports = nextConfig;

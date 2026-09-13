@@ -12,6 +12,7 @@
 import type { FlatSettlement } from '../../components/keys/regionData';
 import { searchKey } from '../textSearch';
 import { loadFlatSettlements } from '../server/publicData';
+import { L } from './labels';
 
 /** Скільки результатів одного запиту можна переглянути, гортаючи сторінки. */
 export const MAX_REACHABLE_RESULTS = 100;
@@ -37,13 +38,13 @@ export function reachablePagination(total: number, page: number, limit: number) 
   const reachable = Math.min(total, MAX_REACHABLE_RESULTS);
   const pages = Math.ceil(reachable / limit);
   return {
-    total,
-    page,
-    pages,
-    ...(page < pages ? { next_page: page + 1 } : {}),
+    [L.total]: total,
+    [L.page]: page,
+    [L.pages]: pages,
+    ...(page < pages ? { [L.nextPage]: page + 1 } : {}),
     ...(total > MAX_REACHABLE_RESULTS
       ? {
-          note: `Знайдено ${total}, переглянути можна перші ${MAX_REACHABLE_RESULTS}. Уточніть запит, щоб побачити решту.`,
+          [L.note]: `Знайдено ${total}, переглянути можна перші ${MAX_REACHABLE_RESULTS}. Уточніть запит, щоб побачити решту.`,
         }
       : {}),
   };

@@ -14,10 +14,13 @@
 
 ## MCP-сервер
 
-Реєстр доступний агентам (Claude та іншим MCP-клієнтам) через MCP-сервер:
-**`https://<домен>/api/mcp`** (транспорт Streamable HTTP, без сесій, без авторизації).
+Реєстр доступний агентам (Claude, ChatGPT та іншим MCP-клієнтам) через MCP-сервер:
+**`https://<домен>/api/mcp`** (транспорт Streamable HTTP, без сесій). Доступ — лише для
+користувачів сайту: клієнт проводить вхід через OAuth 2.1 (див. «Авторизація»).
 Сервер лише читає публічні дані anon-ключем Supabase і віддає тільки явно перелічені
 колонки (`lib/mcp/publicColumns.ts`) — email і `created_by` авторів у відповіді не потрапляють.
+Поля у відповідях підписані українською («Шифр справи», «Рік складання інвентаря»…), а не назвами
+колонок бази; усі підписи — в `lib/mcp/labels.ts`.
 
 ### Інструменти
 
@@ -38,9 +41,38 @@
 
 ### Підключення
 
-- **Claude Code:** `claude mcp add --transport http inventarium https://<домен>/api/mcp`
 - **Claude (claude.ai / Desktop):** Settings → Connectors → Add custom connector → URL `https://<домен>/api/mcp`.
+  Поля OAuth Client ID / Secret лишити порожніми — клієнт зареєструється сам.
+- **Claude Code:** `.mcp.json` у корені проєкту або `claude mcp add --transport http inventarium https://<домен>/api/mcp`.
 - **Перевірка вручну:** `npx @modelcontextprotocol/inspector`, транспорт Streamable HTTP, URL `http://localhost:3000/api/mcp`.
+
+Під час підключення відкривається браузер: вхід через Google (як на сайті) і сторінка згоди
+`/oauth/consent`. Підключені застосунки й відкликання доступу — на `/oauth/consent` без параметрів.
+
+### Авторизація
+
+Модель «вхід обов'язковий»: без токена `/api/mcp` відповідає 401 із заголовком
+`WWW-Authenticate: Bearer resource_metadata="https://<домен>/api/oauth-protected-resource"`.
+Звідти клієнт дізнається сервер авторизації — **Supabase Auth OAuth 2.1** — і сам проходить
+реєстрацію, вхід і отримання токена. Токен — звичайний Supabase JWT користувача (`lib/mcp/auth.ts`).
+
+- **Квота:** 100 викликів інструментів на добу (UTC) на акаунт, однаково для всіх (`lib/mcp/quota.ts`).
+  Понад ліміт інструмент повертає пояснення замість даних. Лічильник — функція `mcp_count_call()`.
+- **Дані** інструменти читають anon-ключем: токен лише засвідчує користувача й рахує квоту.
+- Метадані віддаються не з `/.well-known/…`: для цього потрібні `rewrites`, а вони змушують кожну
+  статичну сторінку чекати клієнтського replace перед `router.isReady` (див. коментар у `next.config.js`).
+
+**Одноразове налаштування (до деплою):**
+
+1. Supabase → SQL Editor: виконати `sql/2026-09-13_mcp_usage.sql`.
+2. Supabase → Authentication → **OAuth Server**: увімкнути; *Authorization path* — `/oauth/consent`;
+   увімкнути **Dynamic client registration** (без неї Claude покаже «Couldn't register with … sign-in service»).
+3. Supabase → Authentication → **URL Configuration**: *Site URL* — `https://<домен>`. Повернення після
+   входу на той самий домен Supabase Auth дозволяє без записів у *Redirect URLs*. Для інших адрес
+   (preview Vercel, localhost) додати шаблон на кшталт `https://<preview-домен>/**`: він звіряється з
+   повною адресою разом із `?authorization_id=…`, тож шаблон без зірочки не спрацює.
+4. Перевірка: `https://<project-ref>.supabase.co/.well-known/oauth-authorization-server/auth/v1`
+   має повертати JSON із `registration_endpoint`.
 
 ### Захист від масового вивантаження
 
@@ -51,14 +83,16 @@
 - Регіон, район і громада мають однозначно впізнаватися в довіднику: «район» чи «а» відхиляються як неоднозначні.
 - Гортати можна лише перші 100 результатів запиту; `search_keys` повертає до 20 ключів.
 - Шаблонні символи LIKE (`%`, `_`, `*`) вирізаються з текстових фільтрів.
-- Пакетні JSON-RPC запити відхиляються: один HTTP-запит — один виклик, інакше rate limit не працює.
-- Кожен виклик пишеться в лог: `[mcp] client=<хеш IP> method=… tool=… args=… status=… ms=…`
+- Пакетні JSON-RPC запити відхиляються: один HTTP-запит — один виклик, інакше квоту можна обійти.
+- Добова квота на акаунт (див. «Авторизація») — головне обмеження: ліміт за IP для хмарних клієнтів
+  не працює, бо вони звертаються з IP свого постачальника, спільних для всіх користувачів.
+- Кожен виклик пишеться в лог: `[mcp] user=<id> method=… tool=… args=… calls=<за добу> status=… ms=…`
   (Vercel → Logs, пошук `[mcp]`).
 
-**Rate limit у Vercel Firewall** (налаштовується в дашборді, доступний і на Hobby — одне правило на проєкт):
-Project → Firewall → Configure → **+ New Rule** → If *Request Path* *Equals* `/api/mcp` → Then **Rate Limit**:
-Fixed Window, **10 minutes**, **100 requests**, key **IP** → дія Default (429) → Save → Review Changes → Publish.
-Для початку можна поставити дію **Log**, щоб подивитися на реальний трафік, і потім перемкнути на 429.
+**Rate limit у Vercel Firewall** — лише захист від навантаження (доступний і на Hobby, одне правило на проєкт):
+Project → Firewall → Configure → **+ New Rule** → If *Request Path* *Equals* `/api/mcp` → Then **Rate Limit**,
+Fixed Window, key **IP**. Поріг — щедрий: через IP Anthropic/OpenAI ходять усі користувачі Claude/ChatGPT разом.
+Почати з дії **Log** і підібрати поріг за реальним трафіком.
 
 Посилання у відповідях будуються від `SITE_URL` (типово `https://inventarium.org.ua`).
 Довідники з `public/data` сервер читає з диска — у функцію Vercel вони потрапляють через

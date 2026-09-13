@@ -8,6 +8,7 @@ import { loadRegionStructure } from '../../server/publicData';
 import { PUBLIC_RECORD_COLUMNS } from '../publicColumns';
 import { cleanText, meaningfulChars, MIN_MEANINGFUL_CHARS } from '../filters';
 import { caseUrl, recordUrl } from '../links';
+import { L } from '../labels';
 import {
   compact,
   currentPlaceLabel,
@@ -21,6 +22,7 @@ import {
   must,
   placeLabel,
   run,
+  scansLabel,
   UUID_PATTERN,
 } from '../format';
 
@@ -31,11 +33,12 @@ const MAX_SETTLEMENT_RECORDS = 1000;
 /** Один інвентар у складі справи чи населеного пункту. */
 const inventoryItem = (row: any) =>
   compact({
-    id: row.id,
-    url: recordUrl(row.id),
-    inventory_year: row.inventory_year,
-    inventory_type: row.inventory_type,
-    inventory_start_page: row.inventory_start_page,
+    [L.id]: row.id,
+    [L.url]: recordUrl(row.id),
+    [L.inventoryYear]: row.inventory_year,
+    [L.inventoryType]: row.inventory_type,
+    [L.inventoryStartPage]: row.inventory_start_page,
+    [L.markType]: markType(row.mark_type),
   });
 
 // Рядки справи відрізняє населений пункт — сучасний і давній разом з
@@ -116,11 +119,11 @@ export function registerRecordTools(server: McpServer, supabase: SupabaseClient)
 
         const alsoAdditional = (listedAsAdditional || []).map((row: any) =>
           compact({
-            id: row.id,
-            url: recordUrl(row.id),
-            main_case_signature: row.case_signature,
-            settlement: currentPlaceLabel(row),
-            inventory_year: row.inventory_year,
+            [L.id]: row.id,
+            [L.url]: recordUrl(row.id),
+            [L.mainCaseSignature]: row.case_signature,
+            [L.settlementCurrent]: currentPlaceLabel(row),
+            [L.inventoryYear]: row.inventory_year,
           })
         );
 
@@ -143,10 +146,9 @@ export function registerRecordTools(server: McpServer, supabase: SupabaseClient)
 
           return jsonResult(
             compact({
-              found: false,
-              message: `Справи з шифром «${signature}» серед основних шифрів реєстру немає.`,
-              listed_as_additional_signature_in: alsoAdditional,
-              similar_signatures: signatures.map((s) => ({ case_signature: s, url: caseUrl(s) })),
+              [L.message]: `Справи з шифром «${signature}» серед основних шифрів реєстру немає.`,
+              [L.listedAsAdditional]: alsoAdditional,
+              [L.similarSignatures]: signatures.map((s) => ({ [L.caseSignature]: s, [L.caseUrl]: caseUrl(s) })),
             })
           );
         }
@@ -154,16 +156,15 @@ export function registerRecordTools(server: McpServer, supabase: SupabaseClient)
         const groups = groupSameExceptYear(rows, caseSettlementKey);
         return jsonResult(
           compact({
-            found: true,
             ...formatCaseFields(rows[0]),
-            inventories_count: rows.length,
-            settlements: groups.map(({ items }) => ({
-              settlement: currentPlaceLabel(items[0]),
-              settlement_url: currentSettlementUrl(items[0]),
-              settlement_historical: historicalPlaceLabel(items[0]),
-              inventories: items.map((row: any) => compact({ ...inventoryItem(row), mark_type: markType(row.mark_type) })),
+            [L.inventoriesCount]: rows.length,
+            [L.settlements]: groups.map(({ items }) => ({
+              [L.settlementCurrent]: currentPlaceLabel(items[0]),
+              [L.settlementUrl]: currentSettlementUrl(items[0]),
+              [L.settlementHistorical]: historicalPlaceLabel(items[0]),
+              [L.inventories]: items.map(inventoryItem),
             })),
-            listed_as_additional_signature_in: alsoAdditional,
+            [L.listedAsAdditional]: alsoAdditional,
           })
         );
       })
@@ -175,8 +176,8 @@ export function registerRecordTools(server: McpServer, supabase: SupabaseClient)
       title: 'Інвентарі населеного пункту',
       description:
         'Усі підтверджені інвентарі одного населеного пункту, згруповані за справами. Населений пункт задається ' +
-        'кодом із find_settlement (надійніше) або точним сучасним шляхом: регіон, район, громада, назва — ' +
-        'саме так, як їх повертає find_settlement.',
+        'кодом із find_settlement (надійніше) або точним сучасним шляхом: region, district, community, name — ' +
+        'значення полів «Регіон», «Район», «Громада», «Назва» з find_settlement.',
       inputSchema: {
         code: z.string().trim().optional().describe('Код населеного пункту з find_settlement, наприклад «UA18040170010074377».'),
         region: z.string().trim().optional(),
@@ -217,35 +218,35 @@ export function registerRecordTools(server: McpServer, supabase: SupabaseClient)
             .limit(MAX_SETTLEMENT_RECORDS)
         );
 
-        const settlement = compact({
-          label: placeLabel(place.type, place.name, place.community, place.district, place.region, place.country),
-          url: rows?.length ? currentSettlementUrl(rows[0]) : null,
-        });
+        const settlement = {
+          [L.settlementCurrent]: placeLabel(place.type, place.name, place.community, place.district, place.region, place.country),
+          [L.settlementUrl]: rows?.length ? currentSettlementUrl(rows[0]) : null,
+        };
 
         if (!rows || rows.length === 0) {
-          return jsonResult({
-            settlement,
-            inventories_count: 0,
-            message:
+          return jsonResult(compact({
+            ...settlement,
+            [L.inventoriesCount]: 0,
+            [L.message]:
               'За цим населеним пунктом підтверджених інвентарів у реєстрі немає. Спробуйте search_inventories ' +
               'за давньою назвою або search_keys: інвентар міг бути прив’язаний до сусіднього пункту чи ключа.',
-          });
+          }));
         }
 
         const groups = groupSameExceptYear(rows, settlementCaseKey);
         return jsonResult(
           compact({
-            settlement,
-            inventories_count: rows.length,
-            truncated: rows.length === MAX_SETTLEMENT_RECORDS ? true : null,
-            cases: groups.map(({ items }) => ({
+            ...settlement,
+            [L.inventoriesCount]: rows.length,
+            [L.note]:
+              rows.length === MAX_SETTLEMENT_RECORDS ? `Показано перші ${MAX_SETTLEMENT_RECORDS} інвентарів.` : null,
+            [L.cases]: groups.map(({ items }) => ({
               ...formatCaseFields(items[0]),
-              has_scans: Boolean(items[0].scans_url),
-              inventories: items.map((row: any) =>
+              [L.scans]: scansLabel(items[0].scans_url),
+              [L.inventories]: items.map((row: any) =>
                 compact({
                   ...inventoryItem(row),
-                  settlement_historical: historicalPlaceLabel(row),
-                  mark_type: markType(row.mark_type),
+                  [L.settlementHistorical]: historicalPlaceLabel(row),
                 })
               ),
             })),

@@ -3,16 +3,17 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { searchKey } from '../../textSearch';
 import { loadArchives, type Archive } from '../../server/publicData';
 import { FIELDS_GUIDE } from '../guide';
+import { L } from '../labels';
 import { compact, jsonResult, run } from '../format';
 
 const archiveItem = (a: Archive) =>
   compact({
-    short_name: a.short_name,
-    full_name: a.full_name_ukr,
+    [L.shortName]: a.short_name,
+    [L.fullName]: a.full_name_ukr,
     // Оригінальна назва здебільшого повторює українську — тоді не дублюємо
-    native_name: a.full_name_native !== a.full_name_ukr ? a.full_name_native : null,
-    country: a.country,
-    site: a.site,
+    [L.nativeName]: a.full_name_native !== a.full_name_ukr ? a.full_name_native : null,
+    [L.country]: a.country,
+    [L.site]: a.site,
   });
 
 export function registerReferenceTools(server: McpServer) {
@@ -39,7 +40,7 @@ export function registerReferenceTools(server: McpServer) {
             (!query ||
               [a.short_name, a.full_name_ukr, a.full_name_native].some((v) => v && searchKey(v).includes(query)))
         );
-        return jsonResult({ total: archives.length, archives: archives.map(archiveItem) });
+        return jsonResult({ [L.total]: archives.length, [L.archives]: archives.map(archiveItem) });
       })
   );
 
@@ -96,7 +97,7 @@ export function registerReferenceTools(server: McpServer) {
               '',
               'Підсумуй: справи з шифрами, роками, типами документів і наявністю сканів, із посиланнями на сайт; ' +
                 'історичну належність пункту; в яких архівах шукати оригінали (list_archives). ' +
-                'Записи з mark_type «регіон» познач окремо.',
+                'Записи з типом позначки «регіон» познач окремо.',
             ].join('\n'),
           },
         },

@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { findSettlementByCode } from '../../../components/keys/regionData';
 import { findHistoricalArea, HISTORICAL_PERIODS } from '../../server/historicalAreas';
 import { loadRegionStructure } from '../../server/publicData';
+import { L } from '../labels';
 import { compact, currentPlaceLabel, errorResult, jsonResult, must, placeLabel, run, UUID_PATTERN } from '../format';
 
 export function registerHistoricalTools(server: McpServer, supabase: SupabaseClient) {
@@ -66,28 +67,36 @@ export function registerHistoricalTools(server: McpServer, supabase: SupabaseCli
           HISTORICAL_PERIODS.map(async (year) => {
             const area = await findHistoricalArea(year, point.latitude, point.longitude);
             if (!area) {
-              return { year: Number(year), found: false, note: 'Точка поза покриттям історичного шару карти.' };
+              return { [L.year]: Number(year), [L.note]: 'Точка поза покриттям історичного шару карти.' };
             }
             // Як у картці карти (HistoricalInfoCard): вищу одиницю не повторюємо,
             // якщо вона збігається з самою одиницею чи державою
             const higher =
               area.higherDivision !== area.name && area.higherDivision !== area.country ? area.higherDivision : null;
             return compact({
-              year: Number(year),
-              found: true,
-              state: area.country,
-              higher_division: higher,
-              division: area.name,
-              name_original: area.nameOriginal,
-              name_latin: area.nameLatin,
-              center: area.center,
-              existed: area.years,
-              description: area.description,
+              [L.year]: Number(year),
+              [L.state]: area.country,
+              [L.higherDivision]: higher,
+              [L.division]: area.name,
+              [L.nameOriginal]: area.nameOriginal,
+              [L.nameLatin]: area.nameLatin,
+              [L.center]: area.center,
+              [L.existed]: area.years,
+              [L.description]: area.description,
             });
           })
         );
 
-        return jsonResult(compact({ point, periods }));
+        return jsonResult(
+          compact({
+            [L.point]: {
+              [L.settlement]: point.label,
+              [L.latitude]: point.latitude,
+              [L.longitude]: point.longitude,
+            },
+            [L.periods]: periods,
+          })
+        );
       })
   );
 }

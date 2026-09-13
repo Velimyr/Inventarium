@@ -5,7 +5,9 @@ import { buildRecordSearchQuery } from '../../recordSearch';
 import { INVENTORY_TYPES } from '../../inventoryType';
 import { RECORD_SUMMARY_COLUMNS } from '../publicColumns';
 import { searchUrl } from '../links';
+import { L } from '../labels';
 import {
+  compact,
   errorResult,
   formatRecordSummary,
   isPastLastPage,
@@ -105,12 +107,18 @@ export function registerSearchTools(server: McpServer, supabase: SupabaseClient)
         const rows = must(result);
         if (args.page > 1 && (rows || []).length === 0) return pastLastPageResult(args.page);
 
-        return jsonResult({
-          ...reachablePagination(result.count ?? 0, args.page, args.limit),
-          ...(Object.keys(admin).length > 0 ? { applied_admin_filters: admin } : {}),
-          results: (rows || []).map(formatRecordSummary),
-          ...(query ? { site_search_url: searchUrl(query) } : {}),
-        });
+        return jsonResult(
+          compact({
+            ...reachablePagination(result.count ?? 0, args.page, args.limit),
+            [L.appliedAdminFilters]: {
+              [L.region]: admin.region,
+              [L.district]: admin.district,
+              [L.community]: admin.community,
+            },
+            [L.results]: (rows || []).map(formatRecordSummary),
+            [L.siteSearchUrl]: query ? searchUrl(query) : null,
+          })
+        );
       })
   );
 }

@@ -2,12 +2,14 @@
 //
 // Агент читає відповідь як текст, тож кожне порожнє поле — зайві токени й
 // привід «домислити» значення. Порожнє (null, '', [], «Немає») викидаємо, а
-// кожен запис супроводжуємо посиланням на сторінку сайту.
+// кожен запис супроводжуємо посиланням на сторінку сайту. Ключі відповідей —
+// українські підписи з lib/mcp/labels.ts, а не назви колонок.
 
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { formatAdminPath, isNamedLevel } from '../../components/keys/regionData';
 import { toSignatureList } from '../caseSignature';
 import { caseUrl, cobookProjectUrl, recordUrl, settlementUrl } from './links';
+import { L } from './labels';
 
 const isEmpty = (value: any) =>
   value === null ||
@@ -74,39 +76,42 @@ export function markType(value: any): 'місце' | 'регіон' | null {
 }
 
 const REGION_MARK_NOTE =
-  'Запис прив’язано до околиць населеного пункту: у справі можуть бути інвентарі й сусідніх населених пунктів.';
+  'регіон — запис прив’язано до околиць населеного пункту, у справі можуть бути інвентарі й сусідніх населених пунктів';
+
+/** Наявність сканів словом: у списках важить сам факт, а не адреса. */
+export const scansLabel = (url?: string | null) => (url ? 'є' : 'немає');
 
 /** Рядок списку: лише те, за чим обирають запис. */
 export function formatRecordSummary(row: any) {
   return compact({
-    id: row.id,
-    url: recordUrl(row.id),
-    settlement: currentPlaceLabel(row),
-    settlement_historical: historicalPlaceLabel(row),
-    inventory_year: row.inventory_year,
-    inventory_type: row.inventory_type,
-    case_signature: row.case_signature,
-    case_title: row.case_title,
-    has_scans: Boolean(row.scans_url),
-    mark_type: markType(row.mark_type),
+    [L.id]: row.id,
+    [L.url]: recordUrl(row.id),
+    [L.settlementCurrent]: currentPlaceLabel(row),
+    [L.settlementHistorical]: historicalPlaceLabel(row),
+    [L.inventoryYear]: row.inventory_year,
+    [L.inventoryType]: row.inventory_type,
+    [L.caseSignature]: row.case_signature,
+    [L.caseTitle]: row.case_title,
+    [L.scans]: scansLabel(row.scans_url),
+    [L.markType]: markType(row.mark_type),
   });
 }
 
 /** Поля рівня справи — однакові для всіх інвентарів одного шифру. */
 export function formatCaseFields(row: any) {
   return compact({
-    case_signature: row.case_signature,
-    case_url: row.case_signature ? caseUrl(row.case_signature) : null,
-    additional_signatures: toSignatureList(row.additional_case_signature),
-    is_ukrainian_archive: row.is_ukrainian_archive,
-    archive: row.archive,
-    fonds: row.fonds,
-    series: row.series,
-    record: row.record,
-    case_title: row.case_title,
-    case_dates: row.case_date,
-    pages_count: row.pages_count,
-    scans_url: row.scans_url,
+    [L.caseSignature]: row.case_signature,
+    [L.caseUrl]: row.case_signature ? caseUrl(row.case_signature) : null,
+    [L.additionalSignatures]: toSignatureList(row.additional_case_signature),
+    [L.ukrainianArchive]: row.is_ukrainian_archive,
+    [L.archive]: row.archive,
+    [L.fonds]: row.fonds,
+    [L.series]: row.series,
+    [L.record]: row.record,
+    [L.caseTitle]: row.case_title,
+    [L.caseDates]: row.case_date,
+    [L.pagesCount]: row.pages_count,
+    [L.scansUrl]: row.scans_url,
   });
 }
 
@@ -114,39 +119,42 @@ export function formatCaseFields(row: any) {
 export function formatRecord(row: any) {
   const mark = markType(row.mark_type);
   return compact({
-    id: row.id,
-    url: recordUrl(row.id),
-    removed_as_duplicate: row.approved === false ? true : null,
-    inventory_year: row.inventory_year,
-    inventory_type: row.inventory_type,
-    inventory_start_page: row.inventory_start_page,
-    mark_type: mark,
-    mark_type_note: mark === 'регіон' ? REGION_MARK_NOTE : null,
-    settlement: {
-      label: currentPlaceLabel(row),
-      country: row.current_country,
-      region: row.current_region,
-      district: row.current_district,
-      community: row.current_community,
-      type: row.current_settlement_type,
-      name: row.current_settlement_name,
-      url: currentSettlementUrl(row),
+    [L.id]: row.id,
+    [L.url]: recordUrl(row.id),
+    // Як банер на сторінці запису: пряме посилання на прибраний дубль лишається робочим
+    [L.warning]:
+      row.approved === false
+        ? 'Цей запис прибрано з реєстру як дубль іншого інвентаря. Він не показується в пошуку, на карті та в статистиці.'
+        : null,
+    [L.inventoryYear]: row.inventory_year,
+    [L.inventoryType]: row.inventory_type,
+    [L.inventoryStartPage]: row.inventory_start_page,
+    [L.markType]: mark === 'регіон' ? REGION_MARK_NOTE : mark,
+    [L.settlementCurrent]: {
+      [L.country]: row.current_country,
+      [L.region]: row.current_region,
+      [L.district]: row.current_district,
+      [L.community]: row.current_community,
+      [L.settlementType]: row.current_settlement_type,
+      [L.name]: row.current_settlement_name,
+      [L.settlementUrl]: currentSettlementUrl(row),
     },
-    settlement_historical: {
-      label: historicalPlaceLabel(row),
-      province: row.old_province,
-      district: row.old_district,
-      community: row.old_community,
-      type: row.old_settlement_type,
-      name: row.old_settlement_name,
+    [L.settlementHistorical]: {
+      [L.province]: row.old_province,
+      [L.oldDistrict]: row.old_district,
+      [L.oldCommunity]: row.old_community,
+      [L.settlementType]: row.old_settlement_type,
+      [L.name]: row.old_settlement_name,
     },
-    coordinates:
-      row.latitude !== null && row.longitude !== null ? { latitude: row.latitude, longitude: row.longitude } : null,
-    case: formatCaseFields(row),
-    notes: row.notes,
-    cobook: {
-      project_url: row.cobook_link ? cobookProjectUrl(row.cobook_link) : null,
-      transcript_url: row.cobook_transcript,
+    [L.coordinates]:
+      row.latitude !== null && row.longitude !== null
+        ? { [L.latitude]: row.latitude, [L.longitude]: row.longitude }
+        : null,
+    [L.caseGroup]: formatCaseFields(row),
+    [L.notes]: row.notes,
+    [L.cobook]: {
+      [L.cobookProject]: row.cobook_link ? cobookProjectUrl(row.cobook_link) : null,
+      [L.cobookTranscript]: row.cobook_transcript,
     },
   });
 }

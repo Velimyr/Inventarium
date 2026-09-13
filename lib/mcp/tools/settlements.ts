@@ -5,12 +5,19 @@ import type { FlatSettlement } from '../../../components/keys/regionData';
 import { searchKey } from '../../textSearch';
 import { loadFlatSettlements } from '../../server/publicData';
 import { settlementUrl } from '../links';
+import { L } from '../labels';
 import { rowKey } from '../../yearRows';
 import { compact, errorResult, jsonResult, must, placeLabel, run } from '../format';
 
 const SETTLEMENT_TYPES = ['село', 'селище', 'місто', 'містечко'] as const;
 
 type MatchKind = 'exact' | 'prefix' | 'substring';
+
+const MATCH_LABELS: Record<MatchKind, string> = {
+  exact: 'точна назва',
+  prefix: 'початок назви',
+  substring: 'частина назви',
+};
 
 /**
  * Кандидати за назвою: спершу точний збіг, якщо його немає — початок назви,
@@ -113,22 +120,22 @@ export function registerSettlementTools(server: McpServer, supabase: SupabaseCli
           .slice(0, args.limit);
 
         return jsonResult({
-          match: kind,
-          total_matches: matches.length,
-          candidates: top.map(({ s, count }) =>
+          [L.match]: MATCH_LABELS[kind],
+          [L.total]: matches.length,
+          [L.candidates]: top.map(({ s, count }) =>
             compact({
-              label: placeLabel(s.type, s.name, s.community, s.district, s.region, s.country),
-              name: s.name,
-              type: s.type,
-              code: s.code,
-              country: s.country,
-              region: s.region,
-              district: s.district,
-              community: s.community,
-              latitude: s.lat,
-              longitude: s.lon,
-              inventories_in_registry: count,
-              settlement_url: count > 0 ? settlementUrl(s) : null,
+              [L.settlement]: placeLabel(s.type, s.name, s.community, s.district, s.region, s.country),
+              [L.settlementCode]: s.code,
+              [L.country]: s.country,
+              [L.region]: s.region,
+              [L.district]: s.district,
+              [L.community]: s.community,
+              [L.settlementType]: s.type,
+              [L.name]: s.name,
+              [L.latitude]: s.lat,
+              [L.longitude]: s.lon,
+              [L.inventoriesInRegistry]: count,
+              [L.settlementUrl]: count > 0 ? settlementUrl(s) : null,
             })
           ),
         });

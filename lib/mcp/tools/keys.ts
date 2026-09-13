@@ -5,6 +5,7 @@ import type { KeyPoint } from '../../../components/keys/geometry';
 import { searchKey } from '../../textSearch';
 import { PUBLIC_KEY_COLUMNS } from '../publicColumns';
 import { keyUrl, settlementUrl } from '../links';
+import { L } from '../labels';
 import { compact, errorResult, jsonResult, must, placeLabel, run, UUID_PATTERN } from '../format';
 import { meaningfulChars, MIN_MEANINGFUL_CHARS } from '../filters';
 
@@ -17,9 +18,9 @@ const pointLabel = (p: Partial<KeyPoint>) =>
 
 const pointItem = (p: Partial<KeyPoint>) =>
   compact({
-    label: pointLabel(p),
-    code: p.code,
-    settlement_url: settlementUrl(p),
+    [L.settlement]: pointLabel(p),
+    [L.settlementCode]: p.code,
+    [L.settlementUrl]: settlementUrl(p),
   });
 
 const keyPoints = (key: any): Partial<KeyPoint>[] => [key.center, ...(key.points || [])].filter(Boolean);
@@ -70,24 +71,25 @@ export function registerKeyTools(server: McpServer, supabase: SupabaseClient) {
             if (!textMatch || (placeFilter && matchedPoints.length === 0)) return null;
 
             return compact({
-              id: key.id,
-              url: keyUrl(key.id),
-              name: key.name,
-              source: key.source,
-              center: key.center ? pointLabel(key.center) : null,
-              settlements_count: points.length,
-              matched_settlements: matchedPoints.map(pointLabel),
+              [L.id]: key.id,
+              [L.url]: keyUrl(key.id),
+              [L.keyName]: key.name,
+              [L.source]: key.source,
+              [L.center]: key.center ? pointLabel(key.center) : null,
+              [L.settlementsCount]: points.length,
+              [L.matchedSettlements]: matchedPoints.map(pointLabel),
             });
           })
           .filter(Boolean);
 
-        return jsonResult({
-          total: results.length,
-          keys: results.slice(0, MAX_KEY_RESULTS),
-          ...(results.length > MAX_KEY_RESULTS
-            ? { note: `Показано перші ${MAX_KEY_RESULTS} із ${results.length}. Уточніть запит.` }
-            : {}),
-        });
+        return jsonResult(
+          compact({
+            [L.total]: results.length,
+            [L.keys]: results.slice(0, MAX_KEY_RESULTS),
+            [L.note]:
+              results.length > MAX_KEY_RESULTS ? `Показано перші ${MAX_KEY_RESULTS} із ${results.length}. Уточніть запит.` : null,
+          })
+        );
       })
   );
 
@@ -110,13 +112,13 @@ export function registerKeyTools(server: McpServer, supabase: SupabaseClient) {
 
         return jsonResult(
           compact({
-            id: key.id,
-            url: keyUrl(key.id),
-            name: key.name,
-            source: key.source,
-            description: key.description,
-            center: key.center ? pointItem(key.center) : null,
-            settlements: (key.points || []).map(pointItem),
+            [L.id]: key.id,
+            [L.url]: keyUrl(key.id),
+            [L.keyName]: key.name,
+            [L.source]: key.source,
+            [L.keyDescription]: key.description,
+            [L.center]: key.center ? pointItem(key.center) : null,
+            [L.settlements]: (key.points || []).map(pointItem),
           })
         );
       })

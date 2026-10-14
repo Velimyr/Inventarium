@@ -534,6 +534,14 @@
     "full_name_ukr": "Національна бібліотека святих Кирила і Мефодія",
     "full_name_native": "Национална библиотека „Св. св. Кирил и Методий“",
     "site": "https://www.nationallibrary.bg/"
+  },
+  {
+    "id": "3f7c2a9e-6b4d-4f81-9c2e-8a1d5b7e4c66",
+    "short_name": "Biblioteka KUL",
+    "country": "Польща",
+    "full_name_ukr": "Бібліотека Університету Люблінського",
+    "full_name_native": "Biblioteka Uniwersytecka KUL",
+    "site": "https://www.kul.pl/uniwersytet/struktura-organizacyjna/biblioteka-uniwersytecka-kul"
   }
   
   
